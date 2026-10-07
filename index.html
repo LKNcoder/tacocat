@@ -1,153 +1,491 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>WebXR Hand Tracking Diagnostic</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VVIZ Drone Show Viewer</title>
   <style>
-    body { margin: 0; background: #000; overflow: hidden; font-family: monospace; }
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; overflow: hidden; background: #02040d; color: #e8efff;
+      font: 14px/1.4 system-ui, sans-serif;
+    }
+    canvas { display: block; }
+    #panel {
+      position: fixed; z-index: 2; left: 16px; top: 16px; width: min(440px, calc(100vw - 32px));
+      padding: 14px; border: 1px solid #ffffff26; border-radius: 14px;
+      background: #07101ddd; backdrop-filter: blur(12px);
+      box-shadow: 0 12px 40px #0008;
+    }
+    #title { font-weight: 700; font-size: 16px; margin-bottom: 3px; }
+    #status { color: #aebdda; font-size: 12px; margin-bottom: 10px; }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    button, label.file {
+      color: #ecf3ff; background: #172742; border: 1px solid #375077;
+      border-radius: 8px; padding: 8px 10px; cursor: pointer; font: inherit;
+    }
+    button:hover, label.file:hover { background: #22385c; }
+    input[type="range"] { width: 100%; accent-color: #70e6ff; }
+    select { color: #ecf3ff; background: #172742; border: 1px solid #375077;
+      border-radius: 8px; padding: 7px; }
+    #clock { min-width: 100px; color: #b9c8e3; font-variant-numeric: tabular-nums; }
+    #hint { color: #8fa2c3; font-size: 11px; margin-top: 9px; }
+    #file { display: none; }
+    #vr-tip {
+      position: fixed; z-index: 1; bottom: 14px; left: 50%; transform: translateX(-50%);
+      color: #b9c8e3; background: #07101dbb; padding: 7px 11px; border-radius: 8px;
+      font-size: 12px; white-space: nowrap; pointer-events: none;
+    }
+    @media (max-width: 520px) {
+      #panel { top: 8px; left: 8px; width: calc(100vw - 16px); }
+      #vr-tip { max-width: calc(100vw - 20px); white-space: normal; text-align: center; }
+    }
   </style>
   <script type="importmap">
     {
       "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
       }
     }
   </script>
 </head>
 <body>
+  <div id="panel">
+    <div id="title">VVIZ Drone Show Viewer</div>
+    <div id="status">Building the 400-drone demo…</div>
+    <div class="row">
+      <button id="play">❚❚ Pause</button>
+      <span id="clock">00:00 / 06:00</span>
+      <select id="speed" aria-label="Playback speed">
+        <option value="0.5">½×</option>
+        <option value="1" selected>1×</option>
+        <option value="2">2×</option>
+        <option value="4">4×</option>
+      </select>
+    </div>
+    <input id="seek" type="range" min="0" max="360" step="0.1" value="0">
+    <div class="row">
+      <label class="file" for="file">Load VVIZ / JSON</label>
+      <input id="file" type="file" accept=".vviz,.json,application/json">
+      <button id="download">Download demo VVIZ</button>
+    </div>
+    <div id="hint">Mouse drag: orbit · Wheel: zoom · VR button: enter headset</div>
+  </div>
+  <div id="vr-tip">In VR, face the show and look slightly upward. Use the panel before entering VR.</div>
+
   <script type="module">
-    import * as THREE from 'three';
-    import { VRButton } from 'three/addons/webxr/VRButton.js';
+    import * as THREE from "three";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+    import { VRButton } from "three/addons/webxr/VRButton.js";
 
-    // 1. Scene & Camera
+    const $ = id => document.getElementById(id);
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0a14);
+    scene.background = new THREE.Color(0x02040d);
 
-    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 10);
-    camera.position.set(0, 1.4, 0.5);
-
+    const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 500);
+    camera.position.set(0, 18, 66);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.xr.enabled = true;
     document.body.appendChild(renderer.domElement);
+    document.body.appendChild(VRButton.createButton(renderer));
 
-    // 2. Force Required Hand-Tracking Feature
-    document.body.appendChild(VRButton.createButton(renderer, {
-      requiredFeatures: ['hand-tracking', 'local-floor']
-    }));
+    const orbit = new OrbitControls(camera, renderer.domElement);
+    orbit.target.set(0, 14, 0);
+    orbit.update();
 
-    // Light
-    const light = new THREE.DirectionalLight(0xffffff, 1.5);
-    light.position.set(0, 2, 1);
-    scene.add(light);
+    scene.add(new THREE.HemisphereLight(0x9bbcff, 0x101629, 1.1));
+    const grid = new THREE.GridHelper(90, 45, 0x274064, 0x14223b);
+    grid.position.y = 0;
+    scene.add(grid);
 
-    // 3. In-VR Debug Console
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 256;
-    const ctx = canvas.getContext('2d');
-    const consoleTexture = new THREE.CanvasTexture(canvas);
-
-    const consolePlane = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.8, 0.4),
-      new THREE.MeshBasicMaterial({ map: consoleTexture, transparent: true })
-    );
-    consolePlane.position.set(0, 1.5, -0.7);
-    scene.add(consolePlane);
-
-    function log(msg) {
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(0, 0, 512, 256);
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 4;
-      ctx.strokeRect(4, 4, 504, 248);
-      ctx.fillStyle = '#38bdf8';
-      ctx.font = '20px monospace';
-      ctx.fillText('WEBXR DIAGNOSTIC CONSOLE', 20, 35);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '16px monospace';
-      
-      const lines = msg.split('\n');
-      lines.forEach((line, index) => {
-        ctx.fillText(line, 20, 75 + (index * 25));
-      });
-      consoleTexture.needsUpdate = true;
+    // A dim star field behind the show.
+    {
+      const p = [];
+      let seed = 7491;
+      const rand = () => {
+        seed = (seed * 1664525 + 1013904223) >>> 0;
+        return seed / 4294967296;
+      };
+      for (let i = 0; i < 700; i++) {
+        p.push((rand() - 0.5) * 150, rand() * 75 + 3, -35 - rand() * 90);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.Float32BufferAttribute(p, 3));
+      scene.add(new THREE.Points(g, new THREE.PointsMaterial({
+        color: 0x849ac7, size: 0.18, transparent: true, opacity: 0.55
+      })));
     }
 
-    log('Status: Standby\nClick ENTER VR to begin.');
+    // Soft point texture gives each simulated drone a glow.
+    const glowCanvas = document.createElement("canvas");
+    glowCanvas.width = glowCanvas.height = 64;
+    const ctx = glowCanvas.getContext("2d");
+    const grad = ctx.createRadialGradient(32, 32, 1, 32, 32, 32);
+    grad.addColorStop(0, "rgba(255,255,255,1)");
+    grad.addColorStop(0.18, "rgba(255,255,255,.9)");
+    grad.addColorStop(0.5, "rgba(255,255,255,.25)");
+    grad.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 64, 64);
+    const glow = new THREE.CanvasTexture(glowCanvas);
 
-    // 4. Target Blue Ball
-    const target = new THREE.Mesh(
-      new THREE.SphereGeometry(0.06, 16, 16),
-      new THREE.MeshStandardMaterial({ color: 0x3b82f6 })
-    );
-    target.position.set(0, 1.2, -0.4);
-    scene.add(target);
+    const droneGeometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(400 * 3);
+    const colors = new Float32Array(400 * 3);
+    droneGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    droneGeometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    const dronePoints = new THREE.Points(droneGeometry, new THREE.PointsMaterial({
+      size: 1.05, map: glow, vertexColors: true, transparent: true,
+      blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true
+    }));
+    scene.add(dronePoints);
 
-    // 5. Hand Joint Visualizers (Procedural Boxes)
-    const jointGeo = new THREE.BoxGeometry(0.015, 0.015, 0.015);
-    const jointMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc });
-
-    const handVisualizers = [
-      { hand: renderer.xr.getHand(0), boxes: {} },
-      { hand: renderer.xr.getHand(1), boxes: {} }
+    const PALETTES = [
+      [0x24d9ff, 0x76f4ff, 0x4a8dff], // celestial rings
+      [0xff6b35, 0xffc857, 0x8cecff], // comet
+      [0xff6ad5, 0xb56cff, 0x58d9ff], // butterfly
+      [0xff3158, 0xff8b9b, 0xffdce3], // heart
+      [0x56d9ff, 0x8b79ff, 0xffd166], // Saturn
+      [0x3bf0d0, 0x4ca8ff, 0xc5fff5], // waves
+      [0xff68c5, 0xffd166, 0x74f2dd], // flower
+      [0x75e6ff, 0x438dff, 0xd7f8ff], // whale
+      [0x9b70ff, 0x44d9ff, 0xff6bc9], // galaxy
+      [0x39e58c, 0xa6ff70, 0xffd166], // tree
+      [0xffdb64, 0xff7d4d, 0x76dcff], // starburst
+      [0xfff2a1, 0x6cecff, 0xff66d9]  // finale
     ];
+    const TITLES = [
+      "Celestial Rings", "Comet Across the Sky", "The Butterfly",
+      "A Beating Heart", "Saturn's Garden", "Ocean of Light",
+      "Bloom", "The Sky Whale", "Spiral Galaxy", "The Luminous Tree",
+      "Supernova", "Cosmic Garden Finale"
+    ];
+    const SHOW_SECONDS = 360, SCENE_SECONDS = 30, SAMPLE_SECONDS = 5;
+    const GOLDEN = Math.PI * (3 - Math.sqrt(5));
+    const fract = x => x - Math.floor(x);
+    const hash = n => fract(Math.sin(n * 127.1 + 311.7) * 43758.5453);
 
-    handVisualizers.forEach(({ hand, boxes }) => {
-      scene.add(hand);
-      
-      hand.addEventListener('connected', (e) => {
-        log(`Hand Connected!\nInput Source: ${e.data.hand ? 'XRHand API Active' : 'Controller'}`);
-      });
+    function shape(s, i, n) {
+      const u = (i + 0.5) / n, a = i * GOLDEN;
+      const rnd = hash(i + s * 701);
+      let x = 0, y = 14, z = (hash(i * 19 + s * 313) - 0.5) * 2.8;
 
-      hand.addEventListener('disconnected', () => {
-        log('Status: Hand Disconnected');
-      });
+      if (s === 0) { // nested celestial rings
+        const band = i % 4, r = [5, 9, 13, 17][band] + (rnd - 0.5) * 0.5;
+        x = r * Math.cos(a); y += r * Math.sin(a);
+      } else if (s === 1) { // comet with a broad, tapering tail
+        x = -23 + 45 * u;
+        y += (rnd - 0.5) * (1 - u) * 13 + 2 * Math.sin(u * 5);
+      } else if (s === 2) { // butterfly curve
+        const t = u * Math.PI * 12;
+        const q = Math.exp(Math.cos(t)) - 2 * Math.cos(4 * t) - Math.pow(Math.sin(t / 12), 5);
+        x = 4.3 * Math.sin(t) * q;
+        y += 4.3 * Math.cos(t) * q;
+      } else if (s === 3 || s === 11 && u < 0.78) { // filled heart
+        const t = a, r = Math.sqrt(u) * 0.88;
+        x = 0.85 * r * 16 * Math.pow(Math.sin(t), 3);
+        y += 0.72 * r * (13 * Math.cos(t) - 5 * Math.cos(2*t) -
+          2 * Math.cos(3*t) - Math.cos(4*t));
+      } else if (s === 4) { // Saturn and its rings
+        if (u < 0.25) {
+          const rr = 6 * Math.sqrt(u / 0.25);
+          x = rr * Math.cos(a); y += rr * Math.sin(a);
+        } else {
+          const rr = 8 + 10 * hash(i * 3);
+          x = rr * Math.cos(a); y += rr * 0.36 * Math.sin(a);
+        }
+      } else if (s === 5) { // rolling wave bands
+        x = -23 + 46 * u;
+        y += 7 * Math.sin(x * 0.22) + 3.4 * Math.sin(x * 0.48 + 1.1) +
+          (rnd - 0.5) * 1.7;
+      } else if (s === 6) { // flower petals
+        const rr = Math.sqrt(u) * (10 + 5 * Math.cos(6 * a));
+        x = rr * Math.cos(a); y += rr * Math.sin(a);
+      } else if (s === 7) { // whale body and tail flukes
+        if (u < 0.78) {
+          const rr = Math.sqrt(u / 0.78), t = a;
+          x = 2 + 15 * rr * Math.cos(t);
+          y += 6.4 * rr * Math.sin(t);
+        } else {
+          const q = (u - 0.78) / 0.22;
+          x = -13 - q * 7;
+          y += (q < 0.5 ? q * 18 : (1 - q) * 18) - 4;
+        }
+      } else if (s === 8) { // three-arm spiral galaxy
+        const arm = i % 3, rr = 1.2 + 20 * u;
+        const t = a * 0.5 + arm * Math.PI * 2 / 3;
+        x = rr * Math.cos(t) + (rnd - 0.5) * 1.2;
+        y += rr * Math.sin(t) * 0.66 + (rnd - 0.5) * 1.2;
+      } else if (s === 9) { // tree canopy and trunk
+        if (u < 0.86) {
+          const q = u / 0.86;
+          y += -9 + 23 * Math.sqrt(q);
+          const halfWidth = Math.max(0.5, (1 - q) * 12);
+          x = (rnd * 2 - 1) * halfWidth;
+        } else {
+          x = (rnd - 0.5) * 4;
+          y += -12 + hash(i * 7) * 8;
+        }
+      } else if (s === 10) { // radiating starburst
+        const ray = i % 12, t = ray * Math.PI / 6;
+        const rr = 2 + 21 * u;
+        x = rr * Math.cos(t) + (rnd - 0.5) * 0.65;
+        y += rr * Math.sin(t) + (hash(i * 9) - 0.5) * 0.65;
+      } else { // heart surrounded by a constellation ring
+        const q = (u - 0.78) / 0.22;
+        const rr = 19 + (hash(i * 5) - 0.5) * 1.4;
+        x = rr * Math.cos(a); y += rr * 0.58 * Math.sin(a);
+      }
+      return [x, y, z];
+    }
+
+    function demoPosition(seconds, i, n) {
+      const f = Math.min(11, seconds / SCENE_SECONDS);
+      const s = Math.floor(f), blend = f - s;
+      const eased = blend * blend * (3 - 2 * blend);
+      const p = shape(s, i, n);
+      if (s < 11) {
+        const q = shape(s + 1, i, n);
+        return p.map((v, k) => v + (q[k] - v) * eased);
+      }
+      return p;
+    }
+
+    function makeDemo() {
+      const performances = [];
+      for (let i = 0; i < 400; i++) {
+        const home = demoPosition(0, i, 400);
+        const traversal = [];
+        let prev = home;
+        for (let t = SAMPLE_SECONDS; t <= SHOW_SECONDS; t += SAMPLE_SECONDS) {
+          const p = demoPosition(t, i, 400);
+          traversal.push({
+            dt: SAMPLE_SECONDS, dx: p[0] - prev[0],
+            dy: p[1] - prev[1], dz: p[2] - prev[2], dh: 0
+          });
+          prev = p;
+        }
+        const payloadActions = PALETTES.map(pal => {
+          const c = new THREE.Color(pal[i % pal.length]);
+          return {
+            r: Math.round(c.r * 255), g: Math.round(c.g * 255),
+            b: Math.round(c.b * 255), frames: SCENE_SECONDS
+          };
+        });
+        performances.push({
+          id: i,
+          agentDescription: {
+            homeX: home[0], homeY: home[1], homeZ: home[2], homeH: 0,
+            airframe: "VisualizationOnly",
+            agentTraversal: traversal
+          },
+          payloadDescription: [{
+            id: 0, type: "Light", colorType: "RGB",
+            sourceType: "Dome", payloadActions
+          }]
+        });
+      }
+      return {
+        version: "1.0", performanceName: "Cosmic Garden — 400 drones, 6 minutes",
+        coordinateFrame: "ogl", defaultPositionRate: 1,
+        defaultColorRate: 1, timeOffsetSecs: 0,
+        eventTags: TITLES.map((name, i) => ({
+          time: i * SCENE_SECONDS, tagType: "Scene", tagID: name
+        })),
+        performances
+      };
+    }
+
+    function readAgent(perf, offset, positionRate, colorRate) {
+      const a = perf.agentDescription || {};
+      let x = Number(a.homeX) || 0, y = Number(a.homeY) || 0, z = Number(a.homeZ) || 0;
+      const path = [{ t: offset, p: [x, y, z] }];
+      let t = offset;
+      for (const step of a.agentTraversal || []) {
+        t += Number(step.dt) || 1 / positionRate;
+        x += Number(step.dx) || 0;
+        y += Number(step.dy) || 0;
+        z += Number(step.dz) || 0;
+        path.push({ t, p: [x, y, z] });
+      }
+      const colors = [];
+      for (const payload of perf.payloadDescription || []) {
+        if (payload.type !== "Light") continue;
+        let ct = offset;
+        for (const action of payload.payloadActions || []) {
+          if (action.r !== undefined || action.g !== undefined || action.b !== undefined) {
+            colors.push({
+              t: ct,
+              c: [action.r || 0, action.g || 0, action.b || 0]
+            });
+          }
+          ct += (Number(action.frames) || 1) / colorRate;
+        }
+        if (colors.length) break;
+      }
+      return { path, colors: colors.length ? colors : [{ t: offset, c: [220, 235, 255] }] };
+    }
+
+    function atPath(path, t) {
+      if (t <= path[0].t) return path[0].p;
+      let lo = 0, hi = path.length - 1;
+      while (lo + 1 < hi) {
+        const m = (lo + hi) >> 1;
+        if (path[m].t <= t) lo = m; else hi = m;
+      }
+      const a = path[lo], b = path[hi];
+      const q = b.t === a.t ? 0 : (t - a.t) / (b.t - a.t);
+      return a.p.map((v, k) => v + (b.p[k] - v) * q);
+    }
+
+    function atColor(colors, t) {
+      let c = colors[0].c;
+      for (let i = 1; i < colors.length && colors[i].t <= t; i++) c = colors[i].c;
+      return c;
+    }
+
+    function srgbToLinear(v) {
+      v = Math.max(0, Math.min(1, v / 255));
+      return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    }
+
+    let agents = [], showStart = 0, showEnd = 360, time = 0, playing = true;
+    let activeShow = null;
+    const seek = $("seek");
+
+    function loadShow(data, label) {
+      if (!data || !Array.isArray(data.performances)) {
+        throw new Error("That file doesn't contain a VVIZ performances array.");
+      }
+      const offset = Number(data.timeOffsetSecs) || 0;
+      const pr = Number(data.defaultPositionRate) || 1;
+      const cr = Number(data.defaultColorRate) || 1;
+      agents = data.performances.map(p => readAgent(p, offset, pr, cr));
+      if (!agents.length) throw new Error("No drone performances found in that VVIZ file.");
+
+      showStart = Math.min(...agents.map(a => a.path[0].t));
+      showEnd = Math.max(...agents.map(a => a.path.at(-1).t));
+      if (!(showEnd > showStart)) showEnd = showStart + 1;
+      time = showStart;
+      playing = true;
+      activeShow = data;
+      seek.min = showStart;
+      seek.max = showEnd;
+      seek.value = time;
+      $("title").textContent = data.performanceName || label || "VVIZ Show";
+      $("status").textContent = `${agents.length} drones · ${formatTime(showEnd - showStart)} · visualization`;
+      $("play").textContent = "❚❚ Pause";
+      drawAt(time);
+    }
+
+    function drawAt(t) {
+      for (let i = 0; i < agents.length; i++) {
+        const p = atPath(agents[i].path, t);
+        positions[i * 3] = p[0];
+        positions[i * 3 + 1] = p[1];
+        positions[i * 3 + 2] = p[2];
+        const c = atColor(agents[i].colors, t);
+        colors[i * 3] = srgbToLinear(c[0]);
+        colors[i * 3 + 1] = srgbToLinear(c[1]);
+        colors[i * 3 + 2] = srgbToLinear(c[2]);
+      }
+      droneGeometry.attributes.position.needsUpdate = true;
+      droneGeometry.attributes.color.needsUpdate = true;
+
+      seek.value = t;
+      $("clock").textContent = `${formatTime(t - showStart)} / ${formatTime(showEnd - showStart)}`;
+      const tags = activeShow?.eventTags || [];
+      let tag = null;
+      for (const e of tags) if (Number(e.time) <= t - showStart) tag = e;
+      if (tag?.tagID) $("hint").textContent = `Now: ${tag.tagID} · Mouse drag: orbit · Wheel: zoom`;
+    }
+
+    function formatTime(sec) {
+      sec = Math.max(0, Math.floor(sec));
+      return `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
+    }
+
+    $("play").onclick = () => {
+      playing = !playing;
+      $("play").textContent = playing ? "❚❚ Pause" : "▶ Play";
+    };
+    $("speed").onchange = () => {};
+    seek.addEventListener("input", () => {
+      time = Number(seek.value);
+      drawAt(time);
     });
 
-    // 6. Main Loop
-    let frameCount = 0;
-    renderer.setAnimationLoop(() => {
-      frameCount++;
-      let activeJointsCount = 0;
-
-      handVisualizers.forEach(({ hand, boxes }, handIdx) => {
-        if (hand.joints) {
-          // Iterate over joint keys in XRHand
-          Object.keys(hand.joints).forEach((jointName) => {
-            const joint = hand.joints[jointName];
-
-            if (joint && joint.visible) {
-              activeJointsCount++;
-
-              // Create box on-the-fly if not built yet
-              if (!boxes[jointName]) {
-                const box = new THREE.Mesh(jointGeo, jointMat);
-                scene.add(box);
-                boxes[jointName] = box;
-              }
-
-              // Copy joint transform directly
-              boxes[jointName].position.setFromMatrixPosition(joint.matrixWorld);
-              boxes[jointName].visible = true;
-            } else if (boxes[jointName]) {
-              boxes[jointName].visible = false;
-            }
-          });
-        }
-      });
-
-      if (renderer.xr.isPresenting) {
-        if (activeJointsCount > 0) {
-          log(`STATUS: TRACKING ACTIVE!\nActive Hand Joints: ${activeJointsCount}\nRender Loop: ${frameCount}`);
-        } else {
-          log(`STATUS: VR Active, but NO joints.\nControllers sleeping? YES\nCheck Quest Settings -> Hand Tracking.`);
-        }
+    $("file").addEventListener("change", async e => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const data = JSON.parse(await file.text());
+        loadShow(data, file.name);
+      } catch (err) {
+        alert(`Couldn't load that file: ${err.message}`);
       }
+      e.target.value = "";
+    });
 
+    $("download").onclick = () => {
+      const data = makeDemo();
+      const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "cosmic-garden-400-drones-6min.vviz";
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    // Put the VR viewer at a human-height viewpoint; restore desktop orbit view afterward.
+    let desktopPosition = camera.position.clone();
+    renderer.xr.addEventListener("sessionstart", () => {
+      desktopPosition.copy(camera.position);
+      orbit.enabled = false;
+      camera.position.set(0, 1.6, 58);
+      camera.lookAt(0, 1.6, 0);
+    });
+    renderer.xr.addEventListener("sessionend", () => {
+      camera.position.copy(desktopPosition);
+      orbit.enabled = true;
+      orbit.target.set(0, 14, 0);
+      orbit.update();
+    });
+
+    let previous = performance.now();
+    renderer.setAnimationLoop(now => {
+      const dt = Math.min(0.05, (now - previous) / 1000);
+      previous = now;
+      if (playing && agents.length) {
+        time += dt * Number($("speed").value);
+        if (time >= showEnd) {
+          time = showEnd;
+          playing = false;
+          $("play").textContent = "▶ Play";
+        }
+        drawAt(time);
+      }
+      if (!renderer.xr.isPresenting) orbit.update();
       renderer.render(scene, camera);
     });
+
+    addEventListener("resize", () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+
+    try {
+      loadShow(makeDemo(), "Cosmic Garden");
+    } catch (err) {
+      $("status").textContent = err.message;
+    }
   </script>
 </body>
 </html>
