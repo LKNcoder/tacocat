@@ -113,6 +113,12 @@
       pointer-events: none;
     }
 
+    body.xr-active #panel,
+    body.xr-active #vr-tip,
+    body.xr-active #VRButton {
+      display: none !important;
+    }
+
     @media (max-width: 520px) {
       #panel {
         top: 8px;
@@ -169,8 +175,7 @@
   </div>
 
   <div id="vr-tip">
-    In VR, use the left thumbstick to move and the right thumbstick to snap turn.
-    Face the show and look slightly upward.
+    In VR, press the left-controller X button to open the control panel.
   </div>
 
   <script type="module">
@@ -190,7 +195,6 @@
       500
     );
 
-    // Desktop starting position.
     camera.position.set(0, 18, 66);
 
     const renderer = new THREE.WebGLRenderer({
@@ -206,56 +210,92 @@
     document.body.appendChild(VRButton.createButton(renderer));
 
     /*
-     * The XR rig is the player's virtual body/location.
-     * We move and rotate this group instead of trying to move the
-     * WebXR-controlled camera directly.
+     * XR player rig
      */
     const xrRig = new THREE.Group();
     scene.add(xrRig);
     xrRig.add(camera);
 
-    const orbit = new OrbitControls(camera, renderer.domElement);
+    const orbit = new OrbitControls(
+      camera,
+      renderer.domElement
+    );
+
     orbit.target.set(0, 14, 0);
     orbit.update();
 
     /*
-     * VR controller setup
+     * VR controller input
      */
-    const vrControllers = [
-      renderer.xr.getController(0),
-      renderer.xr.getController(1)
-    ];
+    const leftController =
+      renderer.xr.getController(0);
+
+    const rightController =
+      renderer.xr.getController(1);
+
+    scene.add(leftController);
+    scene.add(rightController);
 
     const vrInput = {
       left: null,
       right: null
     };
 
-    for (const controller of vrControllers) {
-      controller.addEventListener("connected", event => {
-        const source = event.data;
+    leftController.addEventListener(
+      "connected",
+      event => {
+        vrInput.left = event.data;
+      }
+    );
 
-        if (source.handedness === "left") {
-          vrInput.left = source;
-        }
+    leftController.addEventListener(
+      "disconnected",
+      () => {
+        vrInput.left = null;
+      }
+    );
 
-        if (source.handedness === "right") {
-          vrInput.right = source;
-        }
-      });
+    rightController.addEventListener(
+      "connected",
+      event => {
+        vrInput.right = event.data;
+      }
+    );
 
-      controller.addEventListener("disconnected", event => {
-        const source = event.data;
+    rightController.addEventListener(
+      "disconnected",
+      () => {
+        vrInput.right = null;
+      }
+    );
 
-        if (source.handedness === "left" && vrInput.left === source) {
-          vrInput.left = null;
-        }
+    function addControllerRay(controller) {
+      const rayGeometry =
+        new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(0, 0, 0),
+          new THREE.Vector3(0, 0, -1)
+        ]);
 
-        if (source.handedness === "right" && vrInput.right === source) {
-          vrInput.right = null;
-        }
-      });
+      const rayMaterial =
+        new THREE.LineBasicMaterial({
+          color: 0x70e6ff,
+          transparent: true,
+          opacity: 0.65
+        });
+
+      const ray = new THREE.Line(
+        rayGeometry,
+        rayMaterial
+      );
+
+      ray.name = "VR Controller Ray";
+      ray.scale.z = 3;
+
+      controller.add(ray);
     }
+
+    addControllerRay(leftController);
+    addControllerRay(rightController);
 
     function getStick(source) {
       if (!source || !source.gamepad) {
@@ -263,11 +303,6 @@
       }
 
       const axes = source.gamepad.axes || [];
-
-      /*
-       * Most VR controllers expose the thumbstick on axes 2 and 3.
-       * Some devices expose it on axes 0 and 1.
-       */
       const offset = axes.length >= 4 ? 2 : 0;
 
       let x = axes[offset] || 0;
@@ -288,14 +323,14 @@
         return;
       }
 
-      const leftStick = getStick(vrInput.left);
-      const rightStick = getStick(vrInput.right);
+      const leftStick =
+        getStick(vrInput.left);
 
-      /*
-       * Get the direction the headset is facing.
-       * Ignore looking up/down so movement stays level.
-       */
+      const rightStick =
+        getStick(vrInput.right);
+
       const forward = new THREE.Vector3();
+
       camera.getWorldDirection(forward);
       forward.y = 0;
 
@@ -305,25 +340,26 @@
 
       forward.normalize();
 
-      /*
-       * Calculate a horizontal vector pointing to the player's right.
-       */
       const right = new THREE.Vector3()
-        .crossVectors(forward, new THREE.Vector3(0, 1, 0))
+        .crossVectors(
+          forward,
+          new THREE.Vector3(0, 1, 0)
+        )
         .normalize();
 
-      /*
-       * Left thumbstick locomotion.
-       * Pushing forward generally produces a negative Y axis value.
-       */
       const movement = new THREE.Vector3()
-        .addScaledVector(forward, -leftStick.y)
-        .addScaledVector(right, leftStick.x);
+        .addScaledVector(
+          forward,
+          -leftStick.y
+        )
+        .addScaledVector(
+          right,
+          leftStick.x
+        );
 
       if (movement.lengthSq() > 0) {
         movement.normalize();
 
-        // Virtual meters per second.
         const moveSpeed = 5;
 
         xrRig.position.addScaledVector(
@@ -332,9 +368,6 @@
         );
       }
 
-      /*
-       * Right thumbstick snap turning.
-       */
       snapTurnCooldown -= dt;
 
       if (
@@ -352,7 +385,7 @@
     }
 
     /*
-     * Lighting and environment
+     * Environment
      */
     scene.add(
       new THREE.HemisphereLight(
@@ -373,14 +406,16 @@
     scene.add(grid);
 
     /*
-     * Dim star field behind the show.
+     * Star field
      */
     {
       const points = [];
       let seed = 7491;
 
       const random = () => {
-        seed = (seed * 1664525 + 1013904223) >>> 0;
+        seed =
+          (seed * 1664525 + 1013904223) >>> 0;
+
         return seed / 4294967296;
       };
 
@@ -392,11 +427,15 @@
         );
       }
 
-      const geometry = new THREE.BufferGeometry();
+      const geometry =
+        new THREE.BufferGeometry();
 
       geometry.setAttribute(
         "position",
-        new THREE.Float32BufferAttribute(points, 3)
+        new THREE.Float32BufferAttribute(
+          points,
+          3
+        )
       );
 
       scene.add(
@@ -413,61 +452,104 @@
     }
 
     /*
-     * Soft point texture gives each simulated drone a glow.
+     * Drone glow texture
      */
-    const glowCanvas = document.createElement("canvas");
-    glowCanvas.width = glowCanvas.height = 64;
+    const glowCanvas =
+      document.createElement("canvas");
 
-    const glowContext = glowCanvas.getContext("2d");
+    glowCanvas.width = 64;
+    glowCanvas.height = 64;
 
-    const gradient = glowContext.createRadialGradient(
-      32,
-      32,
-      1,
-      32,
-      32,
-      32
+    const glowContext =
+      glowCanvas.getContext("2d");
+
+    const gradient =
+      glowContext.createRadialGradient(
+        32,
+        32,
+        1,
+        32,
+        32,
+        32
+      );
+
+    gradient.addColorStop(
+      0,
+      "rgba(255,255,255,1)"
     );
 
-    gradient.addColorStop(0, "rgba(255,255,255,1)");
-    gradient.addColorStop(0.18, "rgba(255,255,255,.9)");
-    gradient.addColorStop(0.5, "rgba(255,255,255,.25)");
-    gradient.addColorStop(1, "rgba(255,255,255,0)");
+    gradient.addColorStop(
+      0.18,
+      "rgba(255,255,255,.9)"
+    );
+
+    gradient.addColorStop(
+      0.5,
+      "rgba(255,255,255,.25)"
+    );
+
+    gradient.addColorStop(
+      1,
+      "rgba(255,255,255,0)"
+    );
 
     glowContext.fillStyle = gradient;
     glowContext.fillRect(0, 0, 64, 64);
 
-    const glow = new THREE.CanvasTexture(glowCanvas);
+    const glow =
+      new THREE.CanvasTexture(glowCanvas);
+
+    glow.colorSpace = THREE.SRGBColorSpace;
+    glow.needsUpdate = true;
 
     /*
      * Drone point cloud
+     *
+     * The original size was 1.05.
+     * This is now approximately 50% smaller.
      */
-    const droneGeometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(400 * 3);
-    const colors = new Float32Array(400 * 3);
+    const droneGeometry =
+      new THREE.BufferGeometry();
+
+    const positions =
+      new Float32Array(400 * 3);
+
+    const colors =
+      new Float32Array(400 * 3);
 
     droneGeometry.setAttribute(
       "position",
-      new THREE.BufferAttribute(positions, 3)
+      new THREE.BufferAttribute(
+        positions,
+        3
+      )
     );
 
     droneGeometry.setAttribute(
       "color",
-      new THREE.BufferAttribute(colors, 3)
+      new THREE.BufferAttribute(
+        colors,
+        3
+      )
     );
 
-    const dronePoints = new THREE.Points(
-      droneGeometry,
-      new THREE.PointsMaterial({
-        size: 1.05,
-        map: glow,
-        vertexColors: true,
-        transparent: true,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        sizeAttenuation: true
-      })
-    );
+    const dronePoints =
+      new THREE.Points(
+        droneGeometry,
+        new THREE.PointsMaterial({
+          size: 0.525,
+          map: glow,
+          vertexColors: true,
+
+          transparent: true,
+          alphaTest: 0.08,
+
+          blending: THREE.AdditiveBlending,
+          depthTest: true,
+          depthWrite: false,
+          sizeAttenuation: true
+        })
+      );
 
     scene.add(dronePoints);
 
@@ -505,26 +587,35 @@
     const SCENE_SECONDS = 30;
     const SAMPLE_SECONDS = 5;
 
-    const GOLDEN = Math.PI * (3 - Math.sqrt(5));
+    const GOLDEN =
+      Math.PI * (3 - Math.sqrt(5));
 
-    const fract = value => value - Math.floor(value);
+    const fract = value =>
+      value - Math.floor(value);
 
     const hash = value =>
-      fract(Math.sin(value * 127.1 + 311.7) * 43758.5453);
+      fract(
+        Math.sin(value * 127.1 + 311.7) *
+        43758.5453
+      );
 
     function shape(sceneIndex, index, count) {
       const u = (index + 0.5) / count;
       const angle = index * GOLDEN;
-      const random = hash(index + sceneIndex * 701);
+      const random =
+        hash(index + sceneIndex * 701);
 
       let x = 0;
       let y = 14;
+
       let z =
-        (hash(index * 19 + sceneIndex * 313) - 0.5) * 2.8;
+        (hash(index * 19 + sceneIndex * 313) -
+          0.5) *
+        2.8;
 
       if (sceneIndex === 0) {
-        // Nested celestial rings
         const band = index % 4;
+
         const radius =
           [5, 9, 13, 17][band] +
           (random - 0.5) * 0.5;
@@ -532,14 +623,16 @@
         x = radius * Math.cos(angle);
         y += radius * Math.sin(angle);
       } else if (sceneIndex === 1) {
-        // Comet with a broad, tapering tail
         x = -23 + 45 * u;
+
         y +=
-          (random - 0.5) * (1 - u) * 13 +
+          (random - 0.5) *
+            (1 - u) *
+            13 +
           2 * Math.sin(u * 5);
       } else if (sceneIndex === 2) {
-        // Butterfly curve
         const t = u * Math.PI * 12;
+
         const q =
           Math.exp(Math.cos(t)) -
           2 * Math.cos(4 * t) -
@@ -551,7 +644,6 @@
         sceneIndex === 3 ||
         (sceneIndex === 11 && u < 0.78)
       ) {
-        // Filled heart
         const t = angle;
         const radius = Math.sqrt(u) * 0.88;
 
@@ -571,20 +663,23 @@
             Math.cos(4 * t)
           );
       } else if (sceneIndex === 4) {
-        // Saturn and its rings
         if (u < 0.25) {
-          const radius = 6 * Math.sqrt(u / 0.25);
+          const radius =
+            6 * Math.sqrt(u / 0.25);
 
           x = radius * Math.cos(angle);
           y += radius * Math.sin(angle);
         } else {
-          const radius = 8 + 10 * hash(index * 3);
+          const radius =
+            8 + 10 * hash(index * 3);
 
           x = radius * Math.cos(angle);
-          y += radius * 0.36 * Math.sin(angle);
+          y +=
+            radius *
+            0.36 *
+            Math.sin(angle);
         }
       } else if (sceneIndex === 5) {
-        // Rolling wave bands
         x = -23 + 46 * u;
 
         y +=
@@ -592,7 +687,6 @@
           3.4 * Math.sin(x * 0.48 + 1.1) +
           (random - 0.5) * 1.7;
       } else if (sceneIndex === 6) {
-        // Flower petals
         const radius =
           Math.sqrt(u) *
           (10 + 5 * Math.cos(6 * angle));
@@ -600,24 +694,34 @@
         x = radius * Math.cos(angle);
         y += radius * Math.sin(angle);
       } else if (sceneIndex === 7) {
-        // Whale body and tail flukes
         if (u < 0.78) {
           const radius = Math.sqrt(u / 0.78);
-          const t = angle;
 
-          x = 2 + 15 * radius * Math.cos(t);
-          y += 6.4 * radius * Math.sin(t);
+          x =
+            2 +
+            15 *
+              radius *
+              Math.cos(angle);
+
+          y +=
+            6.4 *
+            radius *
+            Math.sin(angle);
         } else {
           const q = (u - 0.78) / 0.22;
 
           x = -13 - q * 7;
+
           y +=
-            (q < 0.5 ? q * 18 : (1 - q) * 18) - 4;
+            (q < 0.5
+              ? q * 18
+              : (1 - q) * 18) -
+            4;
         }
       } else if (sceneIndex === 8) {
-        // Three-arm spiral galaxy
         const arm = index % 3;
         const radius = 1.2 + 20 * u;
+
         const t =
           angle * 0.5 +
           arm * Math.PI * 2 / 3;
@@ -630,22 +734,31 @@
           radius * Math.sin(t) * 0.66 +
           (random - 0.5) * 1.2;
       } else if (sceneIndex === 9) {
-        // Tree canopy and trunk
         if (u < 0.86) {
           const q = u / 0.86;
 
-          y += -9 + 23 * Math.sqrt(q);
+          y +=
+            -9 +
+            23 *
+              Math.sqrt(q);
 
           const halfWidth =
-            Math.max(0.5, (1 - q) * 12);
+            Math.max(
+              0.5,
+              (1 - q) * 12
+            );
 
-          x = (random * 2 - 1) * halfWidth;
+          x =
+            (random * 2 - 1) *
+            halfWidth;
         } else {
           x = (random - 0.5) * 4;
-          y += -12 + hash(index * 7) * 8;
+
+          y +=
+            -12 +
+            hash(index * 7) * 8;
         }
       } else if (sceneIndex === 10) {
-        // Radiating starburst
         const ray = index % 12;
         const t = ray * Math.PI / 6;
         const radius = 2 + 21 * u;
@@ -656,15 +769,19 @@
 
         y +=
           radius * Math.sin(t) +
-          (hash(index * 9) - 0.5) * 0.65;
+          (hash(index * 9) - 0.5) *
+            0.65;
       } else {
-        // Finale constellation ring
-        const q = (u - 0.78) / 0.22;
         const radius =
-          19 + (hash(index * 5) - 0.5) * 1.4;
+          19 +
+          (hash(index * 5) - 0.5) *
+            1.4;
 
         x = radius * Math.cos(angle);
-        y += radius * 0.58 * Math.sin(angle);
+        y +=
+          radius *
+          0.58 *
+          Math.sin(angle);
       }
 
       return [x, y, z];
@@ -676,31 +793,29 @@
         seconds / SCENE_SECONDS
       );
 
-      const sceneIndex = Math.floor(progress);
-      const blend = progress - sceneIndex;
+      const sceneIndex =
+        Math.floor(progress);
+
+      const blend =
+        progress - sceneIndex;
 
       const eased =
         blend *
         blend *
         (3 - 2 * blend);
 
-      const first = shape(
-        sceneIndex,
-        index,
-        count
-      );
+      const first =
+        shape(sceneIndex, index, count);
 
       if (sceneIndex < 11) {
-        const second = shape(
-          sceneIndex + 1,
-          index,
-          count
-        );
+        const second =
+          shape(sceneIndex + 1, index, count);
 
         return first.map(
           (value, component) =>
             value +
-            (second[component] - value) * eased
+            (second[component] - value) *
+            eased
         );
       }
 
@@ -711,9 +826,10 @@
       const performances = [];
 
       for (let i = 0; i < 400; i++) {
-        const home = demoPosition(0, i, 400);
-        const traversal = [];
+        const home =
+          demoPosition(0, i, 400);
 
+        const traversal = [];
         let previous = home;
 
         for (
@@ -721,11 +837,8 @@
           seconds <= SHOW_SECONDS;
           seconds += SAMPLE_SECONDS
         ) {
-          const position = demoPosition(
-            seconds,
-            i,
-            400
-          );
+          const position =
+            demoPosition(seconds, i, 400);
 
           traversal.push({
             dt: SAMPLE_SECONDS,
@@ -738,18 +851,20 @@
           previous = position;
         }
 
-        const payloadActions = PALETTES.map(palette => {
-          const color = new THREE.Color(
-            palette[i % palette.length]
-          );
+        const payloadActions =
+          PALETTES.map(palette => {
+            const color =
+              new THREE.Color(
+                palette[i % palette.length]
+              );
 
-          return {
-            r: Math.round(color.r * 255),
-            g: Math.round(color.g * 255),
-            b: Math.round(color.b * 255),
-            frames: SCENE_SECONDS
-          };
-        });
+            return {
+              r: Math.round(color.r * 255),
+              g: Math.round(color.g * 255),
+              b: Math.round(color.b * 255),
+              frames: SCENE_SECONDS
+            };
+          });
 
         performances.push({
           id: i,
@@ -784,11 +899,13 @@
         defaultColorRate: 1,
         timeOffsetSecs: 0,
 
-        eventTags: TITLES.map((name, index) => ({
-          time: index * SCENE_SECONDS,
-          tagType: "Scene",
-          tagID: name
-        })),
+        eventTags: TITLES.map(
+          (name, index) => ({
+            time: index * SCENE_SECONDS,
+            tagType: "Scene",
+            tagID: name
+          })
+        ),
 
         performances
       };
@@ -816,7 +933,9 @@
 
       let time = offset;
 
-      for (const step of agent.agentTraversal || []) {
+      for (
+        const step of agent.agentTraversal || []
+      ) {
         time +=
           Number(step.dt) ||
           1 / positionRate;
@@ -834,7 +953,8 @@
       const colorTimeline = [];
 
       for (
-        const payload of performance.payloadDescription || []
+        const payload of
+        performance.payloadDescription || []
       ) {
         if (payload.type !== "Light") {
           continue;
@@ -843,7 +963,8 @@
         let colorTime = offset;
 
         for (
-          const action of payload.payloadActions || []
+          const action of
+          payload.payloadActions || []
         ) {
           if (
             action.r !== undefined ||
@@ -892,7 +1013,8 @@
       let high = path.length - 1;
 
       while (low + 1 < high) {
-        const middle = (low + high) >> 1;
+        const middle =
+          (low + high) >> 1;
 
         if (path[middle].t <= time) {
           low = middle;
@@ -923,7 +1045,8 @@
 
       for (
         let i = 1;
-        i < colors.length && colors[i].t <= time;
+        i < colors.length &&
+        colors[i].t <= time;
         i++
       ) {
         color = colors[i].c;
@@ -955,6 +1078,552 @@
 
     const seek = $("seek");
 
+    /*
+     * VR control panel
+     */
+    const vrPanel = new THREE.Group();
+    vrPanel.visible = false;
+    xrRig.add(vrPanel);
+
+    const vrPanelCanvas =
+      document.createElement("canvas");
+
+    vrPanelCanvas.width = 900;
+    vrPanelCanvas.height = 540;
+
+    const vrPanelContext =
+      vrPanelCanvas.getContext("2d");
+
+    const vrPanelTexture =
+      new THREE.CanvasTexture(
+        vrPanelCanvas
+      );
+
+    vrPanelTexture.colorSpace =
+      THREE.SRGBColorSpace;
+
+    const vrPanelMesh =
+      new THREE.Mesh(
+        new THREE.PlaneGeometry(2.8, 1.68),
+        new THREE.MeshBasicMaterial({
+          map: vrPanelTexture,
+          transparent: true,
+          side: THREE.DoubleSide,
+          depthTest: true
+        })
+      );
+
+    vrPanel.add(vrPanelMesh);
+
+    /*
+     * Invisible clickable zones placed slightly in
+     * front of the visual panel.
+     */
+    const vrTargets = [];
+
+    function addVRTarget(
+      action,
+      x,
+      y,
+      width,
+      height
+    ) {
+      const target =
+        new THREE.Mesh(
+          new THREE.PlaneGeometry(
+            width,
+            height
+          ),
+          new THREE.MeshBasicMaterial({
+            transparent: true,
+            opacity: 0,
+            side: THREE.DoubleSide
+          })
+        );
+
+      target.position.set(x, y, 0.025);
+      target.userData.action = action;
+
+      vrPanel.add(target);
+      vrTargets.push(target);
+
+      return target;
+    }
+
+    addVRTarget(
+      "play",
+      -0.92,
+      -0.28,
+      0.55,
+      0.28
+    );
+
+    addVRTarget(
+      "slower",
+      -0.28,
+      -0.28,
+      0.38,
+      0.28
+    );
+
+    addVRTarget(
+      "faster",
+      0.18,
+      -0.28,
+      0.38,
+      0.28
+    );
+
+    addVRTarget(
+      "exit",
+      0.98,
+      -0.28,
+      0.55,
+      0.28
+    );
+
+    addVRTarget(
+      "scrub",
+      0,
+      0.22,
+      2.25,
+      0.2
+    );
+
+    function updateVRPanel() {
+      const context = vrPanelContext;
+      const width = vrPanelCanvas.width;
+      const height = vrPanelCanvas.height;
+
+      context.clearRect(
+        0,
+        0,
+        width,
+        height
+      );
+
+      context.fillStyle =
+        "rgba(5, 12, 28, 0.94)";
+
+      context.fillRect(
+        0,
+        0,
+        width,
+        height
+      );
+
+      context.strokeStyle =
+        "rgba(120, 220, 255, 0.85)";
+
+      context.lineWidth = 5;
+
+      context.strokeRect(
+        8,
+        8,
+        width - 16,
+        height - 16
+      );
+
+      context.fillStyle = "#e8efff";
+      context.font =
+        "bold 34px system-ui, sans-serif";
+
+      context.fillText(
+        "DRONE SHOW",
+        48,
+        58
+      );
+
+      context.fillStyle = "#9fb5d8";
+      context.font =
+        "22px system-ui, sans-serif";
+
+      context.fillText(
+        activeShow?.performanceName ||
+          "Cosmic Garden",
+        48,
+        92
+      );
+
+      context.fillStyle = "#dceaff";
+      context.font =
+        "bold 26px system-ui, sans-serif";
+
+      context.fillText(
+        formatTime(time - showStart) +
+          " / " +
+          formatTime(showEnd - showStart),
+        48,
+        148
+      );
+
+      /*
+       * Progress bar
+       */
+      const progress =
+        showEnd > showStart
+          ? (time - showStart) /
+            (showEnd - showStart)
+          : 0;
+
+      const barX = 112;
+      const barY = 232;
+      const barWidth = 676;
+      const barHeight = 24;
+
+      context.fillStyle =
+        "rgba(255,255,255,0.18)";
+
+      context.fillRect(
+        barX,
+        barY,
+        barWidth,
+        barHeight
+      );
+
+      context.fillStyle = "#70e6ff";
+
+      context.fillRect(
+        barX,
+        barY,
+        barWidth *
+          Math.max(0, Math.min(1, progress)),
+        barHeight
+      );
+
+      context.fillStyle = "#b8c9e8";
+      context.font =
+        "18px system-ui, sans-serif";
+
+      context.fillText(
+        "Drag or point at the timeline",
+        112,
+        286
+      );
+
+      function drawButton(
+        x,
+        y,
+        buttonWidth,
+        label,
+        active = false
+      ) {
+        context.fillStyle = active
+          ? "rgba(75, 180, 230, 0.65)"
+          : "rgba(40, 67, 105, 0.95)";
+
+        context.fillRect(
+          x,
+          y,
+          buttonWidth,
+          72
+        );
+
+        context.strokeStyle =
+          "rgba(130, 210, 255, 0.75)";
+
+        context.lineWidth = 3;
+
+        context.strokeRect(
+          x,
+          y,
+          buttonWidth,
+          72
+        );
+
+        context.fillStyle = "#f1f7ff";
+        context.font =
+          "bold 22px system-ui, sans-serif";
+
+        context.textAlign = "center";
+
+        context.fillText(
+          label,
+          x + buttonWidth / 2,
+          y + 45
+        );
+
+        context.textAlign = "left";
+      }
+
+      drawButton(
+        48,
+        350,
+        176,
+        playing ? "PAUSE" : "PLAY",
+        playing
+      );
+
+      drawButton(
+        286,
+        350,
+        122,
+        "SLOWER"
+      );
+
+      drawButton(
+        444,
+        350,
+        122,
+        "FASTER"
+      );
+
+      drawButton(
+        676,
+        350,
+        176,
+        "EXIT VR"
+      );
+
+      context.fillStyle = "#92a8ca";
+      context.font =
+        "18px system-ui, sans-serif";
+
+      context.fillText(
+        "Left controller X: show/hide panel",
+        48,
+        472
+      );
+
+      vrPanelTexture.needsUpdate = true;
+    }
+
+    function showVRPanelInFrontOfUser() {
+      const headPosition =
+        new THREE.Vector3();
+
+      headPosition.setFromMatrixPosition(
+        camera.matrixWorld
+      );
+
+      const direction =
+        new THREE.Vector3();
+
+      camera.getWorldDirection(direction);
+      direction.y = 0;
+
+      if (direction.lengthSq() < 0.001) {
+        direction.set(0, 0, -1);
+      }
+
+      direction.normalize();
+
+      const panelWorldPosition =
+        headPosition.clone().add(
+          direction.multiplyScalar(2.25)
+        );
+
+      panelWorldPosition.y =
+        headPosition.y - 0.05;
+
+      xrRig.worldToLocal(
+        panelWorldPosition
+      );
+
+      vrPanel.position.copy(
+        panelWorldPosition
+      );
+
+      /*
+       * Make the panel face the user horizontally.
+       */
+      const worldYaw =
+        Math.atan2(
+          -direction.x,
+          -direction.z
+        );
+
+      vrPanel.rotation.set(
+        0,
+        worldYaw - xrRig.rotation.y,
+        0
+      );
+    }
+
+    function toggleVRPanel() {
+      if (!renderer.xr.isPresenting) {
+        return;
+      }
+
+      vrPanel.visible = !vrPanel.visible;
+
+      if (vrPanel.visible) {
+        showVRPanelInFrontOfUser();
+        updateVRPanel();
+      }
+    }
+
+    function activateVRAction(
+      action,
+      intersection
+    ) {
+      if (action === "play") {
+        playing = !playing;
+        $("play").textContent =
+          playing ? "Pause" : "Play";
+      }
+
+      if (action === "slower") {
+        const current =
+          Number($("speed").value);
+
+        $("speed").value =
+          String(
+            Math.max(0.5, current / 2)
+          );
+      }
+
+      if (action === "faster") {
+        const current =
+          Number($("speed").value);
+
+        $("speed").value =
+          String(
+            Math.min(4, current * 2)
+          );
+      }
+
+      if (action === "exit") {
+        const session =
+          renderer.xr.getSession();
+
+        if (session) {
+          session.end();
+        }
+
+        return;
+      }
+
+      if (
+        action === "scrub" &&
+        intersection
+      ) {
+        const localPoint =
+          vrPanel.worldToLocal(
+            intersection.point.clone()
+          );
+
+        const scrubAmount =
+          (localPoint.x + 1.125) / 2.25;
+
+        time =
+          showStart +
+          Math.max(
+            0,
+            Math.min(1, scrubAmount)
+          ) *
+          (showEnd - showStart);
+
+        drawAt(time);
+      }
+
+      updateVRPanel();
+    }
+
+    const vrRaycaster =
+      new THREE.Raycaster();
+
+    const controllerQuaternion =
+      new THREE.Quaternion();
+
+    function handleControllerSelect(
+      controller
+    ) {
+      if (
+        !renderer.xr.isPresenting ||
+        !vrPanel.visible
+      ) {
+        return;
+      }
+
+      const origin =
+        new THREE.Vector3().setFromMatrixPosition(
+          controller.matrixWorld
+        );
+
+      controller.getWorldQuaternion(
+        controllerQuaternion
+      );
+
+      const direction =
+        new THREE.Vector3(
+          0,
+          0,
+          -1
+        ).applyQuaternion(
+          controllerQuaternion
+        ).normalize();
+
+      vrRaycaster.set(
+        origin,
+        direction
+      );
+
+      const intersections =
+        vrRaycaster.intersectObjects(
+          vrTargets,
+          false
+        );
+
+      if (!intersections.length) {
+        return;
+      }
+
+      const intersection =
+        intersections[0];
+
+      activateVRAction(
+        intersection.object.userData.action,
+        intersection
+      );
+    }
+
+    leftController.addEventListener(
+      "selectend",
+      () => {
+        handleControllerSelect(
+          leftController
+        );
+      }
+    );
+
+    rightController.addEventListener(
+      "selectend",
+      () => {
+        handleControllerSelect(
+          rightController
+        );
+      }
+    );
+
+    let xButtonWasPressed = false;
+
+    function updateVRPanelButton() {
+      if (!renderer.xr.isPresenting) {
+        xButtonWasPressed = false;
+        return;
+      }
+
+      const gamepad =
+        vrInput.left?.gamepad;
+
+      /*
+       * On common Oculus/Meta Touch controllers,
+       * the left X button is button index 4.
+       */
+      const xButton =
+        gamepad?.buttons?.[4];
+
+      const pressed =
+        Boolean(xButton?.pressed);
+
+      if (pressed && !xButtonWasPressed) {
+        toggleVRPanel();
+      }
+
+      xButtonWasPressed = pressed;
+    }
+
     function loadShow(data, label) {
       if (
         !data ||
@@ -974,15 +1643,16 @@
       const colorRate =
         Number(data.defaultColorRate) || 1;
 
-      agents = data.performances.map(
-        performance =>
-          readAgent(
-            performance,
-            offset,
-            positionRate,
-            colorRate
-          )
-      );
+      agents =
+        data.performances.map(
+          performance =>
+            readAgent(
+              performance,
+              offset,
+              positionRate,
+              colorRate
+            )
+        );
 
       if (!agents.length) {
         throw new Error(
@@ -991,12 +1661,15 @@
       }
 
       showStart = Math.min(
-        ...agents.map(agent => agent.path[0].t)
+        ...agents.map(
+          agent => agent.path[0].t
+        )
       );
 
       showEnd = Math.max(
         ...agents.map(
-          agent => agent.path.at(-1).t
+          agent =>
+            agent.path.at(-1).t
         )
       );
 
@@ -1024,23 +1697,26 @@
       $("play").textContent = "Pause";
 
       drawAt(time);
+      updateVRPanel();
     }
 
     function drawAt(currentTime) {
       for (let i = 0; i < agents.length; i++) {
-        const position = atPath(
-          agents[i].path,
-          currentTime
-        );
+        const position =
+          atPath(
+            agents[i].path,
+            currentTime
+          );
 
         positions[i * 3] = position[0];
         positions[i * 3 + 1] = position[1];
         positions[i * 3 + 2] = position[2];
 
-        const color = atColor(
-          agents[i].colors,
-          currentTime
-        );
+        const color =
+          atColor(
+            agents[i].colors,
+            currentTime
+          );
 
         colors[i * 3] =
           srgbToLinear(color[0]);
@@ -1061,7 +1737,9 @@
         `${formatTime(currentTime - showStart)} / ` +
         `${formatTime(showEnd - showStart)}`;
 
-      const tags = activeShow?.eventTags || [];
+      const tags =
+        activeShow?.eventTags || [];
+
       let currentTag = null;
 
       for (const event of tags) {
@@ -1078,6 +1756,10 @@
           `Now: ${currentTag.tagID} · ` +
           `Mouse drag: orbit · Wheel: zoom`;
       }
+
+      if (vrPanel.visible) {
+        updateVRPanel();
+      }
     }
 
     function formatTime(seconds) {
@@ -1087,37 +1769,51 @@
       );
 
       return (
-        `${String(Math.floor(seconds / 60)).padStart(2, "0")}:` +
-        `${String(seconds % 60).padStart(2, "0")}`
+        `${String(
+          Math.floor(seconds / 60)
+        ).padStart(2, "0")}:` +
+        `${String(
+          seconds % 60
+        ).padStart(2, "0")}`
       );
     }
 
     $("play").onclick = () => {
       playing = !playing;
+
       $("play").textContent =
         playing ? "Pause" : "Play";
+
+      updateVRPanel();
     };
 
-    $("speed").onchange = () => {};
+    $("speed").onchange = () => {
+      updateVRPanel();
+    };
 
-    seek.addEventListener("input", () => {
-      time = Number(seek.value);
-      drawAt(time);
-    });
+    seek.addEventListener(
+      "input",
+      () => {
+        time = Number(seek.value);
+        drawAt(time);
+      }
+    );
 
     $("file").addEventListener(
       "change",
       async event => {
-        const file = event.target.files?.[0];
+        const file =
+          event.target.files?.[0];
 
         if (!file) {
           return;
         }
 
         try {
-          const data = JSON.parse(
-            await file.text()
-          );
+          const data =
+            JSON.parse(
+              await file.text()
+            );
 
           loadShow(data, file.name);
         } catch (error) {
@@ -1140,8 +1836,11 @@
         }
       );
 
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
+      const url =
+        URL.createObjectURL(blob);
+
+      const link =
+        document.createElement("a");
 
       link.href = url;
       link.download =
@@ -1155,44 +1854,96 @@
     /*
      * VR session state
      */
-    const desktopPosition = camera.position.clone();
-    const desktopRotation = camera.rotation.clone();
-    const desktopRigPosition = xrRig.position.clone();
-    const desktopRigRotation = xrRig.rotation.clone();
+    const desktopPosition =
+      camera.position.clone();
+
+    const desktopRotation =
+      camera.rotation.clone();
+
+    const desktopRigPosition =
+      xrRig.position.clone();
+
+    const desktopRigRotation =
+      xrRig.rotation.clone();
 
     renderer.xr.addEventListener(
       "sessionstart",
       () => {
-        desktopPosition.copy(camera.position);
-        desktopRotation.copy(camera.rotation);
-        desktopRigPosition.copy(xrRig.position);
-        desktopRigRotation.copy(xrRig.rotation);
+        document.body.classList.add(
+          "xr-active"
+        );
+
+        desktopPosition.copy(
+          camera.position
+        );
+
+        desktopRotation.copy(
+          camera.rotation
+        );
+
+        desktopRigPosition.copy(
+          xrRig.position
+        );
+
+        desktopRigRotation.copy(
+          xrRig.rotation
+        );
 
         orbit.enabled = false;
 
-        /*
-         * Start in front of the show rather than directly underneath it.
-         * The show is centered around z = 0.
-         */
-        xrRig.position.set(0, 0, 58);
-        xrRig.rotation.set(0, 0, 0);
+        xrRig.position.set(
+          0,
+          0,
+          58
+        );
 
-        /*
-         * WebXR supplies the user's real headset height and orientation.
-         */
-        camera.position.set(0, 0, 0);
-        camera.rotation.set(0, 0, 0);
+        xrRig.rotation.set(
+          0,
+          0,
+          0
+        );
+
+        camera.position.set(
+          0,
+          0,
+          0
+        );
+
+        camera.rotation.set(
+          0,
+          0,
+          0
+        );
+
+        vrPanel.visible = false;
+        xButtonWasPressed = false;
       }
     );
 
     renderer.xr.addEventListener(
       "sessionend",
       () => {
-        xrRig.position.copy(desktopRigPosition);
-        xrRig.rotation.copy(desktopRigRotation);
+        document.body.classList.remove(
+          "xr-active"
+        );
 
-        camera.position.copy(desktopPosition);
-        camera.rotation.copy(desktopRotation);
+        vrPanel.visible = false;
+
+        xrRig.position.copy(
+          desktopRigPosition
+        );
+
+        xrRig.rotation.copy(
+          desktopRigRotation
+        );
+
+        camera.position.copy(
+          desktopPosition
+        );
+
+        camera.rotation.copy(
+          desktopRotation
+        );
 
         orbit.enabled = true;
         orbit.target.set(0, 14, 0);
@@ -1228,6 +1979,7 @@
       }
 
       updateVRLocomotion(dt);
+      updateVRPanelButton();
 
       if (!renderer.xr.isPresenting) {
         orbit.update();
@@ -1248,16 +2000,14 @@
       );
     });
 
-    /*
-     * Start with the built-in demonstration.
-     */
     try {
       loadShow(
         makeDemo(),
         "Cosmic Garden"
       );
     } catch (error) {
-      $("status").textContent = error.message;
+      $("status").textContent =
+        error.message;
     }
   </script>
 </body>
