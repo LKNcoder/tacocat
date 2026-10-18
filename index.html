@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DroneShow Designer XR — Prototype</title>
+<style>
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #02040d;
+  color: #e8efff;
+  font: 14px/1.4 system-ui, sans-serif;
+}
+canvas { display: block; }
+#panel {
+  position: fixed;
+  z-index: 2;
+  left: 16px;
+  top: 16px;
+  width: min(420px, calc(100vw - 32px));
+  padding: 14px;
+  border: 1px solid #ffffff26;
+  border-radius: 14px;
+  background: #07101ddd;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 12px 40px #0008;
+}
+#title { font-weight: 700; font-size: 16px; margin-bottom: 4px; }
+#status { color: #70e6ff; font-size: 12px; margin-bottom: 12px; }
+.btn-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+button {
+  color: #ecf3ff;
+  background: #172742;
+  border: 1px solid #375077;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  font: inherit;
+}
+button:hover { background: #22385c; }
+button.active { border-color: #70e6ff; background: #1c3b6a; }
+#hint { color: #8fa2c3; font-size: 11px; margin-top: 8px; }
+#vr-tip {
+  position: fixed;
+  z-index: 1;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #b9c8e3;
+  background: #07101dbb;
+  padding: 7px 11px;
+  border-radius: 8px;
+  font-size: 12px;
+  pointer-events: none;
+}
+body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton {
+  display: none !important;
+}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="panel">
+  <div id="title">DroneShow Designer XR</div>
+  <div id="status">Interactive Physics & Swarm Sculptor Active</div>
+  <div class="btn-grid">
+    <button id="btn-rings">Celestial Rings</button>
+    <button id="btn-heart">Heart</button>
+    <button id="btn-galaxy">Spiral Galaxy</button>
+    <button id="btn-svg">SVG Contour</button>
+  </div>
+  <div class="btn-grid">
+    <button id="btn-color-cyan">Neon Cyan</button>
+    <button id="btn-color-gold">Solar Gold</button>
+    <button id="btn-color-magenta">Hyper Violet</button>
+    <button id="btn-color-emerald">Emerald Flow</button>
+  </div>
+  <div id="hint">
+    Desktop: Click buttons to morph · Orbit: Left Drag<br>
+    VR: Point and pull trigger on HUD · Move hands through swarm for fluid ripple
+  </div>
+</div>
+<div id="vr-tip">In VR: Press Left-Controller X to toggle Director HUD</div>
+
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { VRButton } from "three/addons/webxr/VRButton.js";
+
+const DRONE_COUNT = 400;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x02040d);
+
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 500);
+camera.position.set(0, 18, 55);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.xr.enabled = true;
+document.body.appendChild(renderer.domElement);
+document.body.appendChild(VRButton.createButton(renderer));
+
+const xrRig = new THREE.Group();
+scene.add(xrRig);
+xrRig.add(camera);
+
+const orbit = new OrbitControls(camera, renderer.domElement);
+orbit.target.set(0, 14, 0);
+orbit.update();
+
+// VR Controllers
+const leftController = renderer.xr.getController(0);
+const rightController = renderer.xr.getController(1);
+xrRig.add(leftController);
+xrRig.add(rightController);
+
+const controllerRays = [];
+function addRay(controller) {
+  const geom = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(0, 0, -1)
+  ]);
+  const mat = new THREE.LineBasicMaterial({ color: 0x70e6ff, transparent: true, opacity: 0.65 });
+  const ray = new THREE.Line(geom, mat);
+  ray.scale.z = 4;
+  ray.visible = false;
+  controller.add(ray);
+  controllerRays.push(ray);
+}
+addRay(leftController);
+addRay(rightController);
+
+// Environment
+scene.add(new THREE.HemisphereLight(0x9bbcff, 0x101629, 1.1));
+const grid = new THREE.GridHelper(90, 45, 0x274064, 0x14223b);
+scene.add(grid);
+
+// Glow Sprite Texture
+const glowCanvas = document.createElement("canvas");
+glowCanvas.width = 64;
+glowCanvas.height = 64;
+const glowCtx = glowCanvas.getContext("2d");
+const grad = glowCtx.createRadialGradient(32, 32, 1, 32, 32, 32);
+grad.addColorStop(0, "rgba(255,255,255,1)");
+grad.addColorStop(0.2, "rgba(255,255,255,0.85)");
+grad.addColorStop(0.55, "rgba(255,255,255,0.2)");
+grad.addColorStop(1, "rgba(255,255,255,0)");
+glowCtx.fillStyle = grad;
+glowCtx.fillRect(0, 0, 64, 64);
+
+const glowTexture = new THREE.CanvasTexture(glowCanvas);
+glowTexture.colorSpace = THREE.SRGBColorSpace;
+
+// Swarm Buffers & Physics State
+const currentPositions = new Float32Array(DRONE_COUNT * 3);
+const targetPositions = new Float32Array(DRONE_COUNT * 3);
+const velocities = new Float32Array(DRONE_COUNT * 3);
+const currentColors = new Float32Array(DRONE_COUNT * 3);
+const targetColors = new Float32Array(DRONE_COUNT * 3);
+
+const droneGeometry = new THREE.BufferGeometry();
+droneGeometry.setAttribute("position", new THREE.BufferAttribute(currentPositions, 3));
+droneGeometry.setAttribute("color", new THREE.BufferAttribute(currentColors, 3));
+
+const dronePoints = new THREE.Points(
+  droneGeometry,
+  new THREE.PointsMaterial({
+    size: 0.55,
+    map: glowTexture,
+    vertexColors: true,
+    transparent: true,
+    alphaTest: 0.05,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  })
+);
+scene.add(dronePoints);
+
+// Shape Generators
+const GOLDEN = Math.PI * (3 - Math.sqrt(5));
+
+function generateRings(out) {
+  for (let i = 0; i < DRONE_COUNT; i++) {
+    const band = i % 4;
+    const radius = [6, 10, 14, 18][band] + (Math.random() - 0.5) * 0.4;
+    const angle = i * GOLDEN;
+    out[i * 3] = radius * Math.cos(angle);
+    out[i * 3 + 1] = 14 + radius * Math.sin(angle);
+    out[i * 3 + 2] = (Math.random() - 0.5) * 2;
+  }
+}
+
+function generateHeart(out) {
+  for (let i = 0; i < DRONE_COUNT; i++) {
+    const u = (i + 0.5) / DRONE_COUNT;
+    const t = i * GOLDEN;
+    const r = Math.sqrt(u) * 0.88;
+    out[i * 3] = 0.85 * r * 16 * Math.pow(Math.sin(t), 3);
+    out[i * 3 + 1] = 14 + 0.72 * r * (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+    out[i * 3 + 2] = (Math.random() - 0.5) * 2.5;
+  }
+}
+
+function generateGalaxy(out) {
+  for (let i = 0; i < DRONE_COUNT; i++) {
+    const u = (i + 0.5) / DRONE_COUNT;
+    const arm = i % 3;
+    const r = 1.5 + 20 * u;
+    const t = i * GOLDEN * 0.5 + (arm * Math.PI * 2) / 3;
+    out[i * 3] = r * Math.cos(t);
+    out[i * 3 + 1] = 14 + r * Math.sin(t) * 0.5;
+    out[i * 3 + 2] = (Math.random() - 0.5) * 4;
+  }
+}
+
+function generateSVGContour(out) {
+  // Star/Shield SVG path
+  const svgPath = "M 100 10 L 123 68 L 185 71 L 137 110 L 153 170 L 100 135 L 47 170 L 63 110 L 15 71 L 77 68 Z";
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", svgPath);
+  const totalLength = path.getTotalLength();
+  
+  for (let i = 0; i < DRONE_COUNT; i++) {
+    const pt = path.getPointAtLength((i / DRONE_COUNT) * totalLength);
+    out[i * 3] = (pt.x - 100) * 0.22;
+    out[i * 3 + 1] = 14 - (pt.y - 100) * 0.22;
+    out[i * 3 + 2] = (i % 2 === 0 ? 1 : -1) * 1.2;
+  }
+}
+
+// Greedy Assignment to minimize crossing flight paths
+function assignMinimalPaths(currentPos, rawTargets) {
+  const assigned = new Float32Array(DRONE_COUNT * 3);
+  const unassigned = new Set();
+  for (let i = 0; i < DRONE_COUNT; i++) unassigned.add(i);
+
+  for (let i = 0; i < DRONE_COUNT; i++) {
+    const cx = currentPos[i * 3];
+    const cy = currentPos[i * 3 + 1];
+    const cz = currentPos[i * 3 + 2];
+    let closest = -1;
+    let minD = Infinity;
+
+    for (const tIdx of unassigned) {
+      const tx = rawTargets[tIdx * 3];
+      const ty = rawTargets[tIdx * 3 + 1];
+      const tz = rawTargets[tIdx * 3 + 2];
+      const d = (cx - tx) ** 2 + (cy - ty) ** 2 + (cz - tz) ** 2;
+      if (d < minD) {
+        minD = d;
+        closest = tIdx;
+      }
+    }
+    unassigned.delete(closest);
+    assigned[i * 3] = rawTargets[closest * 3];
+    assigned[i * 3 + 1] = rawTargets[closest * 3 + 1];
+    assigned[i * 3 + 2] = rawTargets[closest * 3 + 2];
+  }
+  return assigned;
+}
+
+function setTargetShape(generator) {
+  const raw = new Float32Array(DRONE_COUNT * 3);
+  generator(raw);
+  const optimized = assignMinimalPaths(currentPositions, raw);
+  targetPositions.set(optimized);
+}
+
+const PALETTES = {
+  cyan: [0x24d9ff, 0x76f4ff, 0x4a8dff],
+  gold: [0xff9900, 0xffd000, 0xffe680],
+  magenta: [0xff2a8d, 0xdf52ff, 0x70e6ff],
+  emerald: [0x25e68c, 0x6eff9f, 0x00c4cc]
+};
+
+function setPalette(key) {
+  const pal = PALETTES[key] || PALETTES.cyan;
+  for (let i = 0; i < DRONE_COUNT; i++) {
+    const c = new THREE.Color(pal[i % pal.length]);
+    targetColors[i * 3] = c.r;
+    targetColors[i * 3 + 1] = c.g;
+    targetColors[i * 3 + 2] = c.b;
+  }
+}
+
+// Initial Spawn
+generateRings(currentPositions);
+targetPositions.set(currentPositions);
+setPalette("cyan");
+currentColors.set(targetColors);
+droneGeometry.attributes.position.needsUpdate = true;
+droneGeometry.attributes.color.needsUpdate = true;
+
+// VR Director HUD
+const vrHUD = new THREE.Group();
+vrHUD.visible = false;
+xrRig.add(vrHUD);
+
+const hudCanvas = document.createElement("canvas");
+hudCanvas.width = 800;
+hudCanvas.height = 480;
+const hudCtx = hudCanvas.getContext("2d");
+const hudTex = new THREE.CanvasTexture(hudCanvas);
+hudTex.colorSpace = THREE.SRGBColorSpace;
+
+const hudMesh = new THREE.Mesh(
+  new THREE.PlaneGeometry(2.4, 1.44),
+  new THREE.MeshBasicMaterial({ map: hudTex, transparent: true, depthTest: true })
+);
+vrHUD.add(hudMesh);
+
+const hudTargets = [];
+function addHUDTarget(action, x, y, w, h) {
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(w, h),
+    new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
+  );
+  mesh.position.set(x, y, 0.02);
+  mesh.userData.action = action;
+  vrHUD.add(mesh);
+  hudTargets.push(mesh);
+}
+
+addHUDTarget("shape_rings", -0.55, 0.22, 0.48, 0.22);
+addHUDTarget("shape_heart", 0, 0.22, 0.48, 0.22);
+addHUDTarget("shape_galaxy", 0.55, 0.22, 0.48, 0.22);
+addHUDTarget("color_cyan", -0.55, -0.15, 0.48, 0.22);
+addHUDTarget("color_gold", 0, -0.15, 0.48, 0.22);
+addHUDTarget("color_magenta", 0.55, -0.15, 0.48, 0.22);
+
+function renderHUD() {
+  const ctx = hudCtx;
+  ctx.clearRect(0, 0, 800, 480);
+  ctx.fillStyle = "rgba(7, 16, 29, 0.94)";
+  ctx.fillRect(0, 0, 800, 480);
+  ctx.strokeStyle = "#70e6ff";
+  ctx.lineWidth = 4;
+  ctx.strokeRect(8, 8, 784, 464);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 30px system-ui";
+  ctx.fillText("DRONESHOW DESIGNER XR", 40, 56);
+
+  ctx.fillStyle = "#8fa2c3";
+  ctx.font = "18px system-ui";
+  ctx.fillText("Shape Presets", 40, 106);
+  ctx.fillText("Light Palettes", 40, 256);
+
+  function drawBtn(x, y, w, h, label) {
+    ctx.fillStyle = "rgba(23, 39, 66, 0.9)";
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = "#375077";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, w, h);
+    ctx.fillStyle = "#ecf3ff";
+    ctx.font = "bold 20px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText(label, x + w / 2, y + h / 2 + 7);
+    ctx.textAlign = "left";
+  }
+
+  drawBtn(40, 120, 220, 80, "RINGS");
+  drawBtn(290, 120, 220, 80, "HEART");
+  drawBtn(540, 120, 220, 80, "GALAXY");
+
+  drawBtn(40, 270, 220, 80, "CYAN");
+  drawBtn(290, 270, 220, 80, "GOLD");
+  drawBtn(540, 270, 220, 80, "MAGENTA");
+
+  hudTex.needsUpdate = true;
+}
+
+function toggleHUD() {
+  vrHUD.visible = !vrHUD.visible;
+  if (vrHUD.visible) {
+    const dir = new THREE.Vector3();
+    camera.getWorldDirection(dir);
+    dir.y = 0;
+    dir.normalize();
+    vrHUD.position.copy(camera.position).addScaledVector(dir, 2.2);
+    vrHUD.position.y = camera.position.y;
+    vrHUD.rotation.set(0, Math.atan2(-dir.x, -dir.z), 0);
+    renderHUD();
+  }
+  for (const ray of controllerRays) ray.visible = vrHUD.visible;
+}
+
+const raycaster = new THREE.Raycaster();
+const quat = new THREE.Quaternion();
+function handleSelect(controller) {
+  if (!vrHUD.visible) return;
+  const origin = new THREE.Vector3().setFromMatrixPosition(controller.matrixWorld);
+  controller.getWorldQuaternion(quat);
+  const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(quat).normalize();
+  raycaster.set(origin, dir);
+  const hits = raycaster.intersectObjects(hudTargets, false);
+  if (hits.length) {
+    const act = hits[0].object.userData.action;
+    if (act === "shape_rings") setTargetShape(generateRings);
+    if (act === "shape_heart") setTargetShape(generateHeart);
+    if (act === "shape_galaxy") setTargetShape(generateGalaxy);
+    if (act === "color_cyan") setPalette("cyan");
+    if (act === "color_gold") setPalette("gold");
+    if (act === "color_magenta") setPalette("magenta");
+  }
+}
+leftController.addEventListener("selectend", () => handleSelect(leftController));
+rightController.addEventListener("selectend", () => handleSelect(rightController));
+
+// Left X Toggle
+let xPrev = false;
+function checkHUDInput() {
+  const pad = leftController.userData.gamepad;
+  const x = Boolean(pad?.buttons?.[4]?.pressed);
+  if (x && !xPrev) toggleHUD();
+  xPrev = x;
+}
+leftController.addEventListener("connected", e => leftController.userData.gamepad = e.data.gamepad);
+rightController.addEventListener("connected", e => rightController.userData.gamepad = e.data.gamepad);
+
+// Desktop Listeners
+$("btn-rings").onclick = () => setTargetShape(generateRings);
+$("btn-heart").onclick = () => setTargetShape(generateHeart);
+$("btn-galaxy").onclick = () => setTargetShape(generateGalaxy);
+$("btn-svg").onclick = () => setTargetShape(generateSVGContour);
+$("btn-color-cyan").onclick = () => setPalette("cyan");
+$("btn-color-gold").onclick = () => setPalette("gold");
+$("btn-color-magenta").onclick = () => setPalette("magenta");
+$("btn-color-emerald").onclick = () => setPalette("emerald");
+
+function $(id) { return document.getElementById(id); }
+
+// Controller repulsion positions
+const cPosL = new THREE.Vector3();
+const cPosR = new THREE.Vector3();
+
+// Animation & Physics Loop
+const SPRING = 18.0;
+const DAMPING = 5.5;
+const REPEL_RADIUS_SQ = 64.0; // 8 meters radius
+const REPEL_STRENGTH = 45.0;
+
+let prevTime = performance.now();
+renderer.setAnimationLoop(now => {
+  const dt = Math.min(0.05, (now - prevTime) / 1000);
+  prevTime = now;
+
+  const isVR = renderer.xr.isPresenting;
+  if (isVR) {
+    cPosL.setFromMatrixPosition(leftController.matrixWorld);
+    cPosR.setFromMatrixPosition(rightController.matrixWorld);
+    checkHUDInput();
+  }
+
+  // Update Swarm Physics
+  for (let i = 0; i < DRONE_COUNT; i++) {
+    const idx = i * 3;
+    let px = currentPositions[idx];
+    let py = currentPositions[idx + 1];
+    let pz = currentPositions[idx + 2];
+
+    let vx = velocities[idx];
+    let vy = velocities[idx + 1];
+    let vz = velocities[idx + 2];
+
+    // Spring forces toward target
+    let fx = (targetPositions[idx] - px) * SPRING - vx * DAMPING;
+    let fy = (targetPositions[idx + 1] - py) * SPRING - vy * DAMPING;
+    let fz = (targetPositions[idx + 2] - pz) * SPRING - vz * DAMPING;
+
+    // Fluid repulsion from VR controllers
+    if (isVR) {
+      // Left controller wave
+      const dxL = px - cPosL.x;
+      const dyL = py - cPosL.y;
+      const dzL = pz - cPosL.z;
+      const distSqL = dxL * dxL + dyL * dyL + dzL * dzL + 0.1;
+      if (distSqL < REPEL_RADIUS_SQ) {
+        const forceL = (1 - distSqL / REPEL_RADIUS_SQ) * REPEL_STRENGTH;
+        fx += (dxL / Math.sqrt(distSqL)) * forceL;
+        fy += (dyL / Math.sqrt(distSqL)) * forceL;
+        fz += (dzL / Math.sqrt(distSqL)) * forceL;
+      }
+      // Right controller wave
+      const dxR = px - cPosR.x;
+      const dyR = py - cPosR.y;
+      const dzR = pz - cPosR.z;
+      const distSqR = dxR * dxR + dyR * dyR + dzR * dzR + 0.1;
+      if (distSqR < REPEL_RADIUS_SQ) {
+        const forceR = (1 - distSqR / REPEL_RADIUS_SQ) * REPEL_STRENGTH;
+        fx += (dxR / Math.sqrt(distSqR)) * forceR;
+        fy += (dyR / Math.sqrt(distSqR)) * forceR;
+        fz += (dzR / Math.sqrt(distSqR)) * forceR;
+      }
+    }
+
+    vx += fx * dt;
+    vy += fy * dt;
+    vz += fz * dt;
+
+    currentPositions[idx] += vx * dt;
+    currentPositions[idx + 1] += vy * dt;
+    currentPositions[idx + 2] += vz * dt;
+
+    velocities[idx] = vx;
+    velocities[idx + 1] = vy;
+    velocities[idx + 2] = vz;
+
+    // Smooth color interpolation
+    currentColors[idx] += (targetColors[idx] - currentColors[idx]) * 4.0 * dt;
+    currentColors[idx + 1] += (targetColors[idx + 1] - currentColors[idx + 1]) * 4.0 * dt;
+    currentColors[idx + 2] += (targetColors[idx + 2] - currentColors[idx + 2]) * 4.0 * dt;
+  }
+
+  droneGeometry.attributes.position.needsUpdate = true;
+  droneGeometry.attributes.color.needsUpdate = true;
+
+  if (!isVR) orbit.update();
+  renderer.render(scene, camera);
+});
+
+addEventListener("resize", () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
