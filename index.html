@@ -297,14 +297,14 @@ body.xr-active #VRButton {
 <body>
 <div id="panel">
   <div id="title">DroneShow Designer XR</div>
-  <div id="status">High-Gain 6DOF Locomotion · Anchor Math Fixed</div>
+  <div id="status">Scale-Relative Motion & Point Size Invariance Active</div>
 
   <div class="section-label">
-    <span>Locomotion Single-Hand Sensitivity</span>
-    <span id="val-pan-gain" style="color:#70e6ff; font-weight:bold;">12.0x</span>
+    <span>Locomotion Base Sensitivity</span>
+    <span id="val-pan-gain" style="color:#70e6ff; font-weight:bold;">5.0x</span>
   </div>
   <div class="ctrl-row" style="margin-bottom:8px;">
-    <input type="range" id="slider-pan-gain" min="1" max="30" step="1" value="12">
+    <input type="range" id="slider-pan-gain" min="1" max="15" step="0.5" value="5">
   </div>
 
   <div class="section-label">
@@ -437,7 +437,7 @@ body.xr-active #VRButton {
 
   <div id="hint">
     <b>Desktop:</b> Drag handles to retime · Click ruler to scrub.<br>
-    <b>VR Squeeze:</b> 1 Hand: drag world (high speed) · 2 Hands: rotate/scale stage.<br>
+    <b>VR Squeeze:</b> 1 Hand: drag world · 2 Hands: rotate/scale stage around hands.<br>
     <b>VR Trigger:</b> Empty space = Liquid Swarm Wave · Point at HUD to edit.
   </div>
 </div>
@@ -452,7 +452,8 @@ import { MeshSurfaceSampler } from "three/addons/math/MeshSurfaceSampler.js";
 const MAX_DRONES = 1200;
 let activeDroneCount = 400;
 let TOTAL_DURATION = 60.0;
-let panSensitivity = 12.0;
+let panSensitivity = 5.0;
+const BASE_DRONE_SIZE = 0.55;
 const GOLDEN = Math.PI * (3 - Math.sqrt(5));
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 
@@ -481,7 +482,7 @@ const orbit = new OrbitControls(camera, renderer.domElement);
 orbit.target.set(0, 14, 0);
 orbit.update();
 
-// Flight Stage Group
+// Stage Group
 const stageGroup = new THREE.Group();
 scene.add(stageGroup);
 
@@ -562,7 +563,7 @@ droneGeometry.setDrawRange(0, activeDroneCount);
 const dronePoints = new THREE.Points(
   droneGeometry,
   new THREE.PointsMaterial({
-    size: 0.55,
+    size: BASE_DRONE_SIZE,
     map: glowTexture,
     vertexColors: true,
     transparent: true,
@@ -954,8 +955,7 @@ export const SHAPE_PAGES = [
       gen: (out, n) => {
         for (let i = 0; i < n; i++) {
           const u = (i / n) * 40 - 20;
-          out[i * 3] = u;
-          out[i * 3 + 1] = 14 + 5 * Math.sin(u * 0.25) + 2.5 * Math.sin(u * 0.5 + 1.2);
+          out[i * 3] = u; out[i * 3 + 1] = 14 + 5 * Math.sin(u * 0.25) + 2.5 * Math.sin(u * 0.5 + 1.2);
           out[i * 3 + 2] = (Math.random() - 0.5) * 6;
         }
       }
@@ -1480,7 +1480,7 @@ targetPositions.set(currentPositions);
 evaluateTimeline(0);
 currentColors.set(targetColors);
 
-// Robust Stage-Anchored Locomotion System
+// Scale-Proportional Locomotion Engine
 const grabState = {
   leftGrip: false,
   rightGrip: false,
@@ -1557,10 +1557,14 @@ function updateWorldGrab() {
     const effectiveRatio = targetScale / grabState.anchorStageScale;
     stageGroup.scale.setScalar(targetScale);
 
+    // Sync Point Particle Size with Stage Scale (Zero Blur/Bloom)
+    dronePoints.material.size = Math.max(0.02, BASE_DRONE_SIZE * targetScale);
+    forceMeshL.scale.setScalar(targetScale);
+    forceMeshR.scale.setScalar(targetScale);
+
     const deltaAngle = currAngle - grabState.anchorAngle;
     stageGroup.rotation.y = grabState.anchorStageRotY + deltaAngle;
 
-    // Closed-form pivot around anchorMid
     const vOffset = new THREE.Vector3().subVectors(grabState.anchorStagePos, grabState.anchorMid);
     vOffset.multiplyScalar(effectiveRatio);
     vOffset.applyAxisAngle(Y_AXIS, deltaAngle);
@@ -1569,11 +1573,14 @@ function updateWorldGrab() {
     stageGroup.position.copy(grabState.anchorMid).add(midDelta).add(vOffset);
 
   } else if (grabState.mode === 'single-left') {
-    const delta = new THREE.Vector3().subVectors(posL, grabState.anchorHandL).multiplyScalar(panSensitivity);
+    // Relative Sensitivity Proportional to Stage Scale
+    const scaleFactor = Math.max(0.1, stageGroup.scale.x);
+    const delta = new THREE.Vector3().subVectors(posL, grabState.anchorHandL).multiplyScalar(panSensitivity * scaleFactor);
     stageGroup.position.addVectors(grabState.anchorStagePos, delta);
 
   } else if (grabState.mode === 'single-right') {
-    const delta = new THREE.Vector3().subVectors(posR, grabState.anchorHandR).multiplyScalar(panSensitivity);
+    const scaleFactor = Math.max(0.1, stageGroup.scale.x);
+    const delta = new THREE.Vector3().subVectors(posR, grabState.anchorHandR).multiplyScalar(panSensitivity * scaleFactor);
     stageGroup.position.addVectors(grabState.anchorStagePos, delta);
   }
 }
@@ -2332,7 +2339,7 @@ renderer.xr.addEventListener("sessionend", () => {
   for (const ray of controllerRays) ray.visible = false;
 });
 
-// Main Simulation Loop
+// Main Animation Loop
 const SPRING = 18.0;
 const DAMPING = 5.5;
 const REPEL_RADIUS_SQ = 64.0;
@@ -2361,12 +2368,14 @@ renderer.setAnimationLoop(now => {
     checkHUDInput();
     updateWorldGrab();
     
-    // Map controller coordinates into stage local space for force spheres
     cPosWorldL.setFromMatrixPosition(leftController.matrixWorld);
     cPosWorldR.setFromMatrixPosition(rightController.matrixWorld);
     stageGroup.worldToLocal(cPosLocalL.copy(cPosWorldL));
     stageGroup.worldToLocal(cPosLocalR.copy(cPosWorldR));
   }
+
+  // Continuous Point Scale Invariance
+  dronePoints.material.size = Math.max(0.02, BASE_DRONE_SIZE * stageGroup.scale.x);
 
   for (let i = 0; i < activeDroneCount; i++) {
     const idx = i * 3;
