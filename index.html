@@ -22,7 +22,7 @@ canvas { display: block; }
   z-index: 2;
   left: 16px;
   top: 16px;
-  width: min(500px, calc(100vw - 32px));
+  width: min(520px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   overflow-y: auto;
   padding: 14px;
@@ -77,7 +77,7 @@ button.symbol-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 56px;
+  height: 54px;
   background: #172742;
   border: 1px solid #375077;
   border-radius: 8px;
@@ -86,9 +86,8 @@ button.symbol-btn {
 }
 button.symbol-btn:hover { background: #22385c; }
 button.symbol-btn.active { border-color: #70e6ff; background: #1c3b6a; }
-button.symbol-btn svg { width: 30px; height: 30px; stroke: #70e6ff; fill: none; }
+button.symbol-btn svg { width: 28px; height: 28px; stroke: #70e6ff; fill: none; }
 
-/* Palette Swatches Bar */
 .palette-builder {
   display: flex;
   align-items: center;
@@ -105,21 +104,20 @@ button.symbol-btn svg { width: 30px; height: 30px; stroke: #70e6ff; fill: none; 
   flex: 1;
 }
 .swatch-slot {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   border: 2px solid #ffffff44;
   cursor: pointer;
-  position: relative;
 }
 .swatch-slot.active {
   border-color: #ffffff;
-  transform: scale(1.1);
+  transform: scale(1.15);
   box-shadow: 0 0 8px #70e6ff;
 }
 .swatch-ctrl-btn {
   padding: 4px 8px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: bold;
   background: #172742;
   border: 1px solid #375077;
@@ -130,7 +128,7 @@ button.symbol-btn svg { width: 30px; height: 30px; stroke: #70e6ff; fill: none; 
 
 #desktop-spectrum {
   width: 100%;
-  height: 22px;
+  height: 20px;
   border-radius: 6px;
   border: 1px solid #ffffff44;
   cursor: crosshair;
@@ -138,7 +136,6 @@ button.symbol-btn svg { width: 30px; height: 30px; stroke: #70e6ff; fill: none; 
   margin-bottom: 8px;
 }
 
-/* Modifiers / Sliders Container */
 .fx-controls {
   background: #091222;
   border: 1px solid #233b5d;
@@ -216,13 +213,7 @@ button.symbol-btn svg { width: 30px; height: 30px; stroke: #70e6ff; fill: none; 
 }
 .resize-handle:hover { background: #70e6ff; }
 .transition-block {
-  background: repeating-linear-gradient(
-    45deg,
-    #1b2738,
-    #1b2738 6px,
-    #2c3d55 6px,
-    #2c3d55 12px
-  );
+  background: repeating-linear-gradient(45deg, #1b2738, #1b2738 6px, #2c3d55 6px, #2c3d55 12px);
   border-left: 1px solid #00000044;
   border-right: 1px solid #00000044;
 }
@@ -233,10 +224,7 @@ button.symbol-btn svg { width: 30px; height: 30px; stroke: #70e6ff; fill: none; 
   gap: 8px;
   margin-top: 6px;
 }
-#timeline-slider {
-  flex: 1;
-  accent-color: #70e6ff;
-}
+#timeline-slider { flex: 1; accent-color: #70e6ff; }
 
 #hint { color: #8fa2c3; font-size: 11px; margin-top: 8px; line-height: 1.4; }
 #vr-tip {
@@ -268,10 +256,18 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton {
 <body>
 <div id="panel">
   <div id="title">DroneShow Designer XR</div>
-  <div id="status">Interactive Choreography Suite · 400 Drones · 32 Shapes</div>
+  <div id="status">Interactive Choreography Suite · Direct UV Raycast Active</div>
 
   <div class="section-label">
-    <span>Symbol Library (8 Pages)</span>
+    <span>Active Drone Fleet Capacity</span>
+    <span id="val-fleet-count" style="color:#70e6ff; font-weight:bold;">400 Drones</span>
+  </div>
+  <div class="ctrl-row" style="margin-bottom:8px;">
+    <input type="range" id="slider-fleet-count" min="100" max="1200" step="50" value="400">
+  </div>
+
+  <div class="section-label">
+    <span>Symbol Library (8 Categorized Pages)</span>
   </div>
   <div class="tab-row" id="page-tabs"></div>
   <div class="icon-grid" id="desktop-icon-grid"></div>
@@ -290,7 +286,7 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton {
   <div id="desktop-spectrum"></div>
 
   <div class="section-label">
-    <span>Layered Motion & FX Modifiers</span>
+    <span>Motion & FX Modifiers</span>
   </div>
   <div class="fx-controls">
     <div class="ctrl-row">
@@ -330,8 +326,8 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton {
   </div>
 
   <div id="hint">
-    <b>Desktop:</b> Click swatches to select · Pick hue from spectrum · Drag block handles.<br>
-    <b>VR Squeeze:</b> 1 Hand: drag world · 2 Hands: rotate/scale flight stage.<br>
+    <b>Desktop:</b> Drag fleet slider to scale drones · Drag block handles to retime.<br>
+    <b>VR Squeeze:</b> 1 Hand: drag world · 2 Hands: rotate/scale stage.<br>
     <b>VR Trigger:</b> Empty space = Liquid Swarm Wave · Point at HUD to edit.
   </div>
 </div>
@@ -341,8 +337,10 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton {
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { VRButton } from "three/addons/webxr/VRButton.js";
+import { MeshSurfaceSampler } from "three/addons/math/MeshSurfaceSampler.js";
 
-const DRONE_COUNT = 400;
+const MAX_DRONES = 1200;
+let activeDroneCount = 400;
 let TOTAL_DURATION = 60.0;
 const GOLDEN = Math.PI * (3 - Math.sqrt(5));
 
@@ -388,7 +386,7 @@ function createRay(controller) {
 createRay(leftController);
 createRay(rightController);
 
-// Liquid Wave Force Spheres
+// Liquid Force Spheres
 function createForceSphere(controller) {
   const geom = new THREE.SphereGeometry(1.6, 16, 12);
   const mat = new THREE.MeshBasicMaterial({ color: 0x70e6ff, wireframe: true, transparent: true, opacity: 0.18 });
@@ -404,7 +402,7 @@ const forceMeshR = createForceSphere(rightController);
 scene.add(new THREE.HemisphereLight(0x9bbcff, 0x101629, 1.2));
 scene.add(new THREE.GridHelper(90, 45, 0x274064, 0x14223b));
 
-// Glow Texture
+// Glow Sprite Texture
 const glowCanvas = document.createElement("canvas");
 glowCanvas.width = 64; glowCanvas.height = 64;
 const glowCtx = glowCanvas.getContext("2d");
@@ -418,19 +416,31 @@ glowCtx.fillRect(0, 0, 64, 64);
 const glowTexture = new THREE.CanvasTexture(glowCanvas);
 glowTexture.colorSpace = THREE.SRGBColorSpace;
 
-// Swarm Physics Buffers
-const currentPositions = new Float32Array(DRONE_COUNT * 3);
-const targetPositions = new Float32Array(DRONE_COUNT * 3);
-const velocities = new Float32Array(DRONE_COUNT * 3);
-const currentColors = new Float32Array(DRONE_COUNT * 3);
-const targetColors = new Float32Array(DRONE_COUNT * 3);
+// Pre-Allocated Swarm Buffers
+const currentPositions = new Float32Array(MAX_DRONES * 3);
+const targetPositions = new Float32Array(MAX_DRONES * 3);
+const velocities = new Float32Array(MAX_DRONES * 3);
+const currentColors = new Float32Array(MAX_DRONES * 3);
+const targetColors = new Float32Array(MAX_DRONES * 3);
 
-const transitionFromPositions = new Float32Array(DRONE_COUNT * 3);
-const transitionToPositions = new Float32Array(DRONE_COUNT * 3);
+const transitionFromPositions = new Float32Array(MAX_DRONES * 3);
+const transitionToPositions = new Float32Array(MAX_DRONES * 3);
+
+for (let i = 0; i < MAX_DRONES; i++) {
+  const row = Math.floor(i / 35);
+  const col = i % 35;
+  currentPositions[i * 3] = (col - 17.5) * 1.2;
+  currentPositions[i * 3 + 1] = 0.1;
+  currentPositions[i * 3 + 2] = (row - 17.5) * 1.2;
+  targetPositions[i * 3] = currentPositions[i * 3];
+  targetPositions[i * 3 + 1] = currentPositions[i * 3 + 1];
+  targetPositions[i * 3 + 2] = currentPositions[i * 3 + 2];
+}
 
 const droneGeometry = new THREE.BufferGeometry();
 droneGeometry.setAttribute("position", new THREE.BufferAttribute(currentPositions, 3));
 droneGeometry.setAttribute("color", new THREE.BufferAttribute(currentColors, 3));
+droneGeometry.setDrawRange(0, activeDroneCount);
 
 const dronePoints = new THREE.Points(
   droneGeometry,
@@ -446,9 +456,269 @@ const dronePoints = new THREE.Points(
 );
 scene.add(dronePoints);
 
-// 32 Formations Organized into 8 Pages (4 Shapes per Page)
+function sampleSVGString(svgD, out, count, scale = 0.22, altitude = 14) {
+  const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  p.setAttribute("d", svgD);
+  const totalLength = p.getTotalLength();
+  if (!totalLength) return;
+
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  const rawPts = [];
+  for (let i = 0; i < count; i++) {
+    const pt = p.getPointAtLength((i / count) * totalLength);
+    rawPts.push(pt);
+    if (pt.x < minX) minX = pt.x; if (pt.x > maxX) maxX = pt.x;
+    if (pt.y < minY) minY = pt.y; if (pt.y > maxY) maxY = pt.y;
+  }
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+  for (let i = 0; i < count; i++) {
+    const pt = rawPts[i];
+    out[i * 3] = (pt.x - cx) * scale;
+    out[i * 3 + 1] = altitude - (pt.y - cy) * scale;
+    out[i * 3 + 2] = (i % 2 === 0 ? 1 : -1) * 1.4;
+  }
+}
+
+function sampleProcedural3DMesh(geometry, out, count, scale = 1.0, altitude = 14) {
+  geometry.computeBoundingBox();
+  geometry.center();
+  const mesh = new THREE.Mesh(geometry);
+  const sampler = new MeshSurfaceSampler(mesh).build();
+  const tempV = new THREE.Vector3();
+  for (let i = 0; i < count; i++) {
+    sampler.sample(tempV);
+    out[i * 3] = tempV.x * scale;
+    out[i * 3 + 1] = altitude + tempV.y * scale;
+    out[i * 3 + 2] = tempV.z * scale;
+  }
+}
+
 export const SHAPE_PAGES = [
-  // Page 1: Cosmic
+  // Page 1: Sports & Emblems
+  [
+    {
+      id: "soccerBall",
+      drawSVG: `<circle cx="12" cy="12" r="9" stroke-width="1.5"/><polygon points="12,8 15,10 14,14 10,14 9,10" stroke-width="1.5"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="15" y1="10" x2="20" y2="9"/><line x1="14" y1="14" x2="18" y2="18"/><line x1="10" y1="14" x2="6" y2="18"/><line x1="9" y1="10" x2="4" y2="9"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(cx, cy, 26, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath();
+        for (let i = 0; i < 5; i++) {
+          const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+          const x = cx + Math.cos(a) * 11, y = cy + Math.sin(a) * 11;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath(); ctx.stroke();
+      },
+      gen: (out, n) => {
+        for (let i = 0; i < n; i++) {
+          const y = 1 - (i / (n - 1)) * 2, r = Math.sqrt(1 - y * y) * 11.5, t = i * GOLDEN;
+          out[i * 3] = r * Math.cos(t); out[i * 3 + 1] = 14 + y * 11.5; out[i * 3 + 2] = r * Math.sin(t);
+        }
+      }
+    },
+    {
+      id: "shieldCrest",
+      drawSVG: `<path d="M12 2 L20 5 V11 C20 16, 16 20, 12 22 C8 20, 4 16, 4 11 V5 Z" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
+        ctx.moveTo(cx, cy - 26); ctx.lineTo(cx + 24, cy - 18); ctx.lineTo(cx + 24, cy - 2);
+        ctx.bezierCurveTo(cx + 24, cy + 14, cx + 12, cy + 24, cx, cy + 28);
+        ctx.bezierCurveTo(cx - 12, cy + 24, cx - 24, cy + 14, cx - 24, cy - 2);
+        ctx.lineTo(cx - 24, cy - 18); ctx.closePath(); ctx.stroke();
+      },
+      gen: (out, n) => {
+        sampleSVGString("M 100 20 L 170 50 L 170 110 C 170 160, 130 190, 100 210 C 70 190, 30 160, 30 110 L 30 50 Z", out, n, 0.22, 14);
+      }
+    },
+    {
+      id: "trophyCup",
+      drawSVG: `<path d="M6 4h12v6a6 6 0 0 1-12 0V4z M6 7H3v2a3 3 0 0 0 3 3h0 M18 7h3v2a3 3 0 0 1-3 3h0 M12 16v4 M8 20h8" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
+        ctx.strokeRect(cx - 16, cy - 24, 32, 20);
+        ctx.arc(cx, cy - 4, 16, 0, Math.PI);
+        ctx.moveTo(cx, cy + 12); ctx.lineTo(cx, cy + 22);
+        ctx.moveTo(cx - 16, cy + 22); ctx.lineTo(cx + 16, cy + 22);
+        ctx.stroke();
+      },
+      gen: (out, n) => {
+        sampleSVGString("M 50 30 L 150 30 L 150 90 C 150 140, 50 140, 50 90 Z M 100 140 L 100 180 M 60 180 L 140 180", out, n, 0.22, 14);
+      }
+    },
+    {
+      id: "basketball",
+      drawSVG: `<circle cx="12" cy="12" r="9" stroke-width="1.5"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="12" y1="3" x2="12" y2="21"/><path d="M5.5 5.5 A9 9 0 0 1 18.5 18.5 M18.5 5.5 A9 9 0 0 0 5.5 18.5" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
+        ctx.arc(cx, cy, 26, 0, Math.PI * 2);
+        ctx.moveTo(cx - 26, cy); ctx.lineTo(cx + 26, cy);
+        ctx.moveTo(cx, cy - 26); ctx.lineTo(cx, cy + 26);
+        ctx.stroke();
+      },
+      gen: (out, n) => {
+        for (let i = 0; i < n; i++) {
+          const u = i / n;
+          if (u < 0.4) {
+            const t = (u / 0.4) * Math.PI * 2;
+            out[i * 3] = Math.cos(t) * 12; out[i * 3 + 1] = 14 + Math.sin(t) * 12; out[i * 3 + 2] = 0;
+          } else {
+            const phi = i * GOLDEN, costheta = (Math.random() - 0.5) * 2, sintheta = Math.sqrt(1 - costheta * costheta);
+            out[i * 3] = sintheta * Math.cos(phi) * 12;
+            out[i * 3 + 1] = 14 + sintheta * Math.sin(phi) * 12;
+            out[i * 3 + 2] = costheta * 12;
+          }
+        }
+      }
+    }
+  ],
+  // Page 2: National & Team Flags
+  [
+    {
+      id: "wavingFlag",
+      drawSVG: `<path d="M4 3v18 M4 4c4-2 8 2 12 0s4-2 4-2v10c-4 2-8-2-12 0s-4 2-4 2" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
+        ctx.moveTo(cx - 24, cy - 24); ctx.lineTo(cx - 24, cy + 26);
+        ctx.moveTo(cx - 24, cy - 20);
+        ctx.bezierCurveTo(cx - 8, cy - 30, cx + 8, cy - 10, cx + 24, cy - 20);
+        ctx.lineTo(cx + 24, cy);
+        ctx.bezierCurveTo(cx + 8, cy + 10, cx - 8, cy - 10, cx - 24, cy);
+        ctx.stroke();
+      },
+      gen: (out, n) => {
+        const cols = Math.floor(Math.sqrt(n * 1.5));
+        const rows = Math.floor(n / cols);
+        for (let i = 0; i < n; i++) {
+          const c = i % cols, r = Math.floor(i / cols);
+          const x = (c / cols - 0.5) * 32;
+          const y = (r / rows - 0.5) * 20;
+          const ripple = Math.sin((x * 0.28)) * 3.2;
+          out[i * 3] = x; out[i * 3 + 1] = 14 + y; out[i * 3 + 2] = ripple;
+        }
+      }
+    },
+    {
+      id: "tricolorBanner",
+      drawSVG: `<rect x="3" y="4" width="18" height="14" rx="2" stroke-width="1.5"/><line x1="9" y1="4" x2="9" y2="18"/><line x1="15" y1="4" x2="15" y2="18"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3;
+        ctx.strokeRect(cx - 26, cy - 18, 52, 36);
+        ctx.beginPath();
+        ctx.moveTo(cx - 9, cy - 18); ctx.lineTo(cx - 9, cy + 18);
+        ctx.moveTo(cx + 9, cy - 18); ctx.lineTo(cx + 9, cy + 18);
+        ctx.stroke();
+      },
+      gen: (out, n) => {
+        const cols = Math.floor(Math.sqrt(n * 1.5));
+        const rows = Math.floor(n / cols);
+        for (let i = 0; i < n; i++) {
+          const c = i % cols, r = Math.floor(i / cols);
+          out[i * 3] = (c / cols - 0.5) * 30;
+          out[i * 3 + 1] = 14 + (r / rows - 0.5) * 18;
+          out[i * 3 + 2] = Math.sin((c / cols) * Math.PI * 2) * 2.0;
+        }
+      }
+    },
+    {
+      id: "starSpangledPennant",
+      drawSVG: `<polygon points="3,4 21,11 3,18" stroke-width="1.5"/><circle cx="8" cy="11" r="1.5" fill="#70e6ff"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
+        ctx.moveTo(cx - 24, cy - 20); ctx.lineTo(cx + 26, cy); ctx.lineTo(cx - 24, cy + 20); ctx.closePath();
+        ctx.stroke();
+      },
+      gen: (out, n) => {
+        for (let i = 0; i < n; i++) {
+          const u = i / n, spanX = u * 32 - 16;
+          const halfH = (1 - u) * 14;
+          const y = (Math.random() - 0.5) * 2 * halfH;
+          out[i * 3] = spanX; out[i * 3 + 1] = 14 + y; out[i * 3 + 2] = Math.sin(u * 8) * 1.5;
+        }
+      }
+    },
+    {
+      id: "laurelWreath",
+      drawSVG: `<path d="M7 19c-3-3-4-7-2-11 3 1 5 3 6 6-1 2-2 4-4 5zM17 19c3-3 4-7 2-11-3 1-5 3-6 6 1 2 2 4 4 5z" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
+        ctx.arc(cx - 4, cy, 22, Math.PI * 0.3, Math.PI * 1.7);
+        ctx.arc(cx + 4, cy, 22, -Math.PI * 0.7, Math.PI * 0.7);
+        ctx.stroke();
+      },
+      gen: (out, n) => {
+        for (let i = 0; i < n; i++) {
+          const side = i % 2 === 0 ? 1 : -1;
+          const t = (i / n) * Math.PI * 0.8 + 0.3;
+          out[i * 3] = Math.cos(t) * 13 * side;
+          out[i * 3 + 1] = 14 + Math.sin(t) * 13;
+          out[i * 3 + 2] = (Math.random() - 0.5) * 2.0;
+        }
+      }
+    }
+  ],
+  // Page 3: Procedural 3D Solid Hulls
+  [
+    {
+      id: "torusKnot3D",
+      drawSVG: `<path d="M7 12 C7 7, 17 7, 17 12 C17 17, 7 17, 7 12 M12 7 C17 7, 17 17, 12 17 C7 17, 7 7, 12 7" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
+        for (let t = 0; t <= Math.PI * 4; t += 0.08) {
+          const r = 16 + 8 * Math.cos(1.5 * t);
+          const x = cx + r * Math.cos(t), y = cy + r * Math.sin(t);
+          if (t === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      },
+      gen: (out, n) => {
+        sampleProcedural3DMesh(new THREE.TorusKnotGeometry(8, 2.5, 90, 16, 2, 3), out, n, 1.0, 14);
+      }
+    },
+    {
+      id: "dodecahedron3D",
+      drawSVG: `<polygon points="12,2 21,9 18,20 6,20 3,9" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
+        for (let i = 0; i < 5; i++) {
+          const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+          const x = cx + Math.cos(a) * 24, y = cy + Math.sin(a) * 24;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath(); ctx.stroke();
+      },
+      gen: (out, n) => {
+        sampleProcedural3DMesh(new THREE.DodecahedronGeometry(11, 1), out, n, 1.0, 14);
+      }
+    },
+    {
+      id: "cylinderRibbon3D",
+      drawSVG: `<ellipse cx="12" cy="6" rx="8" ry="3" stroke-width="1.5"/><ellipse cx="12" cy="18" rx="8" ry="3" stroke-width="1.5"/><line x1="4" y1="6" x2="4" y2="18"/><line x1="20" y1="6" x2="20" y2="18"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.ellipse(cx, cy - 16, 22, 7, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(cx, cy + 16, 22, 7, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx - 22, cy - 16); ctx.lineTo(cx - 22, cy + 16);
+        ctx.moveTo(cx + 22, cy - 16); ctx.lineTo(cx + 22, cy + 16); ctx.stroke();
+      },
+      gen: (out, n) => {
+        sampleProcedural3DMesh(new THREE.CylinderGeometry(7, 11, 18, 32, 6, true), out, n, 1.0, 14);
+      }
+    },
+    {
+      id: "icosahedronSphere3D",
+      drawSVG: `<circle cx="12" cy="12" r="9" stroke-width="1.5"/><polygon points="12,3 20,8 18,17 6,17 4,8" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(cx, cy, 26, 0, Math.PI * 2); ctx.stroke();
+      },
+      gen: (out, n) => {
+        sampleProcedural3DMesh(new THREE.IcosahedronGeometry(12, 2), out, n, 1.0, 14);
+      }
+    }
+  ],
+  // Page 4: Cosmic
   [
     {
       id: "saturn",
@@ -457,17 +727,16 @@ export const SHAPE_PAGES = [
         ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3;
         ctx.beginPath(); ctx.arc(cx, cy, 18, 0, Math.PI * 2); ctx.stroke();
         ctx.save(); ctx.translate(cx, cy); ctx.rotate(-0.35);
-        ctx.beginPath(); ctx.ellipse(0, 0, 38, 12, 0, 0, Math.PI * 2); ctx.stroke();
-        ctx.restore();
+        ctx.beginPath(); ctx.ellipse(0, 0, 38, 12, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
       },
-      gen: (out) => {
-        const core = 120;
+      gen: (out, n) => {
+        const core = Math.floor(n * 0.3);
         for (let i = 0; i < core; i++) {
           const u = (i + 0.5) / core, y = 1 - 2 * u, r = Math.sqrt(1 - y * y) * 4.5, t = i * GOLDEN;
           out[i * 3] = r * Math.cos(t); out[i * 3 + 1] = 14 + y * 4.5; out[i * 3 + 2] = r * Math.sin(t);
         }
-        for (let i = core; i < DRONE_COUNT; i++) {
-          const u = (i - core) / (DRONE_COUNT - core), t = u * Math.PI * 8, r = 7.0 + u * 11.0;
+        for (let i = core; i < n; i++) {
+          const u = (i - core) / (n - core), t = u * Math.PI * 8, r = 7.0 + u * 11.0;
           out[i * 3] = r * Math.cos(t); out[i * 3 + 1] = 14 + r * Math.sin(t) * Math.sin(0.42); out[i * 3 + 2] = r * Math.sin(t) * Math.cos(0.42);
         }
       }
@@ -483,9 +752,9 @@ export const SHAPE_PAGES = [
         }
         ctx.stroke();
       },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const u = (i + 0.5) / DRONE_COUNT, arm = i % 3, r = 1.5 + 20 * u, t = i * GOLDEN * 0.5 + (arm * Math.PI * 2) / 3;
+      gen: (out, n) => {
+        for (let i = 0; i < n; i++) {
+          const u = (i + 0.5) / n, arm = i % 3, r = 1.5 + 20 * u, t = i * GOLDEN * 0.5 + (arm * Math.PI * 2) / 3;
           out[i * 3] = r * Math.cos(t); out[i * 3 + 1] = 14 + r * Math.sin(t) * 0.45; out[i * 3 + 2] = (Math.random() - 0.5) * 3.5;
         }
       }
@@ -498,17 +767,16 @@ export const SHAPE_PAGES = [
         ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2); ctx.fill();
         for (const angle of [0, Math.PI / 3, (Math.PI * 2) / 3]) {
           ctx.save(); ctx.translate(cx, cy); ctx.rotate(angle);
-          ctx.beginPath(); ctx.ellipse(0, 0, 36, 14, 0, 0, Math.PI * 2); ctx.stroke();
-          ctx.restore();
+          ctx.beginPath(); ctx.ellipse(0, 0, 36, 14, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
         }
       },
-      gen: (out) => {
-        const nuc = 40;
+      gen: (out, n) => {
+        const nuc = Math.floor(n * 0.1);
         for (let i = 0; i < nuc; i++) {
           const r = Math.cbrt(Math.random()) * 2.2, theta = Math.random() * Math.PI * 2, phi = Math.acos(2 * Math.random() - 1);
           out[i * 3] = r * Math.sin(phi) * Math.cos(theta); out[i * 3 + 1] = 14 + r * Math.sin(phi) * Math.sin(theta); out[i * 3 + 2] = r * Math.cos(phi);
         }
-        const perRing = Math.floor((DRONE_COUNT - nuc) / 3);
+        const perRing = Math.floor((n - nuc) / 3);
         const angles = [0, Math.PI / 3, -Math.PI / 3];
         for (let k = 0; k < 3; k++) {
           const base = nuc + k * perRing, rotX = angles[k];
@@ -528,9 +796,9 @@ export const SHAPE_PAGES = [
         ctx.bezierCurveTo(cx + 8, cy + 18, cx + 8, cy - 18, cx - 6, cy - 28 * Math.cos(Math.PI * 0.4));
         ctx.stroke(); ctx.fill();
       },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const u = i / DRONE_COUNT, angle = (u - 0.5) * Math.PI * 1.5, r1 = 14;
+      gen: (out, n) => {
+        for (let i = 0; i < n; i++) {
+          const u = i / n, angle = (u - 0.5) * Math.PI * 1.5, r1 = 14;
           out[i * 3] = Math.cos(angle) * r1 - 3.5 + (Math.random() - 0.5) * 1.2;
           out[i * 3 + 1] = 14 + Math.sin(angle) * r1;
           out[i * 3 + 2] = (Math.random() - 0.5) * 2;
@@ -538,23 +806,21 @@ export const SHAPE_PAGES = [
       }
     }
   ],
-  // Page 2: Fauna & Flora
+  // Page 5: Fauna
   [
     {
       id: "eagle",
       drawSVG: `<path d="M2 10 C 6 4, 10 12, 12 9 C 14 12, 18 4, 22 10 C 17 14, 13 18, 12 21 C 11 18, 7 14, 2 10 Z" stroke-width="1.5"/>`,
       drawCanvas: (ctx, cx, cy) => {
         ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
-        ctx.moveTo(cx - 36, cy + 2);
-        ctx.bezierCurveTo(cx - 20, cy - 24, cx - 8, cy + 6, cx, cy - 6);
+        ctx.moveTo(cx - 36, cy + 2); ctx.bezierCurveTo(cx - 20, cy - 24, cx - 8, cy + 6, cx, cy - 6);
         ctx.bezierCurveTo(cx + 8, cy + 6, cx + 20, cy - 24, cx + 36, cy + 2);
         ctx.bezierCurveTo(cx + 18, cy + 18, cx + 8, cy + 26, cx, cy + 30);
-        ctx.bezierCurveTo(cx - 8, cy + 26, cx - 18, cy + 18, cx - 36, cy + 2);
-        ctx.stroke();
+        ctx.bezierCurveTo(cx - 8, cy + 26, cx - 18, cy + 18, cx - 36, cy + 2); ctx.stroke();
       },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const u = (i / DRONE_COUNT) * 2 - 1, span = u * 20, sweep = -Math.abs(u) * 6, flap = Math.cos(u * Math.PI * 0.9) * 4.2;
+      gen: (out, n) => {
+        for (let i = 0; i < n; i++) {
+          const u = (i / n) * 2 - 1, span = u * 20, sweep = -Math.abs(u) * 6, flap = Math.cos(u * Math.PI * 0.9) * 4.2;
           out[i * 3] = span; out[i * 3 + 1] = 14 + flap + (Math.random() - 0.5); out[i * 3 + 2] = sweep + (Math.random() - 0.5) * 1.2;
         }
       }
@@ -564,34 +830,13 @@ export const SHAPE_PAGES = [
       drawSVG: `<path d="M12 4 C8 2, 3 5, 3 10 C3 14, 8 15, 12 20 C16 15, 21 14, 21 10 C21 5, 16 2, 12 4 Z" stroke-width="1.5"/>`,
       drawCanvas: (ctx, cx, cy) => {
         ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
-        ctx.moveTo(cx, cy - 22);
-        ctx.bezierCurveTo(cx - 32, cy - 30, cx - 36, cy + 6, cx, cy + 24);
-        ctx.bezierCurveTo(cx + 36, cy + 6, cx + 32, cy - 30, cx, cy - 22);
-        ctx.stroke();
+        ctx.moveTo(cx, cy - 22); ctx.bezierCurveTo(cx - 32, cy - 30, cx - 36, cy + 6, cx, cy + 24);
+        ctx.bezierCurveTo(cx + 36, cy + 6, cx + 32, cy - 30, cx, cy - 22); ctx.stroke();
       },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const t = (i / DRONE_COUNT) * Math.PI * 12;
-          const q = Math.exp(Math.cos(t)) - 2 * Math.cos(4 * t) - Math.pow(Math.sin(t / 12), 5);
+      gen: (out, n) => {
+        for (let i = 0; i < n; i++) {
+          const t = (i / n) * Math.PI * 12, q = Math.exp(Math.cos(t)) - 2 * Math.cos(4 * t) - Math.pow(Math.sin(t / 12), 5);
           out[i * 3] = 4.0 * Math.sin(t) * q; out[i * 3 + 1] = 14 + 4.0 * Math.cos(t) * q; out[i * 3 + 2] = (Math.random() - 0.5) * 2;
-        }
-      }
-    },
-    {
-      id: "dolphin",
-      drawSVG: `<path d="M3 14 C7 8, 14 6, 19 9 C22 11, 21 15, 16 14 C12 13, 8 16, 3 14 Z M16 9 L18 4 L14 7" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
-        ctx.moveTo(cx - 32, cy + 8);
-        ctx.bezierCurveTo(cx - 10, cy - 20, cx + 18, cy - 16, cx + 32, cy - 4);
-        ctx.bezierCurveTo(cx + 18, cy + 18, cx - 8, cy + 16, cx - 32, cy + 8);
-        ctx.stroke();
-      },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const u = i / DRONE_COUNT, t = (u - 0.5) * 32;
-          const arch = Math.cos(u * Math.PI - Math.PI / 2) * 8.5;
-          out[i * 3] = t; out[i * 3 + 1] = 14 + arch + (Math.random() - 0.5) * 1.5; out[i * 3 + 2] = Math.sin(u * Math.PI * 2) * 3.5;
         }
       }
     },
@@ -606,105 +851,33 @@ export const SHAPE_PAGES = [
         }
         ctx.stroke();
       },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const u = (i + 0.5) / DRONE_COUNT, theta = i * GOLDEN, r = Math.sqrt(u) * (10 + 4 * Math.cos(6 * theta));
+      gen: (out, n) => {
+        for (let i = 0; i < n; i++) {
+          const u = (i + 0.5) / n, theta = i * GOLDEN, r = Math.sqrt(u) * (10 + 4 * Math.cos(6 * theta));
           out[i * 3] = r * Math.cos(theta); out[i * 3 + 1] = 12 + Math.pow(u, 0.7) * 5; out[i * 3 + 2] = r * Math.sin(theta);
         }
       }
-    }
-  ],
-  // Page 3: CAD / Structural
-  [
-    {
-      id: "sphere",
-      drawSVG: `<circle cx="12" cy="12" r="9" stroke-width="1.5"/><ellipse cx="12" cy="12" rx="9" ry="3.5" stroke-width="1.5"/><ellipse cx="12" cy="12" rx="3.5" ry="9" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.arc(cx, cy, 26, 0, Math.PI * 2); ctx.stroke();
-        ctx.beginPath(); ctx.ellipse(cx, cy, 26, 9, 0, 0, Math.PI * 2); ctx.stroke();
-        ctx.beginPath(); ctx.ellipse(cx, cy, 9, 26, 0, 0, Math.PI * 2); ctx.stroke();
-      },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const y = 1 - (i / (DRONE_COUNT - 1)) * 2, r = Math.sqrt(1 - y * y) * 12, theta = i * GOLDEN;
-          out[i * 3] = r * Math.cos(theta); out[i * 3 + 1] = 14 + y * 12; out[i * 3 + 2] = r * Math.sin(theta);
-        }
-      }
     },
     {
-      id: "helix",
-      drawSVG: `<path d="M4 6 Q 12 18, 20 6 M 4 18 Q 12 6, 20 18" stroke-width="1.5"/>`,
+      id: "wave",
+      drawSVG: `<path d="M2 16 C6 10, 10 10, 14 16 C18 22, 20 12, 22 8" stroke-width="1.5"/>`,
       drawCanvas: (ctx, cx, cy) => {
         ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
-        for (let t = -30; t <= 30; t += 2) {
-          const x = cx + Math.sin(t * 0.2) * 16, y = cy + t;
-          if (t === -30) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        }
-        ctx.stroke(); ctx.beginPath();
-        for (let t = -30; t <= 30; t += 2) {
-          const x = cx - Math.sin(t * 0.2) * 16, y = cy + t;
-          if (t === -30) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
+        ctx.moveTo(cx - 36, cy + 14);
+        ctx.bezierCurveTo(cx - 20, cy - 20, cx - 4, cy - 20, cx + 8, cy + 10);
+        ctx.bezierCurveTo(cx + 18, cy + 28, cx + 26, cy + 8, cx + 36, cy - 12); ctx.stroke();
       },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const strand = i % 2 === 0 ? 1 : -1, prog = i / DRONE_COUNT, theta = prog * Math.PI * 8, y = prog * 24 - 12;
-          out[i * 3] = 6.0 * Math.cos(theta) * strand; out[i * 3 + 1] = 14 + y; out[i * 3 + 2] = 6.0 * Math.sin(theta) * strand;
-        }
-      }
-    },
-    {
-      id: "mobius",
-      drawSVG: `<path d="M6 8 C 2 12, 10 16, 12 12 C 14 8, 22 12, 18 16 C 14 20, 6 14, 12 12" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
-        for (let a = 0; a <= Math.PI * 2; a += 0.1) {
-          const x = cx + 26 * Math.cos(a) / (1 + Math.sin(a) * Math.sin(a));
-          const y = cy + 26 * Math.sin(a) * Math.cos(a) / (1 + Math.sin(a) * Math.sin(a));
-          if (a === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-      },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const u = (i / DRONE_COUNT) * Math.PI * 2, v = ((i % 4) / 3 - 0.5) * 3.5, r = 9.5;
-          out[i * 3] = (r + v * Math.cos(u * 0.5)) * Math.cos(u);
-          out[i * 3 + 1] = 14 + v * Math.sin(u * 0.5) * 2.5;
-          out[i * 3 + 2] = (r + v * Math.cos(u * 0.5)) * Math.sin(u);
-        }
-      }
-    },
-    {
-      id: "cube",
-      drawSVG: `<path d="M12 2 L21 7 L21 17 L12 22 L3 17 L3 7 Z M12 2 L12 12 L21 7 M12 12 L3 7" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3;
-        const pts = [[0, -26], [24, -13], [24, 13], [0, 26], [-24, 13], [-24, -13]];
-        ctx.beginPath(); ctx.moveTo(cx + pts[0][0], cy + pts[0][1]);
-        for (let i = 1; i < pts.length; i++) ctx.lineTo(cx + pts[i][0], cy + pts[i][1]);
-        ctx.closePath(); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(cx, cy - 26); ctx.lineTo(cx, cy); ctx.lineTo(cx + 24, cy + 13);
-        ctx.moveTo(cx, cy); ctx.lineTo(cx - 24, cy + 13); ctx.stroke();
-      },
-      gen: (out) => {
-        const perEdge = Math.floor(DRONE_COUNT / 12);
-        const corners = [[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
-        const edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
-        for (let e = 0; e < 12; e++) {
-          const [c1, c2] = edges[e];
-          for (let j = 0; j < perEdge; j++) {
-            const t = j / perEdge, idx = (e * perEdge + j) * 3;
-            out[idx] = (corners[c1][0] + (corners[c2][0] - corners[c1][0]) * t) * 7.5;
-            out[idx + 1] = 14 + (corners[c1][1] + (corners[c2][1] - corners[c1][1]) * t) * 7.5;
-            out[idx + 2] = (corners[c1][2] + (corners[c2][2] - corners[c1][2]) * t) * 7.5;
-          }
+      gen: (out, n) => {
+        for (let i = 0; i < n; i++) {
+          const u = (i / n) * 40 - 20;
+          out[i * 3] = u;
+          out[i * 3 + 1] = 14 + 5 * Math.sin(u * 0.25) + 2.5 * Math.sin(u * 0.5 + 1.2);
+          out[i * 3 + 2] = (Math.random() - 0.5) * 6;
         }
       }
     }
   ],
-  // Page 4: Graphic Symbols
+  // Page 6: Graphic Symbols
   [
     {
       id: "heart",
@@ -716,12 +889,11 @@ export const SHAPE_PAGES = [
         ctx.bezierCurveTo(cx, topY, cx - 32, topY, cx - 32, topY + 24);
         ctx.bezierCurveTo(cx - 32, topY + 48, cx, topY + 62, cx, topY + 74);
         ctx.bezierCurveTo(cx, topY + 62, cx + 32, topY + 48, cx + 32, topY + 24);
-        ctx.bezierCurveTo(cx + 32, topY, cx, topY, cx, topY + 16);
-        ctx.stroke(); ctx.fill();
+        ctx.bezierCurveTo(cx + 32, topY, cx, topY, cx, topY + 16); ctx.stroke(); ctx.fill();
       },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const u = (i + 0.5) / DRONE_COUNT, t = i * GOLDEN, r = Math.sqrt(u) * 0.88;
+      gen: (out, n) => {
+        for (let i = 0; i < n; i++) {
+          const u = (i + 0.5) / n, t = i * GOLDEN, r = Math.sqrt(u) * 0.88;
           out[i * 3] = 0.85 * r * 16 * Math.pow(Math.sin(t), 3);
           out[i * 3 + 1] = 14 + 0.72 * r * (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
           out[i * 3 + 2] = (Math.random() - 0.5) * 2.5;
@@ -742,14 +914,8 @@ export const SHAPE_PAGES = [
         }
         ctx.closePath(); ctx.stroke();
       },
-      gen: (out) => {
-        const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        p.setAttribute("d", "M 100 15 L 124 72 L 186 75 L 138 114 L 154 174 L 100 138 L 46 174 L 62 114 L 14 75 L 76 72 Z");
-        const len = p.getTotalLength();
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const pt = p.getPointAtLength((i / DRONE_COUNT) * len);
-          out[i * 3] = (pt.x - 100) * 0.22; out[i * 3 + 1] = 14 - (pt.y - 100) * 0.22; out[i * 3 + 2] = (i % 2 === 0 ? 1 : -1) * 1.5;
-        }
+      gen: (out, n) => {
+        sampleSVGString("M 100 15 L 124 72 L 186 75 L 138 114 L 154 174 L 100 138 L 46 174 L 62 114 L 14 75 L 76 72 Z", out, n, 0.22, 14);
       }
     },
     {
@@ -764,9 +930,9 @@ export const SHAPE_PAGES = [
         }
         ctx.stroke();
       },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const t = (i / DRONE_COUNT) * Math.PI * 2, a = 12.0, denom = 1 + Math.sin(t) * Math.sin(t);
+      gen: (out, n) => {
+        for (let i = 0; i < n; i++) {
+          const t = (i / n) * Math.PI * 2, a = 12.0, denom = 1 + Math.sin(t) * Math.sin(t);
           out[i * 3] = (a * Math.cos(t)) / denom; out[i * 3 + 1] = 14 + (a * Math.sin(t) * Math.cos(t)) / denom; out[i * 3 + 2] = (Math.random() - 0.5) * 2;
         }
       }
@@ -780,15 +946,15 @@ export const SHAPE_PAGES = [
         ctx.lineTo(cx, cy - 24); ctx.lineTo(cx + 12, cy + 2); ctx.lineTo(cx + 26, cy - 14);
         ctx.lineTo(cx + 30, cy + 18); ctx.closePath(); ctx.stroke();
       },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const u = i / DRONE_COUNT, theta = u * Math.PI * 2, r = 11.0;
+      gen: (out, n) => {
+        for (let i = 0; i < n; i++) {
+          const u = i / n, theta = u * Math.PI * 2, r = 11.0;
           out[i * 3] = r * Math.cos(theta); out[i * 3 + 1] = 12 + Math.abs(Math.sin(theta * 2.5)) * 5.0; out[i * 3 + 2] = r * Math.sin(theta);
         }
       }
     }
   ],
-  // Page 5: Aero & Transport
+  // Page 7: Aero & Vehicles
   [
     {
       id: "jet",
@@ -801,15 +967,13 @@ export const SHAPE_PAGES = [
         ctx.lineTo(cx - 4, cy + 4); ctx.lineTo(cx - 32, cy + 8); ctx.lineTo(cx - 32, cy + 2);
         ctx.lineTo(cx - 4, cy - 10); ctx.closePath(); ctx.stroke();
       },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const u = i / DRONE_COUNT;
+      gen: (out, n) => {
+        for (let i = 0; i < n; i++) {
+          const u = i / n;
           if (u < 0.4) {
-            // Fuselage
             const t = (u / 0.4) * 36 - 18;
             out[i * 3] = (Math.random() - 0.5) * 1.5; out[i * 3 + 1] = 14 + (Math.random() - 0.5) * 1.5; out[i * 3 + 2] = t;
           } else {
-            // Swept wings
             const w = (u - 0.4) / 0.6;
             const side = i % 2 === 0 ? 1 : -1;
             out[i * 3] = w * 22 * side; out[i * 3 + 1] = 14 + (Math.random() - 0.5); out[i * 3 + 2] = w * 12 - 4;
@@ -825,14 +989,11 @@ export const SHAPE_PAGES = [
         ctx.moveTo(cx, cy - 30);
         ctx.bezierCurveTo(cx + 16, cy - 10, cx + 16, cy + 12, cx + 8, cy + 20);
         ctx.lineTo(cx + 18, cy + 28); ctx.lineTo(cx - 18, cy + 28); ctx.lineTo(cx - 8, cy + 20);
-        ctx.bezierCurveTo(cx - 16, cy + 12, cx - 16, cy - 10, cx, cy - 30);
-        ctx.stroke();
+        ctx.bezierCurveTo(cx - 16, cy + 12, cx - 16, cy - 10, cx, cy - 30); ctx.stroke();
       },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const u = i / DRONE_COUNT, y = u * 28 - 14;
-          const r = Math.sin(u * Math.PI * 0.9) * 4.5;
-          const theta = i * GOLDEN;
+      gen: (out, n) => {
+        for (let i = 0; i < n; i++) {
+          const u = i / n, y = u * 28 - 14, r = Math.sin(u * Math.PI * 0.9) * 4.5, theta = i * GOLDEN;
           out[i * 3] = r * Math.cos(theta); out[i * 3 + 1] = 14 - y; out[i * 3 + 2] = r * Math.sin(theta);
         }
       }
@@ -842,21 +1003,15 @@ export const SHAPE_PAGES = [
       drawSVG: `<path d="M4 18 L20 18 L18 22 L6 22 Z M12 4 L12 17 M12 5 L19 15 L12 15" stroke-width="1.5"/>`,
       drawCanvas: (ctx, cx, cy) => {
         ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
-        // Hull
         ctx.moveTo(cx - 28, cy + 12); ctx.lineTo(cx + 28, cy + 12); ctx.lineTo(cx + 20, cy + 24); ctx.lineTo(cx - 20, cy + 24); ctx.closePath();
-        // Sail
-        ctx.moveTo(cx - 2, cy + 8); ctx.lineTo(cx - 2, cy - 26); ctx.lineTo(cx + 22, cy + 8); ctx.closePath();
-        ctx.stroke();
+        ctx.moveTo(cx - 2, cy + 8); ctx.lineTo(cx - 2, cy - 26); ctx.lineTo(cx + 22, cy + 8); ctx.closePath(); ctx.stroke();
       },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const u = i / DRONE_COUNT;
+      gen: (out, n) => {
+        for (let i = 0; i < n; i++) {
+          const u = i / n;
           if (u < 0.4) {
-            // Hull
-            const x = (u / 0.4) * 36 - 18;
-            out[i * 3] = x; out[i * 3 + 1] = 10 + (Math.random() - 0.5) * 1.5; out[i * 3 + 2] = (Math.random() - 0.5) * 4;
+            out[i * 3] = (u / 0.4) * 36 - 18; out[i * 3 + 1] = 10 + (Math.random() - 0.5) * 1.5; out[i * 3 + 2] = (Math.random() - 0.5) * 4;
           } else {
-            // Triangle Sail
             const s = (u - 0.4) / 0.6;
             out[i * 3] = s * 16 - 2; out[i * 3 + 1] = 12 + (1 - s) * 20; out[i * 3 + 2] = (Math.random() - 0.5) * 1.5;
           }
@@ -871,226 +1026,49 @@ export const SHAPE_PAGES = [
         ctx.ellipse(cx, cy + 6, 36, 12, 0, 0, Math.PI * 2); ctx.stroke();
         ctx.beginPath(); ctx.arc(cx, cy + 4, 16, Math.PI, 0); ctx.stroke();
       },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const u = i / DRONE_COUNT, theta = i * GOLDEN;
+      gen: (out, n) => {
+        for (let i = 0; i < n; i++) {
+          const u = i / n, theta = i * GOLDEN;
           if (u < 0.65) {
             const r = 4 + Math.sqrt(u / 0.65) * 14;
             out[i * 3] = r * Math.cos(theta); out[i * 3 + 1] = 13 + (Math.random() - 0.5) * 1.2; out[i * 3 + 2] = r * Math.sin(theta);
           } else {
-            const domeU = (u - 0.65) / 0.35;
-            const r = Math.cos(domeU * Math.PI * 0.5) * 7.5;
+            const domeU = (u - 0.65) / 0.35, r = Math.cos(domeU * Math.PI * 0.5) * 7.5;
             out[i * 3] = r * Math.cos(theta); out[i * 3 + 1] = 13 + Math.sin(domeU * Math.PI * 0.5) * 6; out[i * 3 + 2] = r * Math.sin(theta);
           }
         }
       }
     }
   ],
-  // Page 6: Math Archetypes & Knots
+  // Page 8: Nature & Symbols
   [
     {
-      id: "rose",
-      drawSVG: `<path d="M12 12 m-8 0 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0 M12 4 C14 8, 14 16, 12 20 M4 12 C8 14, 16 14, 20 12" stroke-width="1.5"/>`,
+      id: "skull",
+      drawSVG: `<path d="M12 2a8 8 0 0 0-8 8c0 3 2 5.5 4.5 7v3h7v-3c2.5-1.5 4.5-4 4.5-7a8 8 0 0 0-8-8z" stroke-width="1.5"/><circle cx="9" cy="10" r="1.5"/><circle cx="15" cy="10" r="1.5"/>`,
       drawCanvas: (ctx, cx, cy) => {
         ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
-        for (let a = 0; a <= Math.PI * 2; a += 0.05) {
-          const r = Math.cos(4 * a) * 28;
-          const x = cx + r * Math.cos(a), y = cy + r * Math.sin(a);
-          if (a === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
+        ctx.arc(cx, cy - 6, 22, Math.PI * 0.75, Math.PI * 0.25, false);
+        ctx.lineTo(cx + 12, cy + 18); ctx.lineTo(cx - 12, cy + 18); ctx.closePath(); ctx.stroke();
       },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const theta = (i / DRONE_COUNT) * Math.PI * 2;
-          const r = Math.cos(4 * theta) * 14;
-          out[i * 3] = r * Math.cos(theta); out[i * 3 + 1] = 14 + r * Math.sin(theta); out[i * 3 + 2] = (Math.random() - 0.5) * 2;
-        }
+      gen: (out, n) => {
+        sampleSVGString("M 100 30 C 50 30, 40 80, 40 110 C 40 140, 70 160, 70 190 L 130 190 C 130 160, 160 140, 160 110 C 160 80, 150 30, 100 30 Z", out, n, 0.18, 14);
       }
     },
     {
-      id: "torusKnot",
-      drawSVG: `<path d="M7 12 C7 7, 17 7, 17 12 C17 17, 7 17, 7 12 M12 7 C17 7, 17 17, 12 17 C7 17, 7 7, 12 7" stroke-width="1.5"/>`,
+      id: "lightning",
+      drawSVG: `<polygon points="13,2 3,14 12,14 11,22 21,10 12,10" stroke-width="1.5"/>`,
       drawCanvas: (ctx, cx, cy) => {
         ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
-        for (let t = 0; t <= Math.PI * 4; t += 0.08) {
-          const r = 16 + 8 * Math.cos(1.5 * t);
-          const x = cx + r * Math.cos(t), y = cy + r * Math.sin(t);
-          if (t === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
+        ctx.moveTo(cx + 4, cy - 28); ctx.lineTo(cx - 20, cy + 2); ctx.lineTo(cx - 2, cy + 2);
+        ctx.lineTo(cx - 4, cy + 28); ctx.lineTo(cx + 20, cy - 2); ctx.lineTo(cx + 2, cy - 2); ctx.closePath(); ctx.stroke();
       },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const t = (i / DRONE_COUNT) * Math.PI * 4;
-          const r = 10 + 4 * Math.cos(1.5 * t);
-          out[i * 3] = r * Math.cos(t); out[i * 3 + 1] = 14 + 5 * Math.sin(1.5 * t); out[i * 3 + 2] = r * Math.sin(t);
-        }
-      }
-    },
-    {
-      id: "lissajous",
-      drawSVG: `<path d="M4 12 C4 4, 20 4, 20 12 C20 20, 4 20, 4 12 M12 4 C20 12, 4 12, 12 20" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
-        for (let t = 0; t <= Math.PI * 2; t += 0.05) {
-          const x = cx + Math.sin(3 * t) * 28, y = cy + Math.sin(2 * t) * 24;
-          if (t === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-      },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const t = (i / DRONE_COUNT) * Math.PI * 2;
-          out[i * 3] = Math.sin(3 * t) * 14; out[i * 3 + 1] = 14 + Math.sin(2 * t) * 10; out[i * 3 + 2] = Math.cos(3 * t) * 6;
-        }
-      }
-    },
-    {
-      id: "superquadric",
-      drawSVG: `<rect x="5" y="5" width="14" height="14" rx="4" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3;
-        ctx.strokeRect(cx - 22, cy - 22, 44, 44);
-      },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const u = (i / DRONE_COUNT) * Math.PI - Math.PI / 2;
-          const v = (i * GOLDEN) % (Math.PI * 2) - Math.PI;
-          const cosU = Math.cos(u), sinU = Math.sin(u);
-          const cosV = Math.cos(v), sinV = Math.sin(v);
-          out[i * 3] = Math.sign(cosU) * Math.pow(Math.abs(cosU), 0.5) * Math.sign(cosV) * Math.pow(Math.abs(cosV), 0.5) * 12;
-          out[i * 3 + 1] = 14 + Math.sign(sinU) * Math.pow(Math.abs(sinU), 0.5) * 12;
-          out[i * 3 + 2] = Math.sign(cosU) * Math.pow(Math.abs(cosU), 0.5) * Math.sign(sinV) * Math.pow(Math.abs(sinV), 0.5) * 12;
-        }
-      }
-    }
-  ],
-  // Page 7: Emblems & Signs
-  [
-    {
-      id: "diamond",
-      drawSVG: `<path d="M6 3 L18 3 L22 9 L12 21 L2 9 Z" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
-        ctx.moveTo(cx - 16, cy - 20); ctx.lineTo(cx + 16, cy - 20); ctx.lineTo(cx + 28, cy - 6);
-        ctx.lineTo(cx, cy + 24); ctx.lineTo(cx - 28, cy - 6); ctx.closePath();
-        ctx.stroke();
-      },
-      gen: (out) => {
-        const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        p.setAttribute("d", "M 50 10 L 150 10 L 190 60 L 100 180 L 10 60 Z");
-        const len = p.getTotalLength();
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const pt = p.getPointAtLength((i / DRONE_COUNT) * len);
-          out[i * 3] = (pt.x - 100) * 0.18; out[i * 3 + 1] = 14 - (pt.y - 100) * 0.18; out[i * 3 + 2] = (i % 2 === 0 ? 1 : -1) * 1.5;
-        }
-      }
-    },
-    {
-      id: "peace",
-      drawSVG: `<circle cx="12" cy="12" r="9" stroke-width="1.5"/><path d="M12 3 L12 21 M12 12 L5 18 M12 12 L19 18" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
-        ctx.arc(cx, cy, 26, 0, Math.PI * 2);
-        ctx.moveTo(cx, cy - 26); ctx.lineTo(cx, cy + 26);
-        ctx.moveTo(cx, cy); ctx.lineTo(cx - 18, cy + 18);
-        ctx.moveTo(cx, cy); ctx.lineTo(cx + 18, cy + 18);
-        ctx.stroke();
-      },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const u = i / DRONE_COUNT;
-          if (u < 0.6) {
-            const theta = (u / 0.6) * Math.PI * 2;
-            out[i * 3] = Math.cos(theta) * 14; out[i * 3 + 1] = 14 + Math.sin(theta) * 14; out[i * 3 + 2] = 0;
-          } else if (u < 0.8) {
-            const v = (u - 0.6) / 0.2;
-            out[i * 3] = 0; out[i * 3 + 1] = 28 - v * 28; out[i * 3 + 2] = 0;
-          } else {
-            const w = (u - 0.8) / 0.2;
-            const side = i % 2 === 0 ? 1 : -1;
-            out[i * 3] = side * w * 10; out[i * 3 + 1] = 14 - w * 10; out[i * 3 + 2] = 0;
-          }
-        }
-      }
-    },
-    {
-      id: "musicNote",
-      drawSVG: `<circle cx="6" cy="18" r="3" stroke-width="1.5"/><circle cx="18" cy="16" r="3" stroke-width="1.5"/><path d="M9 18 L9 6 L21 4 L21 16 M9 10 L21 8" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
-        ctx.arc(cx - 16, cy + 14, 8, 0, Math.PI * 2);
-        ctx.arc(cx + 16, cy + 8, 8, 0, Math.PI * 2);
-        ctx.moveTo(cx - 8, cy + 14); ctx.lineTo(cx - 8, cy - 18);
-        ctx.lineTo(cx + 24, cy - 24); ctx.lineTo(cx + 24, cy + 8);
-        ctx.stroke();
-      },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const u = i / DRONE_COUNT;
-          if (u < 0.3) {
-            const theta = (u / 0.3) * Math.PI * 2;
-            out[i * 3] = -8 + Math.cos(theta) * 4; out[i * 3 + 1] = 8 + Math.sin(theta) * 3; out[i * 3 + 2] = 0;
-          } else if (u < 0.6) {
-            const theta = ((u - 0.3) / 0.3) * Math.PI * 2;
-            out[i * 3] = 8 + Math.cos(theta) * 4; out[i * 3 + 1] = 11 + Math.sin(theta) * 3; out[i * 3 + 2] = 0;
-          } else {
-            const v = (u - 0.6) / 0.4;
-            out[i * 3] = v < 0.5 ? -4 : 12; out[i * 3 + 1] = 10 + (v % 0.5) * 28; out[i * 3 + 2] = 0;
-          }
-        }
-      }
-    },
-    {
-      id: "bulb",
-      drawSVG: `<path d="M9 18h6 M10 21h4 M12 2a7 7 0 0 0-4 12.7v2.3h8v-2.3A7 7 0 0 0 12 2z" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
-        ctx.arc(cx, cy - 6, 20, Math.PI * 0.75, Math.PI * 0.25, false);
-        ctx.lineTo(cx + 12, cy + 18); ctx.lineTo(cx - 12, cy + 18); ctx.closePath();
-        ctx.stroke();
-      },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const u = i / DRONE_COUNT;
-          if (u < 0.7) {
-            const theta = (u / 0.7) * Math.PI * 1.5 - Math.PI * 1.25;
-            out[i * 3] = Math.cos(theta) * 11; out[i * 3 + 1] = 16 + Math.sin(theta) * 11; out[i * 3 + 2] = 0;
-          } else {
-            const v = (u - 0.7) / 0.3;
-            out[i * 3] = (Math.random() - 0.5) * 10; out[i * 3 + 1] = 6 + v * 4; out[i * 3 + 2] = 0;
-          }
-        }
-      }
-    }
-  ],
-  // Page 8: Forces & Nature
-  [
-    {
-      id: "vortex",
-      drawSVG: `<path d="M12 2 C18 6, 20 12, 16 16 C12 20, 8 16, 8 12 C8 8, 16 8, 16 12 C16 14, 14 16, 12 16" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
-        for (let a = 0; a <= Math.PI * 6; a += 0.1) {
-          const r = a * 4.5;
-          const x = cx + r * Math.cos(a), y = cy + (a / (Math.PI * 6) - 0.5) * 50;
-          if (a === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-      },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const u = i / DRONE_COUNT, y = u * 24 - 12;
-          const r = 2 + Math.pow(u, 1.5) * 16;
-          const theta = u * Math.PI * 10;
-          out[i * 3] = r * Math.cos(theta); out[i * 3 + 1] = 14 + y; out[i * 3 + 2] = r * Math.sin(theta);
-        }
+      gen: (out, n) => {
+        sampleSVGString("M 110 10 L 30 110 L 95 110 L 90 190 L 170 90 L 105 90 Z", out, n, 0.22, 14);
       }
     },
     {
       id: "sunburst",
-      drawSVG: `<circle cx="12" cy="12" r="4" stroke-width="1.5"/><path d="M12 2v3 M12 19v3 M2 12h3 M19 12h3 M4.9 4.9l2.1 2.1 M17 17l2.1 2.1 M4.9 19.1l2.1-2.1 M17 7l2.1-2.1" stroke-width="1.5"/>`,
+      drawSVG: `<circle cx="12" cy="12" r="4" stroke-width="1.5"/><path d="M12 2v3 M12 19v3 M2 12h3 M19 12h3" stroke-width="1.5"/>`,
       drawCanvas: (ctx, cx, cy) => {
         ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3;
         ctx.beginPath(); ctx.arc(cx, cy, 12, 0, Math.PI * 2); ctx.stroke();
@@ -1100,15 +1078,14 @@ export const SHAPE_PAGES = [
           ctx.lineTo(cx + Math.cos(a) * 28, cy + Math.sin(a) * 28); ctx.stroke();
         }
       },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const u = i / DRONE_COUNT;
+      gen: (out, n) => {
+        for (let i = 0; i < n; i++) {
+          const u = i / n;
           if (u < 0.3) {
             const theta = i * GOLDEN;
             out[i * 3] = Math.cos(theta) * 5; out[i * 3 + 1] = 14 + Math.sin(theta) * 5; out[i * 3 + 2] = (Math.random() - 0.5) * 2;
           } else {
-            const ray = i % 16, t = (ray / 16) * Math.PI * 2;
-            const r = 7 + ((i % 20) / 20) * 15;
+            const ray = i % 16, t = (ray / 16) * Math.PI * 2, r = 7 + ((i % 20) / 20) * 15;
             out[i * 3] = Math.cos(t) * r; out[i * 3 + 1] = 14 + Math.sin(t) * r; out[i * 3 + 2] = (Math.random() - 0.5) * 1.5;
           }
         }
@@ -1123,49 +1100,27 @@ export const SHAPE_PAGES = [
         ctx.arc(cx, cy - 8, 18, 0, Math.PI * 2);
         ctx.stroke();
       },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const u = i / DRONE_COUNT;
+      gen: (out, n) => {
+        for (let i = 0; i < n; i++) {
+          const u = i / n;
           if (u < 0.25) {
-            // Trunk
             out[i * 3] = (Math.random() - 0.5) * 2; out[i * 3 + 1] = 3 + (u / 0.25) * 9; out[i * 3 + 2] = (Math.random() - 0.5) * 2;
           } else {
-            // Canopy Dome
             const theta = i * GOLDEN, r = Math.sqrt((u - 0.25) / 0.75) * 13;
             out[i * 3] = r * Math.cos(theta); out[i * 3 + 1] = 14 + Math.sin((u - 0.25) * Math.PI) * 9; out[i * 3 + 2] = r * Math.sin(theta);
           }
-        }
-      }
-    },
-    {
-      id: "fire",
-      drawSVG: `<path d="M12 2 C8 6, 6 11, 8 16 C9 18, 12 22, 12 22 C12 22, 15 18, 16 16 C18 11, 16 6, 12 2 Z" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
-        ctx.moveTo(cx, cy - 28);
-        ctx.bezierCurveTo(cx - 24, cy - 8, cx - 24, cy + 16, cx, cy + 24);
-        ctx.bezierCurveTo(cx + 24, cy + 16, cx + 24, cy - 8, cx, cy - 28);
-        ctx.stroke();
-      },
-      gen: (out) => {
-        for (let i = 0; i < DRONE_COUNT; i++) {
-          const u = i / DRONE_COUNT, y = u * 24 - 12;
-          const r = Math.sin((1 - u) * Math.PI * 0.8) * 10;
-          const theta = i * GOLDEN;
-          out[i * 3] = r * Math.cos(theta); out[i * 3 + 1] = 14 + y; out[i * 3 + 2] = r * Math.sin(theta);
         }
       }
     }
   ]
 ];
 
-// Greedy Minimal Path Assignment
-function assignMinimalPaths(currentPos, rawTargets) {
-  const assigned = new Float32Array(DRONE_COUNT * 3);
+function assignMinimalPaths(currentPos, rawTargets, count) {
+  const assigned = new Float32Array(count * 3);
   const unassigned = new Set();
-  for (let i = 0; i < DRONE_COUNT; i++) unassigned.add(i);
+  for (let i = 0; i < count; i++) unassigned.add(i);
 
-  for (let i = 0; i < DRONE_COUNT; i++) {
+  for (let i = 0; i < count; i++) {
     const cx = currentPos[i * 3], cy = currentPos[i * 3 + 1], cz = currentPos[i * 3 + 2];
     let closest = -1, minD = Infinity;
     for (const tIdx of unassigned) {
@@ -1181,36 +1136,31 @@ function assignMinimalPaths(currentPos, rawTargets) {
   return assigned;
 }
 
-// Accessibility Color Naming
 function getClosestColorName(hexStr) {
   const c = new THREE.Color(hexStr);
   const hsl = {}; c.getHSL(hsl);
   if (hsl.s < 0.15) return "White";
   const h = hsl.h * 360;
-  if (h < 25) return "Red";
-  if (h < 55) return "Orange";
-  if (h < 85) return "Yellow";
-  if (h < 165) return "Green";
-  if (h < 205) return "Cyan";
-  if (h < 265) return "Blue";
+  if (h < 25) return "Red"; if (h < 55) return "Orange";
+  if (h < 85) return "Yellow"; if (h < 165) return "Green";
+  if (h < 205) return "Cyan"; if (h < 265) return "Blue";
   if (h < 325) return "Magenta";
   return "Red";
 }
 
-// Timeline Data Architecture with Multi-Color Palettes
 const timelineData = {
   formationBlocks: [
-    { id: "f0", shapeId: "saturn", dur: 12.0, transDur: 3.0 },
-    { id: "f1", shapeId: "galaxy", dur: 12.0, transDur: 3.0 },
-    { id: "f2", shapeId: "jet", dur: 12.0, transDur: 3.0 },
-    { id: "f3", shapeId: "heart", dur: 15.0, transDur: 0.0 }
+    { id: "f0", shapeId: "wavingFlag", dur: 12.0, transDur: 3.0 },
+    { id: "f1", shapeId: "shieldCrest", dur: 12.0, transDur: 3.0 },
+    { id: "f2", shapeId: "torusKnot3D", dur: 12.0, transDur: 3.0 },
+    { id: "f3", shapeId: "trophyCup", dur: 15.0, transDur: 0.0 }
   ],
   colorBlocks: [
     {
       id: "c0", dur: 15.0,
-      palette: ["#00e1ff", "#ff0077", "#ffffff"],
+      palette: ["#ff0000", "#ffffff", "#0022ff"],
       activeSwatchIdx: 0,
-      cycleSpeed: 1.0,
+      cycleSpeed: 0.0,
       blink: false, blinkSpeed: 3.0,
       sparkle: false, sparkleDensity: 0.35
     },
@@ -1219,24 +1169,24 @@ const timelineData = {
       palette: ["#ffb700", "#ff0044"],
       activeSwatchIdx: 0,
       cycleSpeed: 2.0,
-      blink: true, blinkSpeed: 4.0,
-      sparkle: false, sparkleDensity: 0.35
+      blink: false, blinkSpeed: 4.0,
+      sparkle: true, sparkleDensity: 0.35
     },
     {
       id: "c2", dur: 15.0,
-      palette: ["#c800ff", "#00ffff"],
+      palette: ["#70e6ff", "#df52ff"],
       activeSwatchIdx: 0,
-      cycleSpeed: 0.5,
+      cycleSpeed: 1.0,
       blink: false, blinkSpeed: 3.0,
-      sparkle: true, sparkleDensity: 0.4
+      sparkle: false, sparkleDensity: 0.4
     },
     {
       id: "c3", dur: 15.0,
-      palette: ["#00ff73", "#ffea00", "#ff00bb"],
+      palette: ["#ffea00", "#ffffff"],
       activeSwatchIdx: 0,
-      cycleSpeed: 1.5,
+      cycleSpeed: 0.5,
       blink: false, blinkSpeed: 3.0,
-      sparkle: false, sparkleDensity: 0.35
+      sparkle: true, sparkleDensity: 0.35
     }
   ]
 };
@@ -1269,7 +1219,6 @@ let isPlaying = false;
 let lastShapeA = null;
 let lastShapeB = null;
 
-// Multi-Color Interpolator & Shader Processor
 const tempColorA = new THREE.Color();
 const tempColorB = new THREE.Color();
 
@@ -1278,28 +1227,25 @@ function applyLightingFX(block, timeSec) {
   const nColors = pal.length;
   const speed = block.cycleSpeed || 0;
 
-  // 1. Calculate Multi-Color Palette Cycling
-  for (let i = 0; i < DRONE_COUNT; i++) {
+  for (let i = 0; i < activeDroneCount; i++) {
     let r = 1, g = 1, b = 1;
     if (nColors === 1 || speed === 0) {
-      tempColorA.set(pal[i % nColors]);
+      const colorIdx = Math.floor((i / activeDroneCount) * nColors);
+      tempColorA.set(pal[colorIdx % nColors]);
       r = tempColorA.r; g = tempColorA.g; b = tempColorA.b;
     } else {
-      // Offset index along swarm for continuous gradient sweep
-      const sweep = (timeSec * speed + (i / DRONE_COUNT)) % 1.0;
+      const sweep = (timeSec * speed + (i / activeDroneCount)) % 1.0;
       const scaled = sweep * nColors;
       const idxA = Math.floor(scaled) % nColors;
       const idxB = (idxA + 1) % nColors;
       const fract = scaled - Math.floor(scaled);
 
-      tempColorA.set(pal[idxA]);
-      tempColorB.set(pal[idxB]);
+      tempColorA.set(pal[idxA]); tempColorB.set(pal[idxB]);
       r = tempColorA.r + (tempColorB.r - tempColorA.r) * fract;
       g = tempColorA.g + (tempColorB.g - tempColorA.g) * fract;
       b = tempColorA.b + (tempColorB.b - tempColorA.b) * fract;
     }
 
-    // 2. Stacked Blink Modulation
     if (block.blink) {
       const bSpeed = block.blinkSpeed || 3.0;
       const on = Math.sin(timeSec * Math.PI * 2 * bSpeed) > 0;
@@ -1307,23 +1253,17 @@ function applyLightingFX(block, timeSec) {
       r *= factor; g *= factor; b *= factor;
     }
 
-    // 3. Stacked Sparkle Modulation
     if (block.sparkle) {
       const density = block.sparkleDensity || 0.35;
       const seed = Math.sin(i * 127.1 + timeSec * 16.0);
-      if (seed > (1.0 - density * 0.8)) {
-        r = 1.0; g = 1.0; b = 1.0; // High luminance flash
-      }
+      if (seed > (1.0 - density * 0.8)) { r = 1.0; g = 1.0; b = 1.0; }
     }
 
-    targetColors[i * 3] = r;
-    targetColors[i * 3 + 1] = g;
-    targetColors[i * 3 + 2] = b;
+    targetColors[i * 3] = r; targetColors[i * 3 + 1] = g; targetColors[i * 3 + 2] = b;
   }
 }
 
 function evaluateTimeline(t) {
-  // 1. Formations & Transitions
   let curT = 0;
   for (let i = 0; i < timelineData.formationBlocks.length; i++) {
     const b = timelineData.formationBlocks[i];
@@ -1335,9 +1275,9 @@ function evaluateTimeline(t) {
       const activeShape = findShapeById(b.shapeId);
       if (lastShapeA !== activeShape.id) {
         lastShapeA = activeShape.id; lastShapeB = null;
-        const raw = new Float32Array(DRONE_COUNT * 3);
-        activeShape.gen(raw);
-        targetPositions.set(assignMinimalPaths(currentPositions, raw));
+        const raw = new Float32Array(activeDroneCount * 3);
+        activeShape.gen(raw, activeDroneCount);
+        targetPositions.set(assignMinimalPaths(currentPositions, raw, activeDroneCount));
       }
       break;
     } else if (t >= formEnd && t < transEnd) {
@@ -1349,12 +1289,12 @@ function evaluateTimeline(t) {
 
       if (lastShapeA !== shapeA.id || lastShapeB !== shapeB.id) {
         lastShapeA = shapeA.id; lastShapeB = shapeB.id;
-        shapeA.gen(transitionFromPositions);
-        const rawB = new Float32Array(DRONE_COUNT * 3);
-        shapeB.gen(rawB);
-        transitionToPositions.set(assignMinimalPaths(transitionFromPositions, rawB));
+        shapeA.gen(transitionFromPositions, activeDroneCount);
+        const rawB = new Float32Array(activeDroneCount * 3);
+        shapeB.gen(rawB, activeDroneCount);
+        transitionToPositions.set(assignMinimalPaths(transitionFromPositions, rawB, activeDroneCount));
       }
-      for (let j = 0; j < DRONE_COUNT * 3; j++) {
+      for (let j = 0; j < activeDroneCount * 3; j++) {
         targetPositions[j] = transitionFromPositions[j] + (transitionToPositions[j] - transitionFromPositions[j]) * ease;
       }
       break;
@@ -1362,7 +1302,6 @@ function evaluateTimeline(t) {
     curT = transEnd;
   }
 
-  // 2. Color Track
   let colorT = 0;
   for (let i = 0; i < timelineData.colorBlocks.length; i++) {
     const cb = timelineData.colorBlocks[i];
@@ -1375,8 +1314,7 @@ function evaluateTimeline(t) {
   }
 }
 
-// Initial Spawn
-SHAPE_PAGES[0][0].gen(currentPositions);
+SHAPE_PAGES[0][0].gen(currentPositions, activeDroneCount);
 targetPositions.set(currentPositions);
 evaluateTimeline(0);
 currentColors.set(targetColors);
@@ -1443,7 +1381,7 @@ function updateWorldGrab() {
   grabState.prevPosR.copy(grabState.currPosR);
 }
 
-// In-VR Director HUD (Canvas Texture + Hitboxes)
+// In-VR Director HUD (Single Plane Mesh Only - No Child Hitbox Quads)
 const vrHUD = new THREE.Group();
 vrHUD.visible = false;
 xrRig.add(vrHUD);
@@ -1459,63 +1397,22 @@ const hudMesh = new THREE.Mesh(
   new THREE.PlaneGeometry(2.5, 1.7),
   new THREE.MeshBasicMaterial({ map: hudTex, transparent: true, depthTest: true })
 );
+hudMesh.name = "HUD_CANVAS_SURFACE";
 vrHUD.add(hudMesh);
 
 let currentSymbolPage = 0;
-const hudTargets = [];
-
-function registerTarget(action, x, y, w, h, meta = {}) {
-  const mesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(w, h),
-    new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
-  );
-  mesh.position.set(x, y, 0.02);
-  mesh.userData = { action, ...meta };
-  vrHUD.add(mesh);
-  hudTargets.push(mesh);
-  return mesh;
-}
-
-function clearDynamicTargets() {
-  for (let i = hudTargets.length - 1; i >= 0; i--) {
-    if (hudTargets[i].userData.dynamic) {
-      vrHUD.remove(hudTargets[i]);
-      hudTargets.splice(i, 1);
-    }
-  }
-}
-
-// Static VR Targets
-registerTarget("page_prev", -0.92, 0.70, 0.16, 0.12);
-registerTarget("page_next", -0.08, 0.70, 0.16, 0.12);
-
-registerTarget("vr_toggle_blink", -0.75, 0.17, 0.45, 0.12);
-registerTarget("vr_toggle_sparkle", -0.25, 0.17, 0.45, 0.12);
-registerTarget("vr_speed_down", 0.25, 0.17, 0.22, 0.12);
-registerTarget("vr_speed_up", 0.50, 0.17, 0.22, 0.12);
-
-registerTarget("color_spectrum", 0, -0.04, 2.0, 0.14);
-registerTarget("vr_add_swatch", 0.78, 0.07, 0.22, 0.08);
-registerTarget("vr_del_swatch", 0.95, 0.07, 0.22, 0.08);
-
-registerTarget("dur_minus", -0.85, -0.60, 0.22, 0.16);
-registerTarget("dur_plus", -0.60, -0.60, 0.22, 0.16);
-registerTarget("timeline_play", -0.30, -0.60, 0.30, 0.16);
-registerTarget("timeline_scrub", 0.40, -0.60, 1.10, 0.20);
 
 function renderHUD() {
-  clearDynamicTargets();
   const ctx = hudCtx;
   ctx.clearRect(0, 0, 1024, 700);
 
-  // Background Glass
   ctx.fillStyle = "rgba(7, 16, 29, 0.96)";
   ctx.fillRect(0, 0, 1024, 700);
   ctx.strokeStyle = "rgba(112, 230, 255, 0.7)";
   ctx.lineWidth = 4;
   ctx.strokeRect(8, 8, 1008, 684);
 
-  // 1. Symbol Page Controls
+  // 1. Symbol Page Controls (x: 40, w: 60) and (x: 420, w: 60)
   ctx.fillStyle = "rgba(27, 56, 100, 0.9)";
   ctx.fillRect(40, 20, 60, 48); ctx.fillRect(420, 20, 60, 48);
   ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2;
@@ -1524,7 +1421,7 @@ function renderHUD() {
   ctx.fillText("◀", 70, 52); ctx.fillText("▶", 450, 52);
   ctx.fillText(`PAGE ${currentSymbolPage + 1} / 8`, 260, 52);
 
-  // 4 Symbol Icons on current page
+  // 2. 4 Symbol Cards (x: 40 + i*238, y: 82, w: 224, h: 100)
   const shapes = SHAPE_PAGES[currentSymbolPage];
   for (let i = 0; i < 4; i++) {
     const s = shapes[i];
@@ -1534,14 +1431,10 @@ function renderHUD() {
     ctx.strokeStyle = (selectedFormationBlockId && timelineData.formationBlocks.find(b => b.id === selectedFormationBlockId)?.shapeId === s.id) ? "#70e6ff" : "#375077";
     ctx.lineWidth = 2;
     ctx.strokeRect(x, 82, 224, 100);
-
     s.drawCanvas(ctx, x + 112, 132);
-
-    const localX = -0.75 + i * 0.50;
-    registerTarget("select_shape", localX, 0.47, 0.45, 0.26, { dynamic: true, shapeId: s.id });
   }
 
-  // 2. Multi-Color Palette Swatches
+  // 3. Multi-Color Palette Swatches
   const activeColorBlock = timelineData.colorBlocks.find(b => b.id === selectedColorBlockId) || timelineData.colorBlocks[0];
   ctx.fillStyle = "#8fa2c3"; ctx.font = "bold 14px system-ui"; ctx.textAlign = "left";
   ctx.fillText("PALETTE SLOTS:", 40, 212);
@@ -1554,9 +1447,6 @@ function renderHUD() {
     ctx.strokeStyle = (activeColorBlock.activeSwatchIdx === sIdx) ? "#ffffff" : "#000000";
     ctx.lineWidth = (activeColorBlock.activeSwatchIdx === sIdx) ? 3 : 1;
     ctx.stroke();
-
-    const localSx = -0.56 + sIdx * 0.13;
-    registerTarget("select_swatch", localSx, 0.22, 0.12, 0.12, { dynamic: true, swatchIdx: sIdx });
   }
 
   // Add / Delete Swatch Buttons
@@ -1566,7 +1456,7 @@ function renderHUD() {
   ctx.fillStyle = "#fff"; ctx.font = "bold 16px system-ui"; ctx.textAlign = "center";
   ctx.fillText("+ ADD", 837, 211); ctx.fillText("− DEL", 927, 211);
 
-  // 3. Spectrum Bar
+  // 4. Spectrum Bar (x: 40, y: 240, w: 944, h: 40)
   const specGrad = ctx.createLinearGradient(40, 240, 984, 240);
   specGrad.addColorStop(0.00, "#ff0000"); specGrad.addColorStop(0.17, "#ffff00");
   specGrad.addColorStop(0.33, "#00ff00"); specGrad.addColorStop(0.50, "#00ffff");
@@ -1575,7 +1465,7 @@ function renderHUD() {
   ctx.fillStyle = specGrad; ctx.fillRect(40, 240, 944, 40);
   ctx.strokeStyle = "#ffffff44"; ctx.strokeRect(40, 240, 944, 40);
 
-  // 4. Layered FX Controls (Blink, Sparkle, Speed -/+)
+  // 5. FX Toggles
   function drawToggle(x, y, w, h, label, active) {
     ctx.fillStyle = active ? "#70e6ff" : "rgba(23, 39, 66, 0.85)";
     ctx.fillRect(x, y, w, h);
@@ -1597,7 +1487,7 @@ function renderHUD() {
   drawToggle(700, 300, 60, 44, "−", false);
   drawToggle(780, 300, 60, 44, "+", false);
 
-  // 5. Dual-Track Timeline
+  // 6. Dual-Track Timeline
   let curX = 40;
   const availW = 944;
   for (const b of timelineData.formationBlocks) {
@@ -1622,7 +1512,6 @@ function renderHUD() {
     }
   }
 
-  // Color Track with Multi-Swatch Gradient Previews
   curX = 40;
   for (const b of timelineData.colorBlocks) {
     const cw = (b.dur / TOTAL_DURATION) * availW;
@@ -1645,12 +1534,10 @@ function renderHUD() {
     curX += cw;
   }
 
-  // Playhead Vertical Line
   const playX = 40 + (playheadTime / TOTAL_DURATION) * availW;
   ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 3;
   ctx.beginPath(); ctx.moveTo(playX, 360); ctx.lineTo(playX, 460); ctx.stroke();
 
-  // Bottom Controls
   function drawBtn(x, y, w, h, label, bg = "#1b3864") {
     ctx.fillStyle = bg; ctx.fillRect(x, y, w, h);
     ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2; ctx.strokeRect(x, y, w, h);
@@ -1686,7 +1573,7 @@ function toggleHUD() {
   for (const ray of controllerRays) ray.visible = vrHUD.visible;
 }
 
-// Raycast Action Handlers
+// Pure 2D UV Raycast Hit Detection (No extra 3D meshes)
 const raycaster = new THREE.Raycaster();
 const quat = new THREE.Quaternion();
 
@@ -1697,83 +1584,137 @@ function handleVRSelect(controller) {
   const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(quat).normalize();
   raycaster.set(origin, dir);
 
-  const hits = raycaster.intersectObjects(hudTargets, false);
+  const hits = raycaster.intersectObject(hudMesh, false);
   if (!hits.length) return;
 
   const hit = hits[0];
-  const act = hit.object.userData.action;
+  if (!hit.uv) return;
+
+  // Map UV coordinate directly to canvas pixel space
+  const px = hit.uv.x * 1024;
+  const py = (1 - hit.uv.y) * 700;
+
+  const inRect = (x, y, w, h) => px >= x && px <= x + w && py >= y && py <= y + h;
   const cb = timelineData.colorBlocks.find(x => x.id === selectedColorBlockId);
 
-  if (act === "page_prev") {
+  // 1. Page navigation
+  if (inRect(40, 20, 60, 48)) {
     currentSymbolPage = (currentSymbolPage + 7) % 8;
-    populateDesktopIcons(); renderHUD();
-  } else if (act === "page_next") {
+    populateDesktopIcons(); renderHUD(); return;
+  }
+  if (inRect(420, 20, 60, 48)) {
     currentSymbolPage = (currentSymbolPage + 1) % 8;
-    populateDesktopIcons(); renderHUD();
-  } else if (act === "select_shape") {
-    const { shapeId } = hit.object.userData;
-    const b = timelineData.formationBlocks.find(x => x.id === selectedFormationBlockId);
-    if (b) {
-      b.shapeId = shapeId;
-      evaluateTimeline(playheadTime);
-      buildDesktopTimeline(); renderHUD();
+    populateDesktopIcons(); renderHUD(); return;
+  }
+
+  // 2. Shape selection
+  for (let i = 0; i < 4; i++) {
+    const x = 40 + i * 238;
+    if (inRect(x, 82, 224, 100)) {
+      const s = SHAPE_PAGES[currentSymbolPage][i];
+      const b = timelineData.formationBlocks.find(x => x.id === selectedFormationBlockId);
+      if (b) {
+        b.shapeId = s.id;
+        lastShapeA = null;
+        evaluateTimeline(playheadTime);
+        buildDesktopTimeline(); renderHUD();
+      }
+      return;
     }
-  } else if (act === "select_swatch") {
-    if (cb) {
-      cb.activeSwatchIdx = hit.object.userData.swatchIdx;
-      syncDesktopPalette(); renderHUD();
+  }
+
+  // 3. Swatch selection
+  if (cb) {
+    for (let sIdx = 0; sIdx < cb.palette.length; sIdx++) {
+      const sx = 180 + sIdx * 54;
+      const distSq = (px - sx) ** 2 + (py - 206) ** 2;
+      if (distSq <= 20 ** 2) {
+        cb.activeSwatchIdx = sIdx;
+        syncDesktopPalette(); renderHUD();
+        return;
+      }
     }
-  } else if (act === "vr_add_swatch") {
+  }
+
+  // 4. Add / Del swatch
+  if (inRect(800, 186, 75, 38)) {
     if (cb && cb.palette.length < 5) {
       cb.palette.push("#ffffff");
       cb.activeSwatchIdx = cb.palette.length - 1;
-      syncDesktopPalette(); renderHUD();
+      syncDesktopPalette(); buildDesktopTimeline(); renderHUD();
     }
-  } else if (act === "vr_del_swatch") {
+    return;
+  }
+  if (inRect(890, 186, 75, 38)) {
     if (cb && cb.palette.length > 1) {
       cb.palette.splice(cb.activeSwatchIdx, 1);
       cb.activeSwatchIdx = Math.max(0, cb.activeSwatchIdx - 1);
-      syncDesktopPalette(); renderHUD();
+      syncDesktopPalette(); buildDesktopTimeline(); renderHUD();
     }
-  } else if (act === "vr_toggle_blink") {
-    if (cb) { cb.blink = !cb.blink; syncDesktopFX(); renderHUD(); }
-  } else if (act === "vr_toggle_sparkle") {
-    if (cb) { cb.sparkle = !cb.sparkle; syncDesktopFX(); renderHUD(); }
-  } else if (act === "vr_speed_down") {
-    if (cb) { cb.cycleSpeed = Math.max(0, cb.cycleSpeed - 0.2); syncDesktopFX(); renderHUD(); }
-  } else if (act === "vr_speed_up") {
-    if (cb) { cb.cycleSpeed = Math.min(4, cb.cycleSpeed + 0.2); syncDesktopFX(); renderHUD(); }
-  } else if (act === "color_spectrum") {
-    const localHit = vrHUD.worldToLocal(hit.point.clone());
-    const ratio = Math.max(0, Math.min(1, (localHit.x + 1.0) / 2.0));
+    return;
+  }
+
+  // 5. Spectrum picking
+  if (inRect(40, 240, 944, 40)) {
+    const ratio = Math.max(0, Math.min(1, (px - 40) / 944));
     const hColor = new THREE.Color().setHSL(ratio, 1.0, 0.5);
     if (cb && cb.palette.length) {
       cb.palette[cb.activeSwatchIdx] = "#" + hColor.getHexString();
       syncDesktopPalette(); buildDesktopTimeline(); renderHUD();
     }
-  } else if (act === "dur_minus") {
+    return;
+  }
+
+  // 6. FX Toggles
+  if (inRect(40, 300, 180, 44)) {
+    if (cb) { cb.blink = !cb.blink; syncDesktopFX(); renderHUD(); }
+    return;
+  }
+  if (inRect(240, 300, 180, 44)) {
+    if (cb) { cb.sparkle = !cb.sparkle; syncDesktopFX(); renderHUD(); }
+    return;
+  }
+  if (inRect(700, 300, 60, 44)) {
+    if (cb) { cb.cycleSpeed = Math.max(0, cb.cycleSpeed - 0.2); syncDesktopFX(); renderHUD(); }
+    return;
+  }
+  if (inRect(780, 300, 60, 44)) {
+    if (cb) { cb.cycleSpeed = Math.min(4, cb.cycleSpeed + 0.2); syncDesktopFX(); renderHUD(); }
+    return;
+  }
+
+  // 7. Timeline scrub / Retiming
+  if (inRect(40, 365, 944, 90)) {
+    const ratio = Math.max(0, Math.min(1, (px - 40) / 944));
+    playheadTime = ratio * TOTAL_DURATION;
+    evaluateTimeline(playheadTime); syncDesktopTimeline(); renderHUD();
+    return;
+  }
+
+  // 8. Bottom buttons
+  if (inRect(40, 480, 80, 54)) {
     const b = timelineData.formationBlocks.find(x => x.id === selectedFormationBlockId);
     if (b && b.dur > 3) {
       b.dur -= 1; recalculateTimelineDuration(); buildDesktopTimeline(); renderHUD();
     }
-  } else if (act === "dur_plus") {
+    return;
+  }
+  if (inRect(130, 480, 80, 54)) {
     const b = timelineData.formationBlocks.find(x => x.id === selectedFormationBlockId);
     if (b) {
       b.dur += 1; recalculateTimelineDuration(); buildDesktopTimeline(); renderHUD();
     }
-  } else if (act === "timeline_play") {
+    return;
+  }
+  if (inRect(230, 480, 140, 54)) {
     isPlaying = !isPlaying;
     $("btn-play").textContent = isPlaying ? "Pause" : "Play";
     renderHUD();
-  } else if (act === "timeline_scrub") {
-    const localHit = vrHUD.worldToLocal(hit.point.clone());
-    const ratio = Math.max(0, Math.min(1, (localHit.x + 0.55) / 1.10));
-    playheadTime = ratio * TOTAL_DURATION;
-    evaluateTimeline(playheadTime); syncDesktopTimeline(); renderHUD();
+    return;
   }
 }
 
-// Controller Trigger for Liquid Mode & Raycasts
+// Controller Triggers
 let isTriggerDownL = false;
 let isTriggerDownR = false;
 
@@ -1808,7 +1749,14 @@ rightController.addEventListener("connected", e => rightController.userData.game
 // Desktop UI DOM Binding
 function $(id) { return document.getElementById(id); }
 
-// Build 8 Page Buttons
+$("slider-fleet-count").oninput = (e) => {
+  activeDroneCount = parseInt(e.target.value);
+  $("val-fleet-count").textContent = `${activeDroneCount} Drones`;
+  droneGeometry.setDrawRange(0, activeDroneCount);
+  lastShapeA = null; lastShapeB = null;
+  evaluateTimeline(playheadTime);
+};
+
 const pageTabs = $("page-tabs");
 for (let p = 0; p < 8; p++) {
   const b = document.createElement("button");
@@ -1837,6 +1785,7 @@ function populateDesktopIcons() {
     btn.onclick = () => {
       if (activeFormation) {
         activeFormation.shapeId = s.id;
+        lastShapeA = null;
         evaluateTimeline(playheadTime);
         buildDesktopTimeline();
         populateDesktopIcons();
@@ -1847,7 +1796,6 @@ function populateDesktopIcons() {
   }
 }
 
-// Multi-Color Palette Swatch Rendering
 function syncDesktopPalette() {
   const cb = timelineData.colorBlocks.find(x => x.id === selectedColorBlockId);
   if (!cb) return;
@@ -1872,9 +1820,7 @@ $("btn-add-color").onclick = () => {
   if (cb && cb.palette.length < 5) {
     cb.palette.push("#ffffff");
     cb.activeSwatchIdx = cb.palette.length - 1;
-    syncDesktopPalette();
-    buildDesktopTimeline();
-    renderHUD();
+    syncDesktopPalette(); buildDesktopTimeline(); renderHUD();
   }
 };
 
@@ -1883,13 +1829,10 @@ $("btn-del-color").onclick = () => {
   if (cb && cb.palette.length > 1) {
     cb.palette.splice(cb.activeSwatchIdx, 1);
     cb.activeSwatchIdx = Math.max(0, cb.activeSwatchIdx - 1);
-    syncDesktopPalette();
-    buildDesktopTimeline();
-    renderHUD();
+    syncDesktopPalette(); buildDesktopTimeline(); renderHUD();
   }
 };
 
-// Layered Motion & FX Bindings
 function syncDesktopFX() {
   const cb = timelineData.colorBlocks.find(x => x.id === selectedColorBlockId);
   if (!cb) return;
@@ -1941,7 +1884,6 @@ $("slider-sparkle-density").oninput = (e) => {
   }
 };
 
-// Color Spectrum Click
 const specBar = $("desktop-spectrum");
 function handleSpectrum(e) {
   const rect = specBar.getBoundingClientRect();
@@ -1963,14 +1905,11 @@ specBar.onmousedown = e => {
   window.onmouseup = () => window.onmousemove = null;
 };
 
-// Accessibility Checkbox
 $("chk-labels").onchange = (e) => {
   showAccessibilityLabels = e.target.checked;
-  buildDesktopTimeline();
-  renderHUD();
+  buildDesktopTimeline(); renderHUD();
 };
 
-// Draggable Timeline Block Retiming
 function buildDesktopTimeline() {
   const fTrack = $("ui-formation-track");
   fTrack.innerHTML = "";
@@ -2035,7 +1974,6 @@ function buildDesktopTimeline() {
     }
   }
 
-  // Color Track
   const cTrack = $("ui-color-track");
   cTrack.innerHTML = "";
   for (const cb of timelineData.colorBlocks) {
@@ -2056,10 +1994,7 @@ function buildDesktopTimeline() {
 
     cBlock.onclick = () => {
       selectedColorBlockId = cb.id;
-      syncDesktopPalette();
-      syncDesktopFX();
-      buildDesktopTimeline();
-      renderHUD();
+      syncDesktopPalette(); syncDesktopFX(); buildDesktopTimeline(); renderHUD();
     };
 
     const cHandle = document.createElement("div");
@@ -2090,9 +2025,7 @@ function syncDesktopTimeline() {
 
 $("timeline-slider").oninput = (e) => {
   playheadTime = Number(e.target.value);
-  evaluateTimeline(playheadTime);
-  syncDesktopTimeline();
-  renderHUD();
+  evaluateTimeline(playheadTime); syncDesktopTimeline(); renderHUD();
 };
 
 $("btn-play").onclick = () => {
@@ -2105,6 +2038,19 @@ populateDesktopIcons();
 syncDesktopPalette();
 syncDesktopFX();
 buildDesktopTimeline();
+
+// Clean Session Lifecycle Handling
+renderer.xr.addEventListener("sessionstart", () => {
+  document.body.classList.add("xr-active");
+  vrHUD.visible = false;
+  for (const ray of controllerRays) ray.visible = false;
+});
+
+renderer.xr.addEventListener("sessionend", () => {
+  document.body.classList.remove("xr-active");
+  vrHUD.visible = false;
+  for (const ray of controllerRays) ray.visible = false;
+});
 
 // Main Animation & Physics Loop
 const SPRING = 18.0;
@@ -2136,8 +2082,7 @@ renderer.setAnimationLoop(now => {
     updateWorldGrab();
   }
 
-  // Update Swarm Dynamics
-  for (let i = 0; i < DRONE_COUNT; i++) {
+  for (let i = 0; i < activeDroneCount; i++) {
     const idx = i * 3;
     let px = currentPositions[idx];
     let py = currentPositions[idx + 1];
@@ -2151,7 +2096,6 @@ renderer.setAnimationLoop(now => {
     let fy = (targetPositions[idx + 1] - py) * SPRING - vy * DAMPING;
     let fz = (targetPositions[idx + 2] - pz) * SPRING - vz * DAMPING;
 
-    // Trigger-Gated Liquid Wave Repulsion
     if (isVR && !vrHUD.visible) {
       if (isTriggerDownL) {
         const dxL = px - cPosL.x, dyL = py - cPosL.y, dzL = pz - cPosL.z;
@@ -2182,7 +2126,6 @@ renderer.setAnimationLoop(now => {
 
     velocities[idx] = vx; velocities[idx + 1] = vy; velocities[idx + 2] = vz;
 
-    // Smooth Color Interpolation
     currentColors[idx] += (targetColors[idx] - currentColors[idx]) * 6.0 * dt;
     currentColors[idx + 1] += (targetColors[idx + 1] - currentColors[idx + 1]) * 6.0 * dt;
     currentColors[idx + 2] += (targetColors[idx + 2] - currentColors[idx + 2]) * 6.0 * dt;
