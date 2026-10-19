@@ -13,14 +13,16 @@ body {
   background: #02040d;
   color: #e8efff;
   font: 14px/1.4 system-ui, sans-serif;
+  user-select: none;
 }
 canvas { display: block; }
+
 #panel {
   position: fixed;
   z-index: 2;
   left: 16px;
   top: 16px;
-  width: min(460px, calc(100vw - 32px));
+  width: min(480px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   overflow-y: auto;
   padding: 14px;
@@ -32,7 +34,11 @@ canvas { display: block; }
 }
 #title { font-weight: 700; font-size: 16px; margin-bottom: 2px; }
 #status { color: #70e6ff; font-size: 12px; margin-bottom: 10px; }
+
 .section-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-size: 11px;
   text-transform: uppercase;
   color: #8fa2c3;
@@ -41,90 +47,151 @@ canvas { display: block; }
 }
 .tab-row {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   margin-bottom: 8px;
 }
-.tab-btn {
+.page-btn {
   flex: 1;
-  padding: 6px 2px;
-  font-size: 11px;
+  padding: 6px 0;
+  font-size: 12px;
+  font-weight: bold;
   background: #111e33;
   border: 1px solid #233b5d;
   color: #9cb5db;
   border-radius: 6px;
   cursor: pointer;
 }
-.tab-btn.active {
+.page-btn.active {
   background: #1b3864;
   border-color: #70e6ff;
   color: #ffffff;
 }
-.btn-grid {
+
+.icon-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+  gap: 8px;
   margin-bottom: 8px;
 }
-button.shape-btn {
+button.symbol-btn {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  color: #ecf3ff;
+  height: 64px;
   background: #172742;
   border: 1px solid #375077;
   border-radius: 8px;
-  padding: 8px 4px;
+  padding: 6px;
   cursor: pointer;
-  font-size: 11px;
 }
-button.shape-btn:hover { background: #22385c; }
+button.symbol-btn:hover { background: #22385c; }
+button.symbol-btn.active { border-color: #70e6ff; background: #1c3b6a; }
+button.symbol-btn svg { width: 34px; height: 34px; stroke: #70e6ff; fill: none; }
+
+.fx-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.fx-btn {
+  flex: 1;
+  padding: 6px 4px;
+  font-size: 11px;
+  background: #152238;
+  border: 1px solid #324766;
+  border-radius: 6px;
+  color: #d8e5f8;
+  cursor: pointer;
+}
+.fx-btn.active {
+  background: #70e6ff;
+  color: #051020;
+  font-weight: 700;
+  border-color: #70e6ff;
+}
+
 #desktop-spectrum {
   width: 100%;
-  height: 22px;
+  height: 24px;
   border-radius: 6px;
   border: 1px solid #ffffff44;
   cursor: crosshair;
   background: linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
+
 .timeline-wrap {
-  background: #0b1526;
+  background: #091222;
   border: 1px solid #233b5d;
   border-radius: 8px;
   padding: 8px;
-  margin-top: 8px;
+  margin-top: 6px;
+}
+.track-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #8fa2c3;
+  margin-bottom: 2px;
 }
 .track-bar {
   display: flex;
-  height: 22px;
+  height: 26px;
   border-radius: 4px;
   overflow: hidden;
   margin-bottom: 6px;
   position: relative;
+  background: #050b14;
   border: 1px solid #ffffff1a;
 }
-.track-block {
+.block-element {
+  position: relative;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
-  font-weight: 600;
-  color: #fff;
-  text-shadow: 0 1px 2px #000;
-  border-right: 1px solid #0004;
   cursor: pointer;
+  box-sizing: border-box;
+  overflow: hidden;
 }
+.block-element.active-block {
+  outline: 2px solid #ffffff;
+  z-index: 1;
+}
+.resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  background: rgba(255, 255, 255, 0.25);
+}
+.resize-handle:hover {
+  background: #70e6ff;
+}
+.transition-block {
+  background: repeating-linear-gradient(
+    45deg,
+    #1b2738,
+    #1b2738 6px,
+    #2c3d55 6px,
+    #2c3d55 12px
+  );
+  border-left: 1px solid #00000044;
+  border-right: 1px solid #00000044;
+}
+
 .timeline-ctrls {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-top: 6px;
 }
 #timeline-slider {
   flex: 1;
   accent-color: #70e6ff;
 }
+
 #hint { color: #8fa2c3; font-size: 11px; margin-top: 8px; line-height: 1.4; }
 #vr-tip {
   position: fixed;
@@ -137,7 +204,6 @@ button.shape-btn:hover { background: #22385c; }
   padding: 7px 11px;
   border-radius: 8px;
   font-size: 12px;
-  white-space: nowrap;
   pointer-events: none;
 }
 body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton {
@@ -158,24 +224,43 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton {
   <div id="title">DroneShow Designer XR</div>
   <div id="status">Interactive Choreography Suite · 400 Drones</div>
 
-  <div class="section-label">Shape Categories</div>
+  <div class="section-label">
+    <span>Symbol Pages</span>
+  </div>
   <div class="tab-row">
-    <button class="tab-btn active" data-cat="cosmic">Cosmic</button>
-    <button class="tab-btn" data-cat="living">Living</button>
-    <button class="tab-btn" data-cat="cad">CAD</button>
-    <button class="tab-btn" data-cat="graphic">Graphic</button>
+    <button class="page-btn active" data-page="0">1</button>
+    <button class="page-btn" data-page="1">2</button>
+    <button class="page-btn" data-page="2">3</button>
+    <button class="page-btn" data-page="3">4</button>
   </div>
 
-  <div class="btn-grid" id="desktop-shape-grid"></div>
+  <div class="icon-grid" id="desktop-icon-grid"></div>
 
-  <div class="section-label">Color Spectrum</div>
+  <div class="section-label">
+    <span>Light FX Mode</span>
+  </div>
+  <div class="fx-row">
+    <button class="fx-btn active" data-fx="solid">Solid</button>
+    <button class="fx-btn" data-fx="blink">Blink</button>
+    <button class="fx-btn" data-fx="sparkle">Sparkle</button>
+    <button class="fx-btn" data-fx="cycle">Cycle</button>
+  </div>
+
+  <div class="section-label">
+    <span>Color Palette</span>
+    <label style="font-size:10px; cursor:pointer; color:#9cb5db;">
+      <input type="checkbox" id="chk-labels"> Color Labels (A11y)
+    </label>
+  </div>
   <div id="desktop-spectrum"></div>
 
-  <div class="section-label">Dual-Track Timeline (60s Show)</div>
+  <div class="section-label">
+    <span>Dual-Track Timeline</span>
+  </div>
   <div class="timeline-wrap">
-    <div style="font-size:10px; color:#70e6ff; margin-bottom:2px;">FORMATION TRACK</div>
+    <div class="track-label">FORMATIONS & TRANSITIONS (DRAG HANDLES TO RESIZE)</div>
     <div class="track-bar" id="ui-formation-track"></div>
-    <div style="font-size:10px; color:#ff9bf0; margin-bottom:2px;">COLOR TRACK</div>
+    <div class="track-label">LIGHTING TRACK</div>
     <div class="track-bar" id="ui-color-track"></div>
     <div class="timeline-ctrls">
       <button id="btn-play" style="padding:4px 10px; font-size:11px; background:#1b3864; border:1px solid #70e6ff; color:#fff; border-radius:4px; cursor:pointer;">Play</button>
@@ -185,13 +270,12 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton {
   </div>
 
   <div id="hint">
-    <b>Desktop:</b> Left Drag: orbit · Right Drag: pan · Wheel: zoom.<br>
-    <b>VR Squeeze Grips:</b> 1 Hand to pan world · 2 Hands to rotate & scale world.<br>
-    <b>VR Triggers:</b> Hold Trigger in empty space for <i>Liquid Wave</i> · Tap HUD to click.<br>
-    <b>VR Pinch Drone:</b> Get right hand near any drone (<0.8m) to see reticle, then grip to move it.
+    <b>Desktop:</b> Drag grey vertical handles on blocks to lengthen/shorten formations.<br>
+    <b>VR Squeeze:</b> 1 Hand: drag world · 2 Hands: rotate/scale volume.<br>
+    <b>VR Trigger:</b> Empty space = Liquid Swarm Wave · Raycast HUD to edit & resize.
   </div>
 </div>
-<div id="vr-tip">In VR: Press Left X to toggle Director HUD · Dual-Grip to scale/rotate world</div>
+<div id="vr-tip">In VR: Press Left X to toggle Director HUD · Drag handles to retime</div>
 
 <script type="module">
 import * as THREE from "three";
@@ -199,7 +283,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { VRButton } from "three/addons/webxr/VRButton.js";
 
 const DRONE_COUNT = 400;
-const SHOW_DURATION = 60.0;
+let TOTAL_DURATION = 60.0;
 const GOLDEN = Math.PI * (3 - Math.sqrt(5));
 
 const scene = new THREE.Scene();
@@ -224,7 +308,7 @@ const orbit = new OrbitControls(camera, renderer.domElement);
 orbit.target.set(0, 14, 0);
 orbit.update();
 
-// VR Controllers & Tracking Rigs
+// VR Controllers
 const leftController = renderer.xr.getController(0);
 const rightController = renderer.xr.getController(1);
 xrRig.add(leftController);
@@ -244,7 +328,7 @@ function createRay(controller) {
 createRay(leftController);
 createRay(rightController);
 
-// Liquid force field visualization attached to controllers
+// Liquid Force Spheres
 function createForceSphere(controller) {
   const geom = new THREE.SphereGeometry(1.6, 16, 12);
   const mat = new THREE.MeshBasicMaterial({ color: 0x70e6ff, wireframe: true, transparent: true, opacity: 0.18 });
@@ -258,13 +342,11 @@ const forceMeshR = createForceSphere(rightController);
 
 // Environment
 scene.add(new THREE.HemisphereLight(0x9bbcff, 0x101629, 1.2));
-const grid = new THREE.GridHelper(90, 45, 0x274064, 0x14223b);
-scene.add(grid);
+scene.add(new THREE.GridHelper(90, 45, 0x274064, 0x14223b));
 
-// Glow Particle Texture
+// Glow Sprite Texture
 const glowCanvas = document.createElement("canvas");
-glowCanvas.width = 64;
-glowCanvas.height = 64;
+glowCanvas.width = 64; glowCanvas.height = 64;
 const glowCtx = glowCanvas.getContext("2d");
 const grad = glowCtx.createRadialGradient(32, 32, 1, 32, 32, 32);
 grad.addColorStop(0, "rgba(255,255,255,1)");
@@ -276,12 +358,16 @@ glowCtx.fillRect(0, 0, 64, 64);
 const glowTexture = new THREE.CanvasTexture(glowCanvas);
 glowTexture.colorSpace = THREE.SRGBColorSpace;
 
-// Swarm Buffers
+// Swarm Physics Buffers
 const currentPositions = new Float32Array(DRONE_COUNT * 3);
 const targetPositions = new Float32Array(DRONE_COUNT * 3);
 const velocities = new Float32Array(DRONE_COUNT * 3);
 const currentColors = new Float32Array(DRONE_COUNT * 3);
 const targetColors = new Float32Array(DRONE_COUNT * 3);
+
+// Interpolation caches for transitions
+const transitionFromPositions = new Float32Array(DRONE_COUNT * 3);
+const transitionToPositions = new Float32Array(DRONE_COUNT * 3);
 
 const droneGeometry = new THREE.BufferGeometry();
 droneGeometry.setAttribute("position", new THREE.BufferAttribute(currentPositions, 3));
@@ -301,163 +387,371 @@ const dronePoints = new THREE.Points(
 );
 scene.add(dronePoints);
 
-// Selection Reticle for Single Drone Pinch
-const reticleGeom = new THREE.RingGeometry(0.2, 0.28, 24);
-const reticleMat = new THREE.MeshBasicMaterial({ color: 0xffe600, side: THREE.DoubleSide, transparent: true, opacity: 0.9 });
-const selectionReticle = new THREE.Mesh(reticleGeom, reticleMat);
-selectionReticle.visible = false;
-scene.add(selectionReticle);
-
 // 16 Parametric Shape Generators
-export const SHAPE_LIBRARY = {
-  cosmic: {
-    saturn: (out) => {
-      const core = 120;
-      for (let i = 0; i < core; i++) {
-        const u = (i + 0.5) / core, y = 1 - 2 * u, r = Math.sqrt(1 - y * y) * 4.5, t = i * GOLDEN;
-        out[i * 3] = r * Math.cos(t); out[i * 3 + 1] = 14 + y * 4.5; out[i * 3 + 2] = r * Math.sin(t);
-      }
-      for (let i = core; i < DRONE_COUNT; i++) {
-        const u = (i - core) / (DRONE_COUNT - core), t = u * Math.PI * 8, r = 7.0 + u * 11.0;
-        const x = r * Math.cos(t), z = r * Math.sin(t);
-        out[i * 3] = x; out[i * 3 + 1] = 14 + z * Math.sin(0.42); out[i * 3 + 2] = z * Math.cos(0.42);
-      }
-    },
-    galaxy: (out) => {
-      for (let i = 0; i < DRONE_COUNT; i++) {
-        const u = (i + 0.5) / DRONE_COUNT, arm = i % 3, r = 1.5 + 20 * u, t = i * GOLDEN * 0.5 + (arm * Math.PI * 2) / 3;
-        out[i * 3] = r * Math.cos(t); out[i * 3 + 1] = 14 + r * Math.sin(t) * 0.45; out[i * 3 + 2] = (Math.random() - 0.5) * 3.5;
-      }
-    },
-    atom: (out) => {
-      const nuc = 40;
-      for (let i = 0; i < nuc; i++) {
-        const r = Math.cbrt(Math.random()) * 2.2, theta = Math.random() * Math.PI * 2, phi = Math.acos(2 * Math.random() - 1);
-        out[i * 3] = r * Math.sin(phi) * Math.cos(theta); out[i * 3 + 1] = 14 + r * Math.sin(phi) * Math.sin(theta); out[i * 3 + 2] = r * Math.cos(phi);
-      }
-      const perRing = Math.floor((DRONE_COUNT - nuc) / 3);
-      const angles = [0, Math.PI / 3, -Math.PI / 3];
-      for (let k = 0; k < 3; k++) {
-        const base = nuc + k * perRing, rotX = angles[k];
-        for (let j = 0; j < perRing; j++) {
-          const t = (j / perRing) * Math.PI * 2, x = 14 * Math.cos(t), y = 6.5 * Math.sin(t), idx = (base + j) * 3;
-          out[idx] = x; out[idx + 1] = 14 + y * Math.cos(rotX); out[idx + 2] = y * Math.sin(rotX);
+export const SHAPE_PAGES = [
+  // Page 0
+  [
+    {
+      id: "saturn",
+      drawSVG: `<circle cx="12" cy="12" r="5" stroke-width="1.5"/><ellipse cx="12" cy="12" rx="10" ry="3.5" stroke-width="1.5" transform="rotate(-20 12 12)"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(cx, cy, 18, 0, Math.PI * 2); ctx.stroke();
+        ctx.save(); ctx.translate(cx, cy); ctx.rotate(-0.35);
+        ctx.beginPath(); ctx.ellipse(0, 0, 38, 12, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+      },
+      gen: (out) => {
+        const core = 120;
+        for (let i = 0; i < core; i++) {
+          const u = (i + 0.5) / core, y = 1 - 2 * u, r = Math.sqrt(1 - y * y) * 4.5, t = i * GOLDEN;
+          out[i * 3] = r * Math.cos(t); out[i * 3 + 1] = 14 + y * 4.5; out[i * 3 + 2] = r * Math.sin(t);
+        }
+        for (let i = core; i < DRONE_COUNT; i++) {
+          const u = (i - core) / (DRONE_COUNT - core), t = u * Math.PI * 8, r = 7.0 + u * 11.0;
+          const x = r * Math.cos(t), z = r * Math.sin(t);
+          out[i * 3] = x; out[i * 3 + 1] = 14 + z * Math.sin(0.42); out[i * 3 + 2] = z * Math.cos(0.42);
         }
       }
     },
-    moon: (out) => {
-      for (let i = 0; i < DRONE_COUNT; i++) {
-        const u = i / DRONE_COUNT, angle = (u - 0.5) * Math.PI * 1.5, r1 = 14, r2 = 11;
-        const x = Math.cos(angle) * r1 - 3.5, y = Math.sin(angle) * r1;
-        out[i * 3] = x + (Math.random() - 0.5) * 1.2; out[i * 3 + 1] = 14 + y; out[i * 3 + 2] = (Math.random() - 0.5) * 2;
-      }
-    }
-  },
-  living: {
-    eagle: (out) => {
-      for (let i = 0; i < DRONE_COUNT; i++) {
-        const u = (i / DRONE_COUNT) * 2 - 1, span = u * 20, sweep = -Math.abs(u) * 6, flap = Math.cos(u * Math.PI * 0.9) * 4.2;
-        out[i * 3] = span; out[i * 3 + 1] = 14 + flap + (Math.random() - 0.5); out[i * 3 + 2] = sweep + (Math.random() - 0.5) * 1.2;
-      }
-    },
-    butterfly: (out) => {
-      for (let i = 0; i < DRONE_COUNT; i++) {
-        const t = (i / DRONE_COUNT) * Math.PI * 12;
-        const q = Math.exp(Math.cos(t)) - 2 * Math.cos(4 * t) - Math.pow(Math.sin(t / 12), 5);
-        out[i * 3] = 4.0 * Math.sin(t) * q; out[i * 3 + 1] = 14 + 4.0 * Math.cos(t) * q; out[i * 3 + 2] = (Math.random() - 0.5) * 2;
+    {
+      id: "galaxy",
+      drawSVG: `<path d="M12 2a10 10 0 0 0-7 17l1.5-1.5A8 8 0 1 1 12 20v2a10 10 0 0 0 0-20zm0 6a4 4 0 1 0 4 4 4 4 0 0 0-4-4z" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
+        for (let a = 0; a < Math.PI * 4; a += 0.1) {
+          const r = 2 + a * 7.5; const x = cx + r * Math.cos(a), y = cy + r * Math.sin(a);
+          if (a === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      },
+      gen: (out) => {
+        for (let i = 0; i < DRONE_COUNT; i++) {
+          const u = (i + 0.5) / DRONE_COUNT, arm = i % 3, r = 1.5 + 20 * u, t = i * GOLDEN * 0.5 + (arm * Math.PI * 2) / 3;
+          out[i * 3] = r * Math.cos(t); out[i * 3 + 1] = 14 + r * Math.sin(t) * 0.45; out[i * 3 + 2] = (Math.random() - 0.5) * 3.5;
+        }
       }
     },
-    lotus: (out) => {
-      for (let i = 0; i < DRONE_COUNT; i++) {
-        const u = (i + 0.5) / DRONE_COUNT, theta = i * GOLDEN, r = Math.sqrt(u) * (10 + 4 * Math.cos(6 * theta));
-        out[i * 3] = r * Math.cos(theta); out[i * 3 + 1] = 12 + Math.pow(u, 0.7) * 5; out[i * 3 + 2] = r * Math.sin(theta);
+    {
+      id: "atom",
+      drawSVG: `<circle cx="12" cy="12" r="2.5" fill="#70e6ff"/><ellipse cx="12" cy="12" rx="10" ry="4" stroke-width="1.5"/><ellipse cx="12" cy="12" rx="10" ry="4" stroke-width="1.5" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" stroke-width="1.5" transform="rotate(120 12 12)"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2.5;
+        ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2); ctx.fill();
+        for (const angle of [0, Math.PI / 3, (Math.PI * 2) / 3]) {
+          ctx.save(); ctx.translate(cx, cy); ctx.rotate(angle);
+          ctx.beginPath(); ctx.ellipse(0, 0, 36, 14, 0, 0, Math.PI * 2); ctx.stroke();
+          ctx.restore();
+        }
+      },
+      gen: (out) => {
+        const nuc = 40;
+        for (let i = 0; i < nuc; i++) {
+          const r = Math.cbrt(Math.random()) * 2.2, theta = Math.random() * Math.PI * 2, phi = Math.acos(2 * Math.random() - 1);
+          out[i * 3] = r * Math.sin(phi) * Math.cos(theta); out[i * 3 + 1] = 14 + r * Math.sin(phi) * Math.sin(theta); out[i * 3 + 2] = r * Math.cos(phi);
+        }
+        const perRing = Math.floor((DRONE_COUNT - nuc) / 3);
+        const angles = [0, Math.PI / 3, -Math.PI / 3];
+        for (let k = 0; k < 3; k++) {
+          const base = nuc + k * perRing, rotX = angles[k];
+          for (let j = 0; j < perRing; j++) {
+            const t = (j / perRing) * Math.PI * 2, x = 14 * Math.cos(t), y = 6.5 * Math.sin(t), idx = (base + j) * 3;
+            out[idx] = x; out[idx + 1] = 14 + y * Math.cos(rotX); out[idx + 2] = y * Math.sin(rotX);
+          }
+        }
       }
     },
-    wave: (out) => {
-      for (let i = 0; i < DRONE_COUNT; i++) {
-        const u = (i / DRONE_COUNT) * 40 - 20;
-        out[i * 3] = u;
-        out[i * 3 + 1] = 14 + 5 * Math.sin(u * 0.25) + 2.5 * Math.sin(u * 0.5 + 1.2);
-        out[i * 3 + 2] = (Math.random() - 0.5) * 6;
-      }
-    }
-  },
-  cad: {
-    sphere: (out) => {
-      for (let i = 0; i < DRONE_COUNT; i++) {
-        const y = 1 - (i / (DRONE_COUNT - 1)) * 2, r = Math.sqrt(1 - y * y) * 12, theta = i * GOLDEN;
-        out[i * 3] = r * Math.cos(theta); out[i * 3 + 1] = 14 + y * 12; out[i * 3 + 2] = r * Math.sin(theta);
-      }
-    },
-    helix: (out) => {
-      for (let i = 0; i < DRONE_COUNT; i++) {
-        const strand = i % 2 === 0 ? 1 : -1, prog = i / DRONE_COUNT, theta = prog * Math.PI * 8, y = prog * 24 - 12;
-        out[i * 3] = 6.0 * Math.cos(theta) * strand; out[i * 3 + 1] = 14 + y; out[i * 3 + 2] = 6.0 * Math.sin(theta) * strand;
-      }
-    },
-    mobius: (out) => {
-      for (let i = 0; i < DRONE_COUNT; i++) {
-        const u = (i / DRONE_COUNT) * Math.PI * 2, v = ((i % 4) / 3 - 0.5) * 3.5, r = 9.5;
-        out[i * 3] = (r + v * Math.cos(u * 0.5)) * Math.cos(u);
-        out[i * 3 + 1] = 14 + v * Math.sin(u * 0.5) * 2.5;
-        out[i * 3 + 2] = (r + v * Math.cos(u * 0.5)) * Math.sin(u);
-      }
-    },
-    cube: (out) => {
-      const perEdge = Math.floor(DRONE_COUNT / 12);
-      const corners = [
-        [-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],
-        [-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]
-      ];
-      const edges = [
-        [0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]
-      ];
-      for (let e = 0; e < 12; e++) {
-        const [c1, c2] = edges[e];
-        for (let j = 0; j < perEdge; j++) {
-          const t = j / perEdge, idx = (e * perEdge + j) * 3;
-          out[idx] = (corners[c1][0] + (corners[c2][0] - corners[c1][0]) * t) * 7.5;
-          out[idx + 1] = 14 + (corners[c1][1] + (corners[c2][1] - corners[c1][1]) * t) * 7.5;
-          out[idx + 2] = (corners[c1][2] + (corners[c2][2] - corners[c1][2]) * t) * 7.5;
+    {
+      id: "moon",
+      drawSVG: `<path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a7 7 0 1 1-7.54-7.54c-.44-.06-.9-.1-1.36-.1z" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.fillStyle = "rgba(112, 230, 255, 0.25)"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(cx - 6, cy, 28, -Math.PI * 0.4, Math.PI * 0.4, false);
+        ctx.bezierCurveTo(cx + 8, cy + 18, cx + 8, cy - 18, cx - 6, cy - 28 * Math.cos(Math.PI * 0.4));
+        ctx.stroke(); ctx.fill();
+      },
+      gen: (out) => {
+        for (let i = 0; i < DRONE_COUNT; i++) {
+          const u = i / DRONE_COUNT, angle = (u - 0.5) * Math.PI * 1.5, r1 = 14;
+          const x = Math.cos(angle) * r1 - 3.5, y = Math.sin(angle) * r1;
+          out[i * 3] = x + (Math.random() - 0.5) * 1.2; out[i * 3 + 1] = 14 + y; out[i * 3 + 2] = (Math.random() - 0.5) * 2;
         }
       }
     }
-  },
-  graphic: {
-    heart: (out) => {
-      for (let i = 0; i < DRONE_COUNT; i++) {
-        const u = (i + 0.5) / DRONE_COUNT, t = i * GOLDEN, r = Math.sqrt(u) * 0.88;
-        out[i * 3] = 0.85 * r * 16 * Math.pow(Math.sin(t), 3);
-        out[i * 3 + 1] = 14 + 0.72 * r * (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
-        out[i * 3 + 2] = (Math.random() - 0.5) * 2.5;
+  ],
+  // Page 1
+  [
+    {
+      id: "eagle",
+      drawSVG: `<path d="M2 10 C 6 4, 10 12, 12 9 C 14 12, 18 4, 22 10 C 17 14, 13 18, 12 21 C 11 18, 7 14, 2 10 Z" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
+        ctx.moveTo(cx - 36, cy + 2);
+        ctx.bezierCurveTo(cx - 20, cy - 24, cx - 8, cy + 6, cx, cy - 6);
+        ctx.bezierCurveTo(cx + 8, cy + 6, cx + 20, cy - 24, cx + 36, cy + 2);
+        ctx.bezierCurveTo(cx + 18, cy + 18, cx + 8, cy + 26, cx, cy + 30);
+        ctx.bezierCurveTo(cx - 8, cy + 26, cx - 18, cy + 18, cx - 36, cy + 2);
+        ctx.stroke();
+      },
+      gen: (out) => {
+        for (let i = 0; i < DRONE_COUNT; i++) {
+          const u = (i / DRONE_COUNT) * 2 - 1, span = u * 20, sweep = -Math.abs(u) * 6, flap = Math.cos(u * Math.PI * 0.9) * 4.2;
+          out[i * 3] = span; out[i * 3 + 1] = 14 + flap + (Math.random() - 0.5); out[i * 3 + 2] = sweep + (Math.random() - 0.5) * 1.2;
+        }
       }
     },
-    star: (out) => {
-      const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      p.setAttribute("d", "M 100 15 L 124 72 L 186 75 L 138 114 L 154 174 L 100 138 L 46 174 L 62 114 L 14 75 L 76 72 Z");
-      const len = p.getTotalLength();
-      for (let i = 0; i < DRONE_COUNT; i++) {
-        const pt = p.getPointAtLength((i / DRONE_COUNT) * len);
-        out[i * 3] = (pt.x - 100) * 0.22; out[i * 3 + 1] = 14 - (pt.y - 100) * 0.22; out[i * 3 + 2] = (i % 2 === 0 ? 1 : -1) * 1.5;
+    {
+      id: "butterfly",
+      drawSVG: `<path d="M12 4 C8 2, 3 5, 3 10 C3 14, 8 15, 12 20 C16 15, 21 14, 21 10 C21 5, 16 2, 12 4 Z" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
+        ctx.moveTo(cx, cy - 22);
+        ctx.bezierCurveTo(cx - 32, cy - 30, cx - 36, cy + 6, cx, cy + 24);
+        ctx.bezierCurveTo(cx + 36, cy + 6, cx + 32, cy - 30, cx, cy - 22);
+        ctx.stroke();
+      },
+      gen: (out) => {
+        for (let i = 0; i < DRONE_COUNT; i++) {
+          const t = (i / DRONE_COUNT) * Math.PI * 12;
+          const q = Math.exp(Math.cos(t)) - 2 * Math.cos(4 * t) - Math.pow(Math.sin(t / 12), 5);
+          out[i * 3] = 4.0 * Math.sin(t) * q; out[i * 3 + 1] = 14 + 4.0 * Math.cos(t) * q; out[i * 3 + 2] = (Math.random() - 0.5) * 2;
+        }
       }
     },
-    infinity: (out) => {
-      for (let i = 0; i < DRONE_COUNT; i++) {
-        const t = (i / DRONE_COUNT) * Math.PI * 2, a = 12.0, denom = 1 + Math.sin(t) * Math.sin(t);
-        out[i * 3] = (a * Math.cos(t)) / denom; out[i * 3 + 1] = 14 + (a * Math.sin(t) * Math.cos(t)) / denom; out[i * 3 + 2] = (Math.random() - 0.5) * 2;
+    {
+      id: "lotus",
+      drawSVG: `<path d="M12 21 C8 17, 3 14, 3 9 C6 10, 9 12, 12 16 C15 12, 18 10, 21 9 C21 14, 16 17, 12 21 Z" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
+        for (let i = 0; i < 5; i++) {
+          const a = (i / 5) * Math.PI - Math.PI / 2;
+          ctx.arc(cx + Math.cos(a) * 14, cy + Math.sin(a) * 14, 16, 0, Math.PI * 2);
+        }
+        ctx.stroke();
+      },
+      gen: (out) => {
+        for (let i = 0; i < DRONE_COUNT; i++) {
+          const u = (i + 0.5) / DRONE_COUNT, theta = i * GOLDEN, r = Math.sqrt(u) * (10 + 4 * Math.cos(6 * theta));
+          out[i * 3] = r * Math.cos(theta); out[i * 3 + 1] = 12 + Math.pow(u, 0.7) * 5; out[i * 3 + 2] = r * Math.sin(theta);
+        }
       }
     },
-    crown: (out) => {
-      for (let i = 0; i < DRONE_COUNT; i++) {
-        const u = i / DRONE_COUNT, theta = u * Math.PI * 2, r = 11.0;
-        const peaks = Math.abs(Math.sin(theta * 2.5)) * 5.0;
-        out[i * 3] = r * Math.cos(theta); out[i * 3 + 1] = 12 + peaks; out[i * 3 + 2] = r * Math.sin(theta);
+    {
+      id: "wave",
+      drawSVG: `<path d="M2 16 C6 10, 10 10, 14 16 C18 22, 20 12, 22 8" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
+        ctx.moveTo(cx - 36, cy + 14);
+        ctx.bezierCurveTo(cx - 20, cy - 20, cx - 4, cy - 20, cx + 8, cy + 10);
+        ctx.bezierCurveTo(cx + 18, cy + 28, cx + 26, cy + 8, cx + 36, cy - 12);
+        ctx.stroke();
+      },
+      gen: (out) => {
+        for (let i = 0; i < DRONE_COUNT; i++) {
+          const u = (i / DRONE_COUNT) * 40 - 20;
+          out[i * 3] = u;
+          out[i * 3 + 1] = 14 + 5 * Math.sin(u * 0.25) + 2.5 * Math.sin(u * 0.5 + 1.2);
+          out[i * 3 + 2] = (Math.random() - 0.5) * 6;
+        }
       }
     }
-  }
-};
+  ],
+  // Page 2
+  [
+    {
+      id: "sphere",
+      drawSVG: `<circle cx="12" cy="12" r="9" stroke-width="1.5"/><ellipse cx="12" cy="12" rx="9" ry="3.5" stroke-width="1.5"/><ellipse cx="12" cy="12" rx="3.5" ry="9" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(cx, cy, 26, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(cx, cy, 26, 9, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(cx, cy, 9, 26, 0, 0, Math.PI * 2); ctx.stroke();
+      },
+      gen: (out) => {
+        for (let i = 0; i < DRONE_COUNT; i++) {
+          const y = 1 - (i / (DRONE_COUNT - 1)) * 2, r = Math.sqrt(1 - y * y) * 12, theta = i * GOLDEN;
+          out[i * 3] = r * Math.cos(theta); out[i * 3 + 1] = 14 + y * 12; out[i * 3 + 2] = r * Math.sin(theta);
+        }
+      }
+    },
+    {
+      id: "helix",
+      drawSVG: `<path d="M4 6 Q 12 18, 20 6 M 4 18 Q 12 6, 20 18" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
+        for (let t = -30; t <= 30; t += 2) {
+          const x = cx + Math.sin(t * 0.2) * 16, y = cy + t;
+          if (t === -30) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke(); ctx.beginPath();
+        for (let t = -30; t <= 30; t += 2) {
+          const x = cx - Math.sin(t * 0.2) * 16, y = cy + t;
+          if (t === -30) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      },
+      gen: (out) => {
+        for (let i = 0; i < DRONE_COUNT; i++) {
+          const strand = i % 2 === 0 ? 1 : -1, prog = i / DRONE_COUNT, theta = prog * Math.PI * 8, y = prog * 24 - 12;
+          out[i * 3] = 6.0 * Math.cos(theta) * strand; out[i * 3 + 1] = 14 + y; out[i * 3 + 2] = 6.0 * Math.sin(theta) * strand;
+        }
+      }
+    },
+    {
+      id: "mobius",
+      drawSVG: `<path d="M6 8 C 2 12, 10 16, 12 12 C 14 8, 22 12, 18 16 C 14 20, 6 14, 12 12" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
+        for (let a = 0; a <= Math.PI * 2; a += 0.1) {
+          const x = cx + 26 * Math.cos(a) / (1 + Math.sin(a) * Math.sin(a));
+          const y = cy + 26 * Math.sin(a) * Math.cos(a) / (1 + Math.sin(a) * Math.sin(a));
+          if (a === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      },
+      gen: (out) => {
+        for (let i = 0; i < DRONE_COUNT; i++) {
+          const u = (i / DRONE_COUNT) * Math.PI * 2, v = ((i % 4) / 3 - 0.5) * 3.5, r = 9.5;
+          out[i * 3] = (r + v * Math.cos(u * 0.5)) * Math.cos(u);
+          out[i * 3 + 1] = 14 + v * Math.sin(u * 0.5) * 2.5;
+          out[i * 3 + 2] = (r + v * Math.cos(u * 0.5)) * Math.sin(u);
+        }
+      }
+    },
+    {
+      id: "cube",
+      drawSVG: `<path d="M12 2 L21 7 L21 17 L12 22 L3 17 L3 7 Z M12 2 L12 12 L21 7 M12 12 L3 7" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3;
+        const pts = [
+          [0, -26], [24, -13], [24, 13], [0, 26], [-24, 13], [-24, -13]
+        ];
+        ctx.beginPath();
+        ctx.moveTo(cx + pts[0][0], cy + pts[0][1]);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(cx + pts[i][0], cy + pts[i][1]);
+        ctx.closePath(); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 26); ctx.lineTo(cx, cy);
+        ctx.lineTo(cx + 24, cy + 13);
+        ctx.moveTo(cx, cy); ctx.lineTo(cx - 24, cy + 13);
+        ctx.stroke();
+      },
+      gen: (out) => {
+        const perEdge = Math.floor(DRONE_COUNT / 12);
+        const corners = [
+          [-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],
+          [-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]
+        ];
+        const edges = [
+          [0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]
+        ];
+        for (let e = 0; e < 12; e++) {
+          const [c1, c2] = edges[e];
+          for (let j = 0; j < perEdge; j++) {
+            const t = j / perEdge, idx = (e * perEdge + j) * 3;
+            out[idx] = (corners[c1][0] + (corners[c2][0] - corners[c1][0]) * t) * 7.5;
+            out[idx + 1] = 14 + (corners[c1][1] + (corners[c2][1] - corners[c1][1]) * t) * 7.5;
+            out[idx + 2] = (corners[c1][2] + (corners[c2][2] - corners[c1][2]) * t) * 7.5;
+          }
+        }
+      }
+    }
+  ],
+  // Page 3
+  [
+    {
+      id: "heart",
+      drawSVG: `<path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.fillStyle = "rgba(112, 230, 255, 0.25)"; ctx.lineWidth = 3;
+        ctx.beginPath();
+        const topY = cy - 20;
+        ctx.moveTo(cx, topY + 16);
+        ctx.bezierCurveTo(cx, topY, cx - 32, topY, cx - 32, topY + 24);
+        ctx.bezierCurveTo(cx - 32, topY + 48, cx, topY + 62, cx, topY + 74);
+        ctx.bezierCurveTo(cx, topY + 62, cx + 32, topY + 48, cx + 32, topY + 24);
+        ctx.bezierCurveTo(cx + 32, topY, cx, topY, cx, topY + 16);
+        ctx.stroke(); ctx.fill();
+      },
+      gen: (out) => {
+        for (let i = 0; i < DRONE_COUNT; i++) {
+          const u = (i + 0.5) / DRONE_COUNT, t = i * GOLDEN, r = Math.sqrt(u) * 0.88;
+          out[i * 3] = 0.85 * r * 16 * Math.pow(Math.sin(t), 3);
+          out[i * 3 + 1] = 14 + 0.72 * r * (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+          out[i * 3 + 2] = (Math.random() - 0.5) * 2.5;
+        }
+      }
+    },
+    {
+      id: "star",
+      drawSVG: `<polygon points="12,2 15,9 22,9 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9 9,9" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3;
+        const spikes = 5, outerR = 28, innerR = 12;
+        let rot = Math.PI / 2 * 3, x = cx, y = cy, step = Math.PI / spikes;
+        ctx.beginPath(); ctx.moveTo(cx, cy - outerR);
+        for (let i = 0; i < spikes; i++) {
+          x = cx + Math.cos(rot) * outerR; y = cy + Math.sin(rot) * outerR; ctx.lineTo(x, y); rot += step;
+          x = cx + Math.cos(rot) * innerR; y = cy + Math.sin(rot) * innerR; ctx.lineTo(x, y); rot += step;
+        }
+        ctx.closePath(); ctx.stroke();
+      },
+      gen: (out) => {
+        const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        p.setAttribute("d", "M 100 15 L 124 72 L 186 75 L 138 114 L 154 174 L 100 138 L 46 174 L 62 114 L 14 75 L 76 72 Z");
+        const len = p.getTotalLength();
+        for (let i = 0; i < DRONE_COUNT; i++) {
+          const pt = p.getPointAtLength((i / DRONE_COUNT) * len);
+          out[i * 3] = (pt.x - 100) * 0.22; out[i * 3 + 1] = 14 - (pt.y - 100) * 0.22; out[i * 3 + 2] = (i % 2 === 0 ? 1 : -1) * 1.5;
+        }
+      }
+    },
+    {
+      id: "infinity",
+      drawSVG: `<path d="M6 12 C 2 6, 8 6, 12 12 C 16 18, 22 18, 18 12 C 14 6, 8 18, 6 12 Z" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
+        for (let t = 0; t <= Math.PI * 2; t += 0.05) {
+          const a = 30.0, denom = 1 + Math.sin(t) * Math.sin(t);
+          const x = cx + (a * Math.cos(t)) / denom;
+          const y = cy + (a * Math.sin(t) * Math.cos(t)) / denom;
+          if (t === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      },
+      gen: (out) => {
+        for (let i = 0; i < DRONE_COUNT; i++) {
+          const t = (i / DRONE_COUNT) * Math.PI * 2, a = 12.0, denom = 1 + Math.sin(t) * Math.sin(t);
+          out[i * 3] = (a * Math.cos(t)) / denom; out[i * 3 + 1] = 14 + (a * Math.sin(t) * Math.cos(t)) / denom; out[i * 3 + 2] = (Math.random() - 0.5) * 2;
+        }
+      }
+    },
+    {
+      id: "crown",
+      drawSVG: `<path d="M3 18 L4 8 L9 13 L12 5 L15 13 L20 8 L21 18 Z" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
+        ctx.moveTo(cx - 30, cy + 18);
+        ctx.lineTo(cx - 26, cy - 14);
+        ctx.lineTo(cx - 12, cy + 2);
+        ctx.lineTo(cx, cy - 24);
+        ctx.lineTo(cx + 12, cy + 2);
+        ctx.lineTo(cx + 26, cy - 14);
+        ctx.lineTo(cx + 30, cy + 18);
+        ctx.closePath(); ctx.stroke();
+      },
+      gen: (out) => {
+        for (let i = 0; i < DRONE_COUNT; i++) {
+          const u = i / DRONE_COUNT, theta = u * Math.PI * 2, r = 11.0;
+          const peaks = Math.abs(Math.sin(theta * 2.5)) * 5.0;
+          out[i * 3] = r * Math.cos(theta); out[i * 3 + 1] = 12 + peaks; out[i * 3 + 2] = r * Math.sin(theta);
+        }
+      }
+    }
+  ]
+];
 
-// Greedy Assignment Pass to Prevent Flight Crossing
+// Greedy Minimal Path Assignment
 function assignMinimalPaths(currentPos, rawTargets) {
   const assigned = new Float32Array(DRONE_COUNT * 3);
   const unassigned = new Set();
@@ -479,71 +773,181 @@ function assignMinimalPaths(currentPos, rawTargets) {
   return assigned;
 }
 
-function setTargetShape(generator) {
-  const raw = new Float32Array(DRONE_COUNT * 3);
-  generator(raw);
-  targetPositions.set(assignMinimalPaths(currentPositions, raw));
+// Named Colors Lookup for Accessibility Labels
+function getClosestColorName(hexStr) {
+  const c = new THREE.Color(hexStr);
+  const hsl = {}; c.getHSL(hsl);
+  if (hsl.s < 0.15) return "White";
+  const h = hsl.h * 360;
+  if (h < 25) return "Red";
+  if (h < 55) return "Orange";
+  if (h < 85) return "Yellow";
+  if (h < 165) return "Green";
+  if (h < 205) return "Cyan";
+  if (h < 265) return "Blue";
+  if (h < 325) return "Magenta";
+  return "Red";
 }
 
-function setTargetHue(hueRatio) {
-  const temp = new THREE.Color();
-  for (let i = 0; i < DRONE_COUNT; i++) {
-    const h = (hueRatio + (i / DRONE_COUNT) * 0.08) % 1.0;
-    temp.setHSL(h, 1.0, 0.55);
-    targetColors[i * 3] = temp.r; targetColors[i * 3 + 1] = temp.g; targetColors[i * 3 + 2] = temp.b;
-  }
-}
-
-// 60-Second Dual-Track Timeline Engine
+// Multi-Track Timeline Data Model
 const timelineData = {
-  formationTrack: [
-    { start: 0, dur: 15, shape: "saturn", label: "Saturn", cat: "cosmic", color: "#234d7d" },
-    { start: 15, dur: 15, shape: "galaxy", label: "Galaxy", cat: "cosmic", color: "#4c2e7d" },
-    { start: 30, dur: 15, shape: "eagle", label: "Eagle", cat: "living", color: "#1d5e69" },
-    { start: 45, dur: 15, shape: "heart", label: "Heart", cat: "graphic", color: "#7d2449" }
+  formationBlocks: [
+    { id: "f0", shapeId: "saturn", dur: 12.0, transDur: 3.0 },
+    { id: "f1", shapeId: "galaxy", dur: 12.0, transDur: 3.0 },
+    { id: "f2", shapeId: "eagle", dur: 12.0, transDur: 3.0 },
+    { id: "f3", shapeId: "heart", dur: 15.0, transDur: 0.0 }
   ],
-  colorTrack: [
-    { start: 0, dur: 12, hue: 0.50, label: "Cyan", color: "#00e1ff" },
-    { start: 12, dur: 16, hue: 0.12, label: "Gold", color: "#ffb700" },
-    { start: 28, dur: 16, hue: 0.80, label: "Violet", color: "#c800ff" },
-    { start: 44, dur: 16, hue: 0.35, label: "Emerald", color: "#00ff73" }
+  colorBlocks: [
+    { id: "c0", dur: 15.0, color: "#00e1ff", fx: "solid" },
+    { id: "c1", dur: 15.0, color: "#ffb700", fx: "blink" },
+    { id: "c2", dur: 15.0, color: "#c800ff", fx: "sparkle" },
+    { id: "c3", dur: 15.0, color: "#00ff73", fx: "cycle" }
   ]
 };
 
+let showAccessibilityLabels = false;
+let selectedFormationBlockId = "f0";
+let selectedColorBlockId = "c0";
+
+function recalculateTimelineDuration() {
+  let formTotal = 0;
+  for (const b of timelineData.formationBlocks) {
+    formTotal += b.dur + (b.transDur || 0);
+  }
+  let colorTotal = 0;
+  for (const b of timelineData.colorBlocks) {
+    colorTotal += b.dur;
+  }
+  TOTAL_DURATION = Math.max(formTotal, colorTotal, 20.0);
+  $("timeline-slider").max = TOTAL_DURATION;
+}
+recalculateTimelineDuration();
+
+// Shape Lookup
+function findShapeById(id) {
+  for (const page of SHAPE_PAGES) {
+    for (const shape of page) {
+      if (shape.id === id) return shape;
+    }
+  }
+  return SHAPE_PAGES[0][0];
+}
+
 let playheadTime = 0.0;
 let isPlaying = false;
-let activeFormBlockIndex = -1;
-let activeColorBlockIndex = -1;
+
+// Evaluate Formations & Transitions at Time T
+let lastShapeA = null;
+let lastShapeB = null;
 
 function evaluateTimeline(t) {
-  // 1. Formation Track
-  for (let i = 0; i < timelineData.formationTrack.length; i++) {
-    const b = timelineData.formationTrack[i];
-    if (t >= b.start && t < b.start + b.dur) {
-      if (activeFormBlockIndex !== i) {
-        activeFormBlockIndex = i;
-        setTargetShape(SHAPE_LIBRARY[b.cat][b.shape]);
+  // 1. Formation Track (with explicit transitions)
+  let curT = 0;
+  let activeShape = null;
+
+  for (let i = 0; i < timelineData.formationBlocks.length; i++) {
+    const b = timelineData.formationBlocks[i];
+    const formStart = curT;
+    const formEnd = curT + b.dur;
+    const transEnd = formEnd + (b.transDur || 0);
+
+    if (t >= formStart && t < formEnd) {
+      // In stationary formation
+      activeShape = findShapeById(b.shapeId);
+      if (lastShapeA !== activeShape.id) {
+        lastShapeA = activeShape.id;
+        lastShapeB = null;
+        const raw = new Float32Array(DRONE_COUNT * 3);
+        activeShape.gen(raw);
+        targetPositions.set(assignMinimalPaths(currentPositions, raw));
+      }
+      break;
+    } else if (t >= formEnd && t < transEnd) {
+      // Inside Transition Block
+      const nextB = timelineData.formationBlocks[i + 1] || timelineData.formationBlocks[0];
+      const shapeA = findShapeById(b.shapeId);
+      const shapeB = findShapeById(nextB.shapeId);
+
+      const transProgress = (t - formEnd) / b.transDur;
+      const ease = transProgress * transProgress * (3 - 2 * transProgress);
+
+      if (lastShapeA !== shapeA.id || lastShapeB !== shapeB.id) {
+        lastShapeA = shapeA.id;
+        lastShapeB = shapeB.id;
+        shapeA.gen(transitionFromPositions);
+        const rawB = new Float32Array(DRONE_COUNT * 3);
+        shapeB.gen(rawB);
+        transitionToPositions.set(assignMinimalPaths(transitionFromPositions, rawB));
+      }
+
+      for (let j = 0; j < DRONE_COUNT * 3; j++) {
+        targetPositions[j] = transitionFromPositions[j] + (transitionToPositions[j] - transitionFromPositions[j]) * ease;
       }
       break;
     }
+    curT = transEnd;
   }
-  // 2. Color Track
-  for (let i = 0; i < timelineData.colorTrack.length; i++) {
-    const b = timelineData.colorTrack[i];
-    if (t >= b.start && t < b.start + b.dur) {
-      if (activeColorBlockIndex !== i) {
-        activeColorBlockIndex = i;
-        setTargetHue(b.hue);
-      }
+
+  // 2. Color Track Evaluation
+  let colorT = 0;
+  for (let i = 0; i < timelineData.colorBlocks.length; i++) {
+    const cb = timelineData.colorBlocks[i];
+    if (t >= colorT && t < colorT + cb.dur) {
+      selectedColorBlockId = cb.id;
+      applyLightingFX(cb, t);
       break;
+    }
+    colorT += cb.dur;
+  }
+}
+
+// Lighting FX Processor (Solid, Blink, Sparkle, Cycle)
+const tempColor = new THREE.Color();
+function applyLightingFX(block, timeSec) {
+  const base = tempColor.set(block.color);
+  const fx = block.fx;
+
+  if (fx === "solid") {
+    for (let i = 0; i < DRONE_COUNT; i++) {
+      targetColors[i * 3] = base.r;
+      targetColors[i * 3 + 1] = base.g;
+      targetColors[i * 3 + 2] = base.b;
+    }
+  } else if (fx === "blink") {
+    // 3 Hz square wave strobe
+    const on = Math.sin(timeSec * Math.PI * 6) > 0;
+    const factor = on ? 1.0 : 0.05;
+    for (let i = 0; i < DRONE_COUNT; i++) {
+      targetColors[i * 3] = base.r * factor;
+      targetColors[i * 3 + 1] = base.g * factor;
+      targetColors[i * 3 + 2] = base.b * factor;
+    }
+  } else if (fx === "sparkle") {
+    // Random high-frequency twinkle on top of base
+    for (let i = 0; i < DRONE_COUNT; i++) {
+      const r = Math.sin(i * 99 + timeSec * 14);
+      const isSpark = r > 0.65;
+      targetColors[i * 3] = isSpark ? 1.0 : base.r * 0.4;
+      targetColors[i * 3 + 1] = isSpark ? 1.0 : base.g * 0.4;
+      targetColors[i * 3 + 2] = isSpark ? 1.0 : base.b * 0.4;
+    }
+  } else if (fx === "cycle") {
+    // Rotating rainbow wave
+    const hsl = {}; base.getHSL(hsl);
+    for (let i = 0; i < DRONE_COUNT; i++) {
+      const h = (hsl.h + timeSec * 0.35 + (i / DRONE_COUNT) * 0.25) % 1.0;
+      tempColor.setHSL(h, 1.0, 0.55);
+      targetColors[i * 3] = tempColor.r;
+      targetColors[i * 3 + 1] = tempColor.g;
+      targetColors[i * 3 + 2] = tempColor.b;
     }
   }
 }
 
-// Spawn initial setup
-SHAPE_LIBRARY.cosmic.saturn(currentPositions);
+// Initial Spawn
+SHAPE_PAGES[0][0].gen(currentPositions);
 targetPositions.set(currentPositions);
-setTargetHue(0.5);
+evaluateTimeline(0);
 currentColors.set(targetColors);
 
 // Two-Handed World Grab Locomotion
@@ -614,19 +1018,19 @@ vrHUD.visible = false;
 xrRig.add(vrHUD);
 
 const hudCanvas = document.createElement("canvas");
-hudCanvas.width = 1000;
-hudCanvas.height = 640;
+hudCanvas.width = 1024;
+hudCanvas.height = 680;
 const hudCtx = hudCanvas.getContext("2d");
 const hudTex = new THREE.CanvasTexture(hudCanvas);
 hudTex.colorSpace = THREE.SRGBColorSpace;
 
 const hudMesh = new THREE.Mesh(
-  new THREE.PlaneGeometry(2.5, 1.6),
+  new THREE.PlaneGeometry(2.5, 1.66),
   new THREE.MeshBasicMaterial({ map: hudTex, transparent: true, depthTest: true })
 );
 vrHUD.add(hudMesh);
 
-let currentCategory = "cosmic";
+let currentSymbolPage = 0;
 const hudTargets = [];
 
 function registerTarget(action, x, y, w, h, meta = {}) {
@@ -643,85 +1047,98 @@ function registerTarget(action, x, y, w, h, meta = {}) {
 
 function clearDynamicTargets() {
   for (let i = hudTargets.length - 1; i >= 0; i--) {
-    const t = hudTargets[i];
-    if (t.userData.dynamic) {
-      vrHUD.remove(t);
+    if (hudTargets[i].userData.dynamic) {
+      vrHUD.remove(hudTargets[i]);
       hudTargets.splice(i, 1);
     }
   }
 }
 
-// Static Hitboxes (Categories & Top Level)
-registerTarget("tab_cosmic", -0.75, 0.65, 0.45, 0.16);
-registerTarget("tab_living", -0.25, 0.65, 0.45, 0.16);
-registerTarget("tab_cad", 0.25, 0.65, 0.45, 0.16);
-registerTarget("tab_graphic", 0.75, 0.65, 0.45, 0.16);
+// Static VR Targets
+registerTarget("page_0", -0.75, 0.68, 0.45, 0.14);
+registerTarget("page_1", -0.25, 0.68, 0.45, 0.14);
+registerTarget("page_2", 0.25, 0.68, 0.45, 0.14);
+registerTarget("page_3", 0.75, 0.68, 0.45, 0.14);
 
-// Color Spectrum Hitbox
-registerTarget("color_spectrum", 0, 0.05, 2.0, 0.16);
-// Timeline Hitbox & Play Button
-registerTarget("timeline_play", -0.92, -0.58, 0.25, 0.18);
-registerTarget("timeline_scrub", 0.14, -0.58, 1.80, 0.22);
+registerTarget("fx_solid", -0.75, 0.15, 0.45, 0.12);
+registerTarget("fx_blink", -0.25, 0.15, 0.45, 0.12);
+registerTarget("fx_sparkle", 0.25, 0.15, 0.45, 0.12);
+registerTarget("fx_cycle", 0.75, 0.15, 0.45, 0.12);
+
+registerTarget("color_spectrum", 0, -0.05, 2.0, 0.16);
+registerTarget("toggle_a11y", 0.75, -0.19, 0.45, 0.10);
+
+registerTarget("dur_minus", -0.85, -0.58, 0.22, 0.18);
+registerTarget("dur_plus", -0.60, -0.58, 0.22, 0.18);
+registerTarget("timeline_play", -0.30, -0.58, 0.30, 0.18);
+registerTarget("timeline_scrub", 0.40, -0.58, 1.10, 0.22);
 
 function renderHUD() {
   clearDynamicTargets();
   const ctx = hudCtx;
-  ctx.clearRect(0, 0, 1000, 640);
+  ctx.clearRect(0, 0, 1024, 680);
 
   // Background Glass
-  ctx.fillStyle = "rgba(7, 16, 29, 0.95)";
-  ctx.fillRect(0, 0, 1000, 640);
+  ctx.fillStyle = "rgba(7, 16, 29, 0.96)";
+  ctx.fillRect(0, 0, 1024, 680);
   ctx.strokeStyle = "rgba(112, 230, 255, 0.7)";
   ctx.lineWidth = 4;
-  ctx.strokeRect(8, 8, 984, 624);
+  ctx.strokeRect(8, 8, 1008, 664);
 
-  // Category Tabs
-  const cats = [
-    { key: "cosmic", label: "COSMIC", x: 40 },
-    { key: "living", label: "LIVING", x: 275 },
-    { key: "cad", label: "CAD", x: 510 },
-    { key: "graphic", label: "GRAPHIC", x: 745 }
-  ];
-  for (const c of cats) {
-    const active = currentCategory === c.key;
+  // 1. Numbered Symbol Pages [ 1 ] [ 2 ] [ 3 ] [ 4 ]
+  for (let p = 0; p < 4; p++) {
+    const x = 40 + p * 238;
+    const active = currentSymbolPage === p;
     ctx.fillStyle = active ? "rgba(27, 56, 100, 0.95)" : "rgba(17, 30, 51, 0.8)";
-    ctx.fillRect(c.x, 24, 215, 60);
+    ctx.fillRect(x, 24, 224, 52);
     ctx.strokeStyle = active ? "#70e6ff" : "#233b5d";
     ctx.lineWidth = 2;
-    ctx.strokeRect(c.x, 24, 215, 60);
+    ctx.strokeRect(x, 24, 224, 52);
     ctx.fillStyle = active ? "#ffffff" : "#8fa2c3";
-    ctx.font = "bold 20px system-ui";
+    ctx.font = "bold 24px system-ui";
     ctx.textAlign = "center";
-    ctx.fillText(c.label, c.x + 107, 61);
+    ctx.fillText(String(p + 1), x + 112, 59);
   }
 
-  // 4 Shape Cards for Active Category
-  const shapeKeys = Object.keys(SHAPE_LIBRARY[currentCategory]);
+  // 2. Pure Symbol Icons (No Text Names)
+  const shapes = SHAPE_PAGES[currentSymbolPage];
   for (let i = 0; i < 4; i++) {
-    const sKey = shapeKeys[i];
-    const x = 40 + i * 235;
+    const s = shapes[i];
+    const x = 40 + i * 238;
     ctx.fillStyle = "rgba(23, 39, 66, 0.85)";
-    ctx.fillRect(x, 104, 215, 130);
-    ctx.strokeStyle = "#375077";
-    ctx.strokeRect(x, 104, 215, 130);
+    ctx.fillRect(x, 92, 224, 110);
+    ctx.strokeStyle = (selectedFormationBlockId && timelineData.formationBlocks.find(b => b.id === selectedFormationBlockId)?.shapeId === s.id) ? "#70e6ff" : "#375077";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, 92, 224, 110);
 
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 18px system-ui";
-    ctx.textAlign = "center";
-    ctx.fillText(sKey.toUpperCase(), x + 107, 180);
+    // Draw Vector Symbol
+    s.drawCanvas(ctx, x + 112, 147);
 
-    // Dynamic VR Plane Target
+    // Dynamic Target
     const localX = -0.75 + i * 0.50;
-    const t = registerTarget("select_shape", localX, 0.35, 0.45, 0.32, { dynamic: true, shapeKey: sKey, catKey: currentCategory });
+    registerTarget("select_shape", localX, 0.44, 0.45, 0.28, { dynamic: true, shapeId: s.id });
   }
 
-  // Color Spectrum Bar
-  ctx.fillStyle = "#8fa2c3";
-  ctx.font = "bold 14px system-ui";
-  ctx.textAlign = "left";
-  ctx.fillText("COLOR SPECTRUM (POINT / TOUCH TO APPLY HUE)", 40, 268);
+  // 3. Light FX Buttons (Solid, Blink, Sparkle, Cycle)
+  const fxList = ["solid", "blink", "sparkle", "cycle"];
+  const activeColorBlock = timelineData.colorBlocks.find(b => b.id === selectedColorBlockId) || timelineData.colorBlocks[0];
+  for (let i = 0; i < 4; i++) {
+    const fxName = fxList[i];
+    const x = 40 + i * 238;
+    const active = activeColorBlock.fx === fxName;
+    ctx.fillStyle = active ? "#70e6ff" : "rgba(21, 34, 56, 0.85)";
+    ctx.fillRect(x, 218, 224, 44);
+    ctx.strokeStyle = active ? "#ffffff" : "#324766";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, 218, 224, 44);
+    ctx.fillStyle = active ? "#051020" : "#d8e5f8";
+    ctx.font = "bold 16px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText(fxName.toUpperCase(), x + 112, 246);
+  }
 
-  const specGrad = ctx.createLinearGradient(40, 280, 960, 280);
+  // 4. Color Spectrum Bar
+  const specGrad = ctx.createLinearGradient(40, 280, 984, 280);
   specGrad.addColorStop(0.00, "#ff0000");
   specGrad.addColorStop(0.17, "#ffff00");
   specGrad.addColorStop(0.33, "#00ff00");
@@ -730,65 +1147,93 @@ function renderHUD() {
   specGrad.addColorStop(0.83, "#ff00ff");
   specGrad.addColorStop(1.00, "#ff0000");
   ctx.fillStyle = specGrad;
-  ctx.fillRect(40, 280, 920, 50);
+  ctx.fillRect(40, 280, 944, 44);
   ctx.strokeStyle = "#ffffff44";
-  ctx.strokeRect(40, 280, 920, 50);
+  ctx.strokeRect(40, 280, 944, 44);
 
-  // Dual-Track Timeline Visualization
-  ctx.fillStyle = "#70e6ff";
-  ctx.fillText("DUAL-TRACK TIMELINE", 40, 368);
+  // Active Color Swatch Preview & Accessibility Button
+  ctx.fillStyle = activeColorBlock.color;
+  ctx.fillRect(40, 334, 40, 24);
+  ctx.strokeStyle = "#fff"; ctx.strokeRect(40, 334, 40, 24);
 
-  // 1. Formation Track
-  let curX = 140;
-  for (const b of timelineData.formationTrack) {
-    const w = (b.dur / SHOW_DURATION) * 820;
-    ctx.fillStyle = b.color;
-    ctx.fillRect(curX, 385, w - 2, 40);
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 13px system-ui";
-    ctx.textAlign = "center";
-    ctx.fillText(b.label, curX + w / 2, 410);
-    curX += w;
+  ctx.fillStyle = showAccessibilityLabels ? "#70e6ff" : "#8fa2c3";
+  ctx.font = "14px system-ui";
+  ctx.textAlign = "right";
+  ctx.fillText(showAccessibilityLabels ? "Labels: ON" : "Labels: OFF (A11y)", 984, 350);
+
+  // 5. Dual-Track Timeline
+  // Track 1: Formations & Transitions
+  let curX = 40;
+  const availW = 944;
+  for (const b of timelineData.formationBlocks) {
+    const fw = (b.dur / TOTAL_DURATION) * availW;
+    const isSelected = selectedFormationBlockId === b.id;
+    ctx.fillStyle = isSelected ? "#2a548a" : "#1b3353";
+    ctx.fillRect(curX, 370, fw, 42);
+    ctx.strokeStyle = isSelected ? "#ffffff" : "#456a99";
+    ctx.lineWidth = isSelected ? 2 : 1;
+    ctx.strokeRect(curX, 370, fw, 42);
+
+    // Draw miniature icon inside formation block
+    const s = findShapeById(b.shapeId);
+    s.drawCanvas(ctx, curX + fw / 2, 391);
+
+    curX += fw;
+
+    if (b.transDur > 0) {
+      const tw = (b.transDur / TOTAL_DURATION) * availW;
+      ctx.fillStyle = "#2c3d55";
+      ctx.fillRect(curX, 370, tw, 42);
+      ctx.strokeStyle = "#456a99";
+      ctx.strokeRect(curX, 370, tw, 42);
+      ctx.fillStyle = "#8fa2c3";
+      ctx.font = "bold 10px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText("⇄", curX + tw / 2, 395);
+      curX += tw;
+    }
   }
 
-  // 2. Color Track
-  curX = 140;
-  for (const b of timelineData.colorTrack) {
-    const w = (b.dur / SHOW_DURATION) * 820;
+  // Track 2: Color Blocks (Clean, no text unless A11y is on)
+  curX = 40;
+  for (const b of timelineData.colorBlocks) {
+    const cw = (b.dur / TOTAL_DURATION) * availW;
     ctx.fillStyle = b.color;
-    ctx.fillRect(curX, 435, w - 2, 40);
-    ctx.fillStyle = "#000000";
-    ctx.font = "bold 13px system-ui";
-    ctx.textAlign = "center";
-    ctx.fillText(b.label, curX + w / 2, 460);
-    curX += w;
+    ctx.fillRect(curX, 420, cw, 42);
+    ctx.strokeStyle = selectedColorBlockId === b.id ? "#ffffff" : "#00000044";
+    ctx.lineWidth = selectedColorBlockId === b.id ? 3 : 1;
+    ctx.strokeRect(curX, 420, cw, 42);
+
+    if (showAccessibilityLabels) {
+      ctx.fillStyle = "#000000";
+      ctx.font = "bold 13px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText(getClosestColorName(b.color), curX + cw / 2, 445);
+    }
+    curX += cw;
   }
 
   // Playhead Vertical Line
-  const playheadX = 140 + (playheadTime / SHOW_DURATION) * 820;
+  const playX = 40 + (playheadTime / TOTAL_DURATION) * availW;
   ctx.strokeStyle = "#ffffff";
   ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(playheadX, 380);
-  ctx.lineTo(playheadX, 480);
-  ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(playX, 365); ctx.lineTo(playX, 468); ctx.stroke();
 
-  // Timeline Controls
-  ctx.fillStyle = isPlaying ? "#df52ff" : "#1b3864";
-  ctx.fillRect(40, 385, 80, 90);
-  ctx.strokeStyle = "#70e6ff";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(40, 385, 80, 90);
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 18px system-ui";
-  ctx.textAlign = "center";
-  ctx.fillText(isPlaying ? "PAUSE" : "PLAY", 80, 438);
+  // Bottom Controls: [-1s], [+1s], PLAY/PAUSE, Time Readout
+  function drawBtn(x, y, w, h, label, bg = "#1b3864") {
+    ctx.fillStyle = bg; ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2; ctx.strokeRect(x, y, w, h);
+    ctx.fillStyle = "#ffffff"; ctx.font = "bold 18px system-ui"; ctx.textAlign = "center";
+    ctx.fillText(label, x + w / 2, y + h / 2 + 6);
+  }
+  drawBtn(40, 480, 80, 60, "-1s");
+  drawBtn(130, 480, 80, 60, "+1s");
+  drawBtn(230, 480, 140, 60, isPlaying ? "PAUSE" : "PLAY", isPlaying ? "#df52ff" : "#1b3864");
 
   ctx.fillStyle = "#8fa2c3";
-  ctx.font = "14px system-ui";
+  ctx.font = "16px system-ui";
   ctx.textAlign = "left";
-  ctx.fillText("Time: " + formatTime(playheadTime) + " / " + formatTime(SHOW_DURATION), 40, 520);
-  ctx.fillText("Left X: Toggle HUD · Trigger: Liquid Wave · Dual-Grip: Scale/Rotate", 40, 550);
+  ctx.fillText("Time: " + formatTime(playheadTime) + " / " + formatTime(TOTAL_DURATION), 400, 515);
 
   hudTex.needsUpdate = true;
 }
@@ -829,32 +1274,76 @@ function handleVRSelect(controller) {
   const hit = hits[0];
   const act = hit.object.userData.action;
 
-  if (act === "tab_cosmic") { currentCategory = "cosmic"; renderHUD(); }
-  else if (act === "tab_living") { currentCategory = "living"; renderHUD(); }
-  else if (act === "tab_cad") { currentCategory = "cad"; renderHUD(); }
-  else if (act === "tab_graphic") { currentCategory = "graphic"; renderHUD(); }
-  else if (act === "select_shape") {
-    const { catKey, shapeKey } = hit.object.userData;
-    setTargetShape(SHAPE_LIBRARY[catKey][shapeKey]);
+  if (act.startsWith("page_")) {
+    currentSymbolPage = parseInt(act.split("_")[1]);
+    renderHUD();
+    populateDesktopIcons();
+  } else if (act === "select_shape") {
+    const { shapeId } = hit.object.userData;
+    const b = timelineData.formationBlocks.find(x => x.id === selectedFormationBlockId);
+    if (b) {
+      b.shapeId = shapeId;
+      evaluateTimeline(playheadTime);
+      buildDesktopTimeline();
+      renderHUD();
+    }
+  } else if (act.startsWith("fx_")) {
+    const fxName = act.split("_")[1];
+    const cb = timelineData.colorBlocks.find(x => x.id === selectedColorBlockId);
+    if (cb) {
+      cb.fx = fxName;
+      evaluateTimeline(playheadTime);
+      syncDesktopFX();
+      renderHUD();
+    }
   } else if (act === "color_spectrum") {
     const localHit = vrHUD.worldToLocal(hit.point.clone());
     const ratio = Math.max(0, Math.min(1, (localHit.x + 1.0) / 2.0));
-    setTargetHue(ratio);
+    const hColor = new THREE.Color().setHSL(ratio, 1.0, 0.5);
+    const hex = "#" + hColor.getHexString();
+    const cb = timelineData.colorBlocks.find(x => x.id === selectedColorBlockId);
+    if (cb) {
+      cb.color = hex;
+      evaluateTimeline(playheadTime);
+      buildDesktopTimeline();
+      renderHUD();
+    }
+  } else if (act === "toggle_a11y") {
+    showAccessibilityLabels = !showAccessibilityLabels;
+    $("chk-labels").checked = showAccessibilityLabels;
+    buildDesktopTimeline();
+    renderHUD();
+  } else if (act === "dur_minus") {
+    const b = timelineData.formationBlocks.find(x => x.id === selectedFormationBlockId);
+    if (b && b.dur > 3) {
+      b.dur -= 1;
+      recalculateTimelineDuration();
+      buildDesktopTimeline();
+      renderHUD();
+    }
+  } else if (act === "dur_plus") {
+    const b = timelineData.formationBlocks.find(x => x.id === selectedFormationBlockId);
+    if (b) {
+      b.dur += 1;
+      recalculateTimelineDuration();
+      buildDesktopTimeline();
+      renderHUD();
+    }
   } else if (act === "timeline_play") {
     isPlaying = !isPlaying;
     $("btn-play").textContent = isPlaying ? "Pause" : "Play";
     renderHUD();
   } else if (act === "timeline_scrub") {
     const localHit = vrHUD.worldToLocal(hit.point.clone());
-    const ratio = Math.max(0, Math.min(1, (localHit.x + 0.76) / 1.80));
-    playheadTime = ratio * SHOW_DURATION;
+    const ratio = Math.max(0, Math.min(1, (localHit.x + 0.55) / 1.10));
+    playheadTime = ratio * TOTAL_DURATION;
     evaluateTimeline(playheadTime);
     syncDesktopTimeline();
     renderHUD();
   }
 }
 
-// Trigger States for Liquid Mode & Raycasts
+// Controller Trigger for Liquid Mode & Raycasts
 let isTriggerDownL = false;
 let isTriggerDownR = false;
 
@@ -877,7 +1366,7 @@ rightController.addEventListener("selectend", () => {
   handleVRSelect(rightController);
 });
 
-// Left-X HUD Button Toggle
+// Left X Button Toggle
 let xPrev = false;
 function checkHUDInput() {
   const pad = leftController.userData.gamepad;
@@ -888,118 +1377,206 @@ function checkHUDInput() {
 leftController.addEventListener("connected", e => leftController.userData.gamepad = e.data.gamepad);
 rightController.addEventListener("connected", e => rightController.userData.gamepad = e.data.gamepad);
 
-// Single Drone Pinch Manipulation
-let pinchedDroneIndex = -1;
-const rHandPos = new THREE.Vector3();
-
-function updateSingleDronePinch() {
-  if (!renderer.xr.isPresenting || vrHUD.visible) {
-    selectionReticle.visible = false;
-    return;
-  }
-  rHandPos.setFromMatrixPosition(rightController.matrixWorld);
-
-  // If already pinching, lock drone to hand
-  if (pinchedDroneIndex !== -1) {
-    if (!grabState.rightGrip) {
-      pinchedDroneIndex = -1;
-      selectionReticle.visible = false;
-      return;
-    }
-    const idx = pinchedDroneIndex * 3;
-    targetPositions[idx] = rHandPos.x;
-    targetPositions[idx + 1] = rHandPos.y;
-    targetPositions[idx + 2] = rHandPos.z;
-    selectionReticle.position.copy(rHandPos);
-    selectionReticle.lookAt(camera.position);
-    return;
-  }
-
-  // Find closest drone within 0.8 meters
-  let closestIdx = -1, minDSq = 0.64;
-  for (let i = 0; i < DRONE_COUNT; i++) {
-    const dx = currentPositions[i * 3] - rHandPos.x;
-    const dy = currentPositions[i * 3 + 1] - rHandPos.y;
-    const dz = currentPositions[i * 3 + 2] - rHandPos.z;
-    const dSq = dx * dx + dy * dy + dz * dz;
-    if (dSq < minDSq) { minDSq = dSq; closestIdx = i; }
-  }
-
-  if (closestIdx !== -1) {
-    selectionReticle.visible = true;
-    selectionReticle.position.set(currentPositions[closestIdx * 3], currentPositions[closestIdx * 3 + 1], currentPositions[closestIdx * 3 + 2]);
-    selectionReticle.lookAt(camera.position);
-    if (grabState.rightGrip) pinchedDroneIndex = closestIdx;
-  } else {
-    selectionReticle.visible = false;
-  }
-}
-
-// Desktop UI DOM Synchronization
+// Desktop UI DOM Binding
 function $(id) { return document.getElementById(id); }
 
-function populateDesktopShapes(cat) {
-  const container = $("desktop-shape-grid");
+function populateDesktopIcons() {
+  const container = $("desktop-icon-grid");
   container.innerHTML = "";
-  const shapes = Object.keys(SHAPE_LIBRARY[cat]);
+  const shapes = SHAPE_PAGES[currentSymbolPage];
+  const activeFormation = timelineData.formationBlocks.find(b => b.id === selectedFormationBlockId);
+
   for (const s of shapes) {
-    const b = document.createElement("button");
-    b.className = "shape-btn";
-    b.textContent = s.toUpperCase();
-    b.onclick = () => setTargetShape(SHAPE_LIBRARY[cat][s]);
-    container.appendChild(b);
+    const btn = document.createElement("button");
+    btn.className = "symbol-btn" + (activeFormation?.shapeId === s.id ? " active" : "");
+    btn.innerHTML = `<svg viewBox="0 0 24 24">${s.drawSVG}</svg>`;
+    btn.onclick = () => {
+      if (activeFormation) {
+        activeFormation.shapeId = s.id;
+        evaluateTimeline(playheadTime);
+        buildDesktopTimeline();
+        populateDesktopIcons();
+        renderHUD();
+      }
+    };
+    container.appendChild(btn);
   }
 }
-populateDesktopShapes("cosmic");
 
-document.querySelectorAll(".tab-btn").forEach(btn => {
+// Page Tabs
+document.querySelectorAll(".page-btn").forEach(btn => {
   btn.onclick = () => {
-    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".page-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
-    currentCategory = btn.dataset.cat;
-    populateDesktopShapes(currentCategory);
+    currentSymbolPage = parseInt(btn.dataset.page);
+    populateDesktopIcons();
     renderHUD();
   };
 });
 
-// Build Desktop Timeline Tracks
-function buildDesktopTracks() {
-  const fTrack = $("ui-formation-track");
-  fTrack.innerHTML = "";
-  for (const b of timelineData.formationTrack) {
-    const d = document.createElement("div");
-    d.className = "track-block";
-    d.style.width = (b.dur / SHOW_DURATION) * 100 + "%";
-    d.style.background = b.color;
-    d.textContent = b.label;
-    d.onclick = () => {
-      playheadTime = b.start;
+// Light FX Buttons
+document.querySelectorAll(".fx-btn").forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll(".fx-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    const cb = timelineData.colorBlocks.find(x => x.id === selectedColorBlockId);
+    if (cb) {
+      cb.fx = btn.dataset.fx;
       evaluateTimeline(playheadTime);
-      syncDesktopTimeline();
       renderHUD();
-    };
-    fTrack.appendChild(d);
-  }
+    }
+  };
+});
 
-  const cTrack = $("ui-color-track");
-  cTrack.innerHTML = "";
-  for (const b of timelineData.colorTrack) {
-    const d = document.createElement("div");
-    d.className = "track-block";
-    d.style.width = (b.dur / SHOW_DURATION) * 100 + "%";
-    d.style.background = b.color;
-    d.style.color = "#000";
-    d.textContent = b.label;
-    d.onclick = () => {
-      playheadTime = b.start;
-      evaluateTimeline(playheadTime);
-      syncDesktopTimeline();
-      renderHUD();
-    };
-    cTrack.appendChild(d);
+function syncDesktopFX() {
+  const cb = timelineData.colorBlocks.find(x => x.id === selectedColorBlockId);
+  if (!cb) return;
+  document.querySelectorAll(".fx-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.fx === cb.fx);
+  });
+}
+
+// Color Spectrum Click
+const specBar = $("desktop-spectrum");
+function handleSpectrum(e) {
+  const rect = specBar.getBoundingClientRect();
+  const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  const hColor = new THREE.Color().setHSL(ratio, 1.0, 0.5);
+  const hex = "#" + hColor.getHexString();
+  const cb = timelineData.colorBlocks.find(x => x.id === selectedColorBlockId);
+  if (cb) {
+    cb.color = hex;
+    evaluateTimeline(playheadTime);
+    buildDesktopTimeline();
+    renderHUD();
   }
 }
-buildDesktopTracks();
+specBar.onmousedown = e => {
+  handleSpectrum(e);
+  window.onmousemove = handleSpectrum;
+  window.onmouseup = () => window.onmousemove = null;
+};
+
+// Accessibility Checkbox
+$("chk-labels").onchange = (e) => {
+  showAccessibilityLabels = e.target.checked;
+  buildDesktopTimeline();
+  renderHUD();
+};
+
+// Draggable Timeline Block Resizing (Desktop)
+function buildDesktopTimeline() {
+  const fTrack = $("ui-formation-track");
+  fTrack.innerHTML = "";
+
+  for (let i = 0; i < timelineData.formationBlocks.length; i++) {
+    const b = timelineData.formationBlocks[i];
+    const s = findShapeById(b.shapeId);
+
+    // Formation Block
+    const fBlock = document.createElement("div");
+    fBlock.className = "block-element" + (selectedFormationBlockId === b.id ? " active-block" : "");
+    fBlock.style.width = (b.dur / TOTAL_DURATION) * 100 + "%";
+    fBlock.style.background = "#1b3353";
+    fBlock.innerHTML = `<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#70e6ff;fill:none;">${s.drawSVG}</svg>`;
+    fBlock.onclick = () => {
+      selectedFormationBlockId = b.id;
+      buildDesktopTimeline();
+      populateDesktopIcons();
+      renderHUD();
+    };
+
+    // Right Edge Resize Handle
+    const handle = document.createElement("div");
+    handle.className = "resize-handle";
+    handle.onmousedown = (e) => {
+      e.stopPropagation();
+      const startX = e.clientX;
+      const origDur = b.dur;
+      window.onmousemove = (moveE) => {
+        const deltaPx = moveE.clientX - startX;
+        const deltaSec = (deltaPx / fTrack.clientWidth) * TOTAL_DURATION;
+        b.dur = Math.max(2.0, origDur + deltaSec);
+        recalculateTimelineDuration();
+        buildDesktopTimeline();
+        renderHUD();
+      };
+      window.onmouseup = () => window.onmousemove = null;
+    };
+    fBlock.appendChild(handle);
+    fTrack.appendChild(fBlock);
+
+    // Transition Block
+    if (b.transDur > 0) {
+      const tBlock = document.createElement("div");
+      tBlock.className = "block-element transition-block";
+      tBlock.style.width = (b.transDur / TOTAL_DURATION) * 100 + "%";
+      tBlock.title = `Transition: ${b.transDur.toFixed(1)}s`;
+
+      const tHandle = document.createElement("div");
+      tHandle.className = "resize-handle";
+      tHandle.onmousedown = (e) => {
+        e.stopPropagation();
+        const startX = e.clientX;
+        const origTrans = b.transDur;
+        window.onmousemove = (moveE) => {
+          const deltaPx = moveE.clientX - startX;
+          const deltaSec = (deltaPx / fTrack.clientWidth) * TOTAL_DURATION;
+          b.transDur = Math.max(1.0, origTrans + deltaSec);
+          recalculateTimelineDuration();
+          buildDesktopTimeline();
+          renderHUD();
+        };
+        window.onmouseup = () => window.onmousemove = null;
+      };
+      tBlock.appendChild(tHandle);
+      fTrack.appendChild(tBlock);
+    }
+  }
+
+  // Color Track
+  const cTrack = $("ui-color-track");
+  cTrack.innerHTML = "";
+  for (const cb of timelineData.colorBlocks) {
+    const cBlock = document.createElement("div");
+    cBlock.className = "block-element" + (selectedColorBlockId === cb.id ? " active-block" : "");
+    cBlock.style.width = (cb.dur / TOTAL_DURATION) * 100 + "%";
+    cBlock.style.background = cb.color;
+
+    if (showAccessibilityLabels) {
+      cBlock.style.color = "#000";
+      cBlock.style.fontSize = "10px";
+      cBlock.style.fontWeight = "bold";
+      cBlock.textContent = getClosestColorName(cb.color);
+    }
+
+    cBlock.onclick = () => {
+      selectedColorBlockId = cb.id;
+      syncDesktopFX();
+      buildDesktopTimeline();
+      renderHUD();
+    };
+
+    const cHandle = document.createElement("div");
+    cHandle.className = "resize-handle";
+    cHandle.onmousedown = (e) => {
+      e.stopPropagation();
+      const startX = e.clientX;
+      const origDur = cb.dur;
+      window.onmousemove = (moveE) => {
+        const deltaPx = moveE.clientX - startX;
+        const deltaSec = (deltaPx / cTrack.clientWidth) * TOTAL_DURATION;
+        cb.dur = Math.max(2.0, origDur + deltaSec);
+        recalculateTimelineDuration();
+        buildDesktopTimeline();
+        renderHUD();
+      };
+      window.onmouseup = () => window.onmousemove = null;
+    };
+    cBlock.appendChild(cHandle);
+    cTrack.appendChild(cBlock);
+  }
+}
 
 function syncDesktopTimeline() {
   $("timeline-slider").value = playheadTime;
@@ -1019,17 +1596,9 @@ $("btn-play").onclick = () => {
   renderHUD();
 };
 
-const specBar = $("desktop-spectrum");
-function handleDesktopSpectrum(e) {
-  const rect = specBar.getBoundingClientRect();
-  const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-  setTargetHue(ratio);
-}
-specBar.onmousedown = e => {
-  handleDesktopSpectrum(e);
-  window.onmousemove = handleDesktopSpectrum;
-  window.onmouseup = () => window.onmousemove = null;
-};
+populateDesktopIcons();
+buildDesktopTimeline();
+syncDesktopFX();
 
 // Main Animation & Physics Loop
 const SPRING = 18.0;
@@ -1045,12 +1614,9 @@ renderer.setAnimationLoop(now => {
   const dt = Math.min(0.05, (now - prevTime) / 1000);
   prevTime = now;
 
-  // Timeline Playback Step
   if (isPlaying) {
     playheadTime += dt;
-    if (playheadTime >= SHOW_DURATION) {
-      playheadTime = 0.0;
-    }
+    if (playheadTime >= TOTAL_DURATION) playheadTime = 0.0;
     evaluateTimeline(playheadTime);
     syncDesktopTimeline();
     if (vrHUD.visible) renderHUD();
@@ -1062,10 +1628,9 @@ renderer.setAnimationLoop(now => {
     cPosR.setFromMatrixPosition(rightController.matrixWorld);
     checkHUDInput();
     updateWorldGrab();
-    updateSingleDronePinch();
   }
 
-  // Update Swarm Dynamics
+  // Update Swarm Physics
   for (let i = 0; i < DRONE_COUNT; i++) {
     const idx = i * 3;
     let px = currentPositions[idx];
@@ -1076,7 +1641,6 @@ renderer.setAnimationLoop(now => {
     let vy = velocities[idx + 1];
     let vz = velocities[idx + 2];
 
-    // Spring forces toward target
     let fx = (targetPositions[idx] - px) * SPRING - vx * DAMPING;
     let fy = (targetPositions[idx + 1] - py) * SPRING - vy * DAMPING;
     let fz = (targetPositions[idx + 2] - pz) * SPRING - vz * DAMPING;
@@ -1105,19 +1669,14 @@ renderer.setAnimationLoop(now => {
       }
     }
 
-    vx += fx * dt;
-    vy += fy * dt;
-    vz += fz * dt;
-
+    vx += fx * dt; vy += fy * dt; vz += fz * dt;
     currentPositions[idx] += vx * dt;
     currentPositions[idx + 1] += vy * dt;
     currentPositions[idx + 2] += vz * dt;
 
-    velocities[idx] = vx;
-    velocities[idx + 1] = vy;
-    velocities[idx + 2] = vz;
+    velocities[idx] = vx; velocities[idx + 1] = vy; velocities[idx + 2] = vz;
 
-    // Smooth Color Interpolation
+    // Color Lerp
     currentColors[idx] += (targetColors[idx] - currentColors[idx]) * 5.0 * dt;
     currentColors[idx + 1] += (targetColors[idx + 1] - currentColors[idx + 1]) * 5.0 * dt;
     currentColors[idx + 2] += (targetColors[idx + 2] - currentColors[idx + 2]) * 5.0 * dt;
