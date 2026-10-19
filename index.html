@@ -297,7 +297,15 @@ body.xr-active #VRButton {
 <body>
 <div id="panel">
   <div id="title">DroneShow Designer XR</div>
-  <div id="status">Foveation Zeroed · Zero View-Locked Artifacts</div>
+  <div id="status">Stage-Anchored 6DOF Locomotion · Zero Parallax Drift</div>
+
+  <div class="section-label">
+    <span>Locomotion Single-Hand Sensitivity</span>
+    <span id="val-pan-gain" style="color:#70e6ff; font-weight:bold;">2.5x</span>
+  </div>
+  <div class="ctrl-row" style="margin-bottom:8px;">
+    <input type="range" id="slider-pan-gain" min="1" max="10" step="0.5" value="2.5">
+  </div>
 
   <div class="section-label">
     <span>Active Drone Fleet Capacity</span>
@@ -428,8 +436,8 @@ body.xr-active #VRButton {
   </div>
 
   <div id="hint">
-    <b>Desktop:</b> Drag handles on block edges to retime · Click ruler to scrub.<br>
-    <b>VR Squeeze:</b> 1 Hand: drag world · 2 Hands: rotate/scale stage.<br>
+    <b>Desktop:</b> Drag handles to retime · Click ruler to scrub.<br>
+    <b>VR Squeeze:</b> 1 Hand: drag world · 2 Hands: rotate/scale stage around hands.<br>
     <b>VR Trigger:</b> Empty space = Liquid Swarm Wave · Point at HUD to edit.
   </div>
 </div>
@@ -444,6 +452,7 @@ import { MeshSurfaceSampler } from "three/addons/math/MeshSurfaceSampler.js";
 const MAX_DRONES = 1200;
 let activeDroneCount = 400;
 let TOTAL_DURATION = 60.0;
+let panSensitivity = 2.5;
 const GOLDEN = Math.PI * (3 - Math.sqrt(5));
 
 const scene = new THREE.Scene();
@@ -457,13 +466,13 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-// Enable XR and explicitly disable Fixed Foveated Rendering
 renderer.xr.enabled = true;
 renderer.xr.setFoveation(0.0);
 
 document.body.appendChild(renderer.domElement);
 document.body.appendChild(VRButton.createButton(renderer));
 
+// The Camera Rig stays permanently at origin with scale 1.0 (No stereo breakdown)
 const xrRig = new THREE.Group();
 scene.add(xrRig);
 xrRig.add(camera);
@@ -471,6 +480,10 @@ xrRig.add(camera);
 const orbit = new OrbitControls(camera, renderer.domElement);
 orbit.target.set(0, 14, 0);
 orbit.update();
+
+// World Flight Stage (Transformed cleanly during VR grab locomotion)
+const stageGroup = new THREE.Group();
+scene.add(stageGroup);
 
 // VR Controllers
 const leftController = renderer.xr.getController(0);
@@ -504,7 +517,10 @@ const forceMeshL = createForceSphere(leftController);
 const forceMeshR = createForceSphere(rightController);
 
 scene.add(new THREE.HemisphereLight(0x9bbcff, 0x101629, 1.2));
-scene.add(new THREE.GridHelper(90, 45, 0x274064, 0x14223b));
+
+// Environment Floor Grid (Parented to stageGroup)
+const gridHelper = new THREE.GridHelper(90, 45, 0x274064, 0x14223b);
+stageGroup.add(gridHelper);
 
 // Glow Sprite
 const glowCanvas = document.createElement("canvas");
@@ -520,7 +536,7 @@ glowCtx.fillRect(0, 0, 64, 64);
 const glowTexture = new THREE.CanvasTexture(glowCanvas);
 glowTexture.colorSpace = THREE.SRGBColorSpace;
 
-// Pre-Allocated Buffers
+// Pre-Allocated Swarm Buffers
 const currentPositions = new Float32Array(MAX_DRONES * 3);
 const unrotatedPositions = new Float32Array(MAX_DRONES * 3);
 const targetPositions = new Float32Array(MAX_DRONES * 3);
@@ -558,7 +574,7 @@ const dronePoints = new THREE.Points(
     depthWrite: false
   })
 );
-scene.add(dronePoints);
+stageGroup.add(dronePoints);
 
 function sampleSVGString(svgD, out, count, scale = 0.22, altitude = 14) {
   const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
@@ -631,9 +647,7 @@ export const SHAPE_PAGES = [
         ctx.bezierCurveTo(cx - 12, cy + 24, cx - 24, cy + 14, cx - 24, cy - 2);
         ctx.lineTo(cx - 24, cy - 18); ctx.closePath(); ctx.stroke();
       },
-      gen: (out, n) => {
-        sampleSVGString("M 100 20 L 170 50 L 170 110 C 170 160, 130 190, 100 210 C 70 190, 30 160, 30 110 L 30 50 Z", out, n, 0.22, 14);
-      }
+      gen: (out, n) => sampleSVGString("M 100 20 L 170 50 L 170 110 C 170 160, 130 190, 100 210 C 70 190, 30 160, 30 110 L 30 50 Z", out, n, 0.22, 14)
     },
     {
       id: "trophyCup",
@@ -642,12 +656,9 @@ export const SHAPE_PAGES = [
         ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
         ctx.strokeRect(cx - 16, cy - 24, 32, 20); ctx.arc(cx, cy - 4, 16, 0, Math.PI);
         ctx.moveTo(cx, cy + 12); ctx.lineTo(cx, cy + 22);
-        ctx.moveTo(cx - 16, cy + 22); ctx.lineTo(cx + 16, cy + 22);
-        ctx.stroke();
+        ctx.moveTo(cx - 16, cy + 22); ctx.lineTo(cx + 16, cy + 22); ctx.stroke();
       },
-      gen: (out, n) => {
-        sampleSVGString("M 50 30 L 150 30 L 150 90 C 150 140, 50 140, 50 90 Z M 100 140 L 100 180 M 60 180 L 140 180", out, n, 0.22, 14);
-      }
+      gen: (out, n) => sampleSVGString("M 50 30 L 150 30 L 150 90 C 150 140, 50 140, 50 90 Z M 100 140 L 100 180 M 60 180 L 140 180", out, n, 0.22, 14)
     },
     {
       id: "basketball",
@@ -656,8 +667,7 @@ export const SHAPE_PAGES = [
         ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
         ctx.arc(cx, cy, 26, 0, Math.PI * 2);
         ctx.moveTo(cx - 26, cy); ctx.lineTo(cx + 26, cy);
-        ctx.moveTo(cx, cy - 26); ctx.lineTo(cx, cy + 26);
-        ctx.stroke();
+        ctx.moveTo(cx, cy - 26); ctx.lineTo(cx, cy + 26); ctx.stroke();
       },
       gen: (out, n) => {
         for (let i = 0; i < n; i++) {
@@ -667,9 +677,7 @@ export const SHAPE_PAGES = [
             out[i * 3] = Math.cos(t) * 12; out[i * 3 + 1] = 14 + Math.sin(t) * 12; out[i * 3 + 2] = 0;
           } else {
             const phi = i * GOLDEN, costheta = (Math.random() - 0.5) * 2, sintheta = Math.sqrt(1 - costheta * costheta);
-            out[i * 3] = sintheta * Math.cos(phi) * 12;
-            out[i * 3 + 1] = 14 + sintheta * Math.sin(phi) * 12;
-            out[i * 3 + 2] = costheta * 12;
+            out[i * 3] = sintheta * Math.cos(phi) * 12; out[i * 3 + 1] = 14 + sintheta * Math.sin(phi) * 12; out[i * 3 + 2] = costheta * 12;
           }
         }
       }
@@ -705,8 +713,7 @@ export const SHAPE_PAGES = [
         ctx.strokeRect(cx - 26, cy - 18, 52, 36);
         ctx.beginPath();
         ctx.moveTo(cx - 9, cy - 18); ctx.lineTo(cx - 9, cy + 18);
-        ctx.moveTo(cx + 9, cy - 18); ctx.lineTo(cx + 9, cy + 18);
-        ctx.stroke();
+        ctx.moveTo(cx + 9, cy - 18); ctx.lineTo(cx + 9, cy + 18); ctx.stroke();
       },
       gen: (out, n) => {
         const cols = Math.floor(Math.sqrt(n * 1.5)), rows = Math.floor(n / cols);
@@ -1469,79 +1476,119 @@ function evaluateTimeline(t) {
   }
 }
 
-// Initial Spawn
 SHAPE_PAGES[0][0].gen(currentPositions, activeDroneCount);
 unrotatedPositions.set(currentPositions);
 targetPositions.set(currentPositions);
 evaluateTimeline(0);
 currentColors.set(targetColors);
 
-// Two-Handed World Grab Locomotion
+// Robust Stage-Anchored Locomotion System (Applied to stageGroup, NOT xrRig)
 const grabState = {
-  leftGrip: false, rightGrip: false,
-  prevPosL: new THREE.Vector3(), prevPosR: new THREE.Vector3(),
-  currPosL: new THREE.Vector3(), currPosR: new THREE.Vector3(),
-  prevMid: new THREE.Vector3(), currMid: new THREE.Vector3(),
-  prevDist: 0, prevAngle: 0
+  leftGrip: false,
+  rightGrip: false,
+  mode: 'none', // 'none' | 'single-left' | 'single-right' | 'dual'
+  
+  // Anchors recorded at grip engagement
+  anchorHandL: new THREE.Vector3(),
+  anchorHandR: new THREE.Vector3(),
+  anchorMid: new THREE.Vector3(),
+  anchorDist: 1.0,
+  anchorAngle: 0.0,
+  
+  anchorStagePos: new THREE.Vector3(),
+  anchorStageScale: 1.0,
+  anchorStageRotY: 0.0
 };
-const yAxis = new THREE.Vector3(0, 1, 0);
 
-leftController.addEventListener("squeezestart", () => {
-  grabState.leftGrip = true;
-  grabState.prevPosL.setFromMatrixPosition(leftController.matrixWorld);
-});
-leftController.addEventListener("squeezeend", () => { grabState.leftGrip = false; grabState.prevDist = 0; });
-rightController.addEventListener("squeezestart", () => {
-  grabState.rightGrip = true;
-  grabState.prevPosR.setFromMatrixPosition(rightController.matrixWorld);
-});
-rightController.addEventListener("squeezeend", () => { grabState.rightGrip = false; grabState.prevDist = 0; });
+const posL = new THREE.Vector3();
+const posR = new THREE.Vector3();
+const midCurr = new THREE.Vector3();
+const diffVec = new THREE.Vector3();
 
-function updateWorldGrab() {
-  if (!renderer.xr.isPresenting) return;
-  const l = grabState.leftGrip, r = grabState.rightGrip;
-  if (!l && !r) return;
+function onGripChange() {
+  const l = grabState.leftGrip;
+  const r = grabState.rightGrip;
 
-  grabState.currPosL.setFromMatrixPosition(leftController.matrixWorld);
-  grabState.currPosR.setFromMatrixPosition(rightController.matrixWorld);
+  // Read clean physical controller positions in tracking space
+  posL.copy(leftController.position);
+  posR.copy(rightController.position);
 
   if (l && r) {
-    grabState.currMid.addVectors(grabState.currPosL, grabState.currPosR).multiplyScalar(0.5);
-    const dx = grabState.currPosR.x - grabState.currPosL.x;
-    const dz = grabState.currPosR.z - grabState.currPosL.z;
-    const dist = Math.sqrt(dx * dx + dz * dz);
-    const angle = Math.atan2(dx, dz);
-
-    if (grabState.prevDist > 0.05) {
-      const scaleDelta = dist / grabState.prevDist;
-      const targetScale = THREE.MathUtils.clamp(xrRig.scale.x * (1 / scaleDelta), 0.08, 12.0);
-      const actualRatio = xrRig.scale.x / targetScale;
-      const angleDelta = angle - grabState.prevAngle;
-      const midDelta = new THREE.Vector3().subVectors(grabState.currMid, grabState.prevMid);
-
-      xrRig.position.sub(grabState.currMid);
-      xrRig.position.multiplyScalar(actualRatio);
-      xrRig.scale.setScalar(targetScale);
-      xrRig.position.applyAxisAngle(yAxis, -angleDelta);
-      xrRig.rotation.y -= angleDelta;
-      xrRig.position.add(grabState.currMid).sub(midDelta);
-    }
-    grabState.prevMid.copy(grabState.currMid);
-    grabState.prevDist = dist;
-    grabState.prevAngle = angle;
+    grabState.mode = 'dual';
+    grabState.anchorHandL.copy(posL);
+    grabState.anchorHandR.copy(posR);
+    grabState.anchorMid.addVectors(posL, posR).multiplyScalar(0.5);
+    
+    diffVec.subVectors(posR, posL);
+    grabState.anchorDist = Math.max(0.05, Math.sqrt(diffVec.x * diffVec.x + diffVec.y * diffVec.y + diffVec.z * diffVec.z));
+    grabState.anchorAngle = Math.atan2(diffVec.x, diffVec.z);
+    
+    grabState.anchorStagePos.copy(stageGroup.position);
+    grabState.anchorStageScale = stageGroup.scale.x;
+    grabState.anchorStageRotY = stageGroup.rotation.y;
   } else if (l) {
-    xrRig.position.sub(new THREE.Vector3().subVectors(grabState.currPosL, grabState.prevPosL));
+    grabState.mode = 'single-left';
+    grabState.anchorHandL.copy(posL);
+    grabState.anchorStagePos.copy(stageGroup.position);
   } else if (r) {
-    xrRig.position.sub(new THREE.Vector3().subVectors(grabState.currPosR, grabState.prevPosR));
+    grabState.mode = 'single-right';
+    grabState.anchorHandR.copy(posR);
+    grabState.anchorStagePos.copy(stageGroup.position);
+  } else {
+    grabState.mode = 'none';
   }
-  grabState.prevPosL.copy(grabState.currPosL);
-  grabState.prevPosR.copy(grabState.currPosR);
 }
 
-// In-VR Director HUD (Anchored in Space)
+leftController.addEventListener("squeezestart", () => { grabState.leftGrip = true; onGripChange(); });
+leftController.addEventListener("squeezeend", () => { grabState.leftGrip = false; onGripChange(); });
+rightController.addEventListener("squeezestart", () => { grabState.rightGrip = true; onGripChange(); });
+rightController.addEventListener("squeezeend", () => { grabState.rightGrip = false; onGripChange(); });
+
+function updateWorldGrab() {
+  if (!renderer.xr.isPresenting || grabState.mode === 'none') return;
+
+  posL.copy(leftController.position);
+  posR.copy(rightController.position);
+
+  if (grabState.mode === 'dual') {
+    midCurr.addVectors(posL, posR).multiplyScalar(0.5);
+    diffVec.subVectors(posR, posL);
+    const currDist = Math.max(0.05, Math.sqrt(diffVec.x * diffVec.x + diffVec.y * diffVec.y + diffVec.z * diffVec.z));
+    const currAngle = Math.atan2(diffVec.x, diffVec.z);
+
+    // 1. Uniform Scale Clamp (0.05x to 20x)
+    const scaleRatio = currDist / grabState.anchorDist;
+    const targetScale = THREE.MathUtils.clamp(grabState.anchorStageScale * scaleRatio, 0.05, 20.0);
+    const effectiveRatio = targetScale / grabState.anchorStageScale;
+    stageGroup.scale.setScalar(targetScale);
+
+    // 2. Yaw Rotation around hand midpoint
+    const deltaAngle = currAngle - grabState.anchorAngle;
+    stageGroup.rotation.y = grabState.anchorStageRotY + deltaAngle;
+
+    // 3. Midpoint Pivot Translation
+    const pivot = grabState.anchorMid;
+    const vOffset = new THREE.Vector3().subVectors(grabState.anchorStagePos, pivot);
+    vOffset.multiplyScalar(effectiveRatio);
+    vOffset.applyAxisAngle(yAxis, deltaAngle);
+    
+    const midDelta = new THREE.Vector3().subVectors(midCurr, grabState.anchorMid);
+    stageGroup.position.copy(pivot).add(vOffset).add(midDelta);
+
+  } else if (grabState.mode === 'single-left') {
+    const delta = new THREE.Vector3().subVectors(posL, grabState.anchorHandL).multiplyScalar(panSensitivity);
+    stageGroup.position.addVectors(grabState.anchorStagePos, delta);
+
+  } else if (grabState.mode === 'single-right') {
+    const delta = new THREE.Vector3().subVectors(posR, grabState.anchorHandR).multiplyScalar(panSensitivity);
+    stageGroup.position.addVectors(grabState.anchorStagePos, delta);
+  }
+}
+
+// In-VR Director HUD
 const vrHUD = new THREE.Group();
 vrHUD.visible = false;
-xrRig.add(vrHUD);
+scene.add(vrHUD);
 
 const hudCanvas = document.createElement("canvas");
 hudCanvas.width = 1024;
@@ -1728,14 +1775,15 @@ function toggleHUD() {
     const dir = new THREE.Vector3();
     camera.getWorldDirection(dir);
     dir.y = 0; dir.normalize();
-    vrHUD.position.copy(camera.position).addScaledVector(dir, 2.2);
-    vrHUD.position.y = camera.position.y - 0.05;
+    vrHUD.position.copy(camera.position).addScaledVector(dir, 2.0);
+    vrHUD.position.y = camera.position.y;
     vrHUD.rotation.set(0, Math.atan2(-dir.x, -dir.z), 0);
     renderHUD();
   }
   for (const ray of controllerRays) ray.visible = vrHUD.visible;
 }
 
+// Pure UV Raycast Hit Testing
 const raycaster = new THREE.Raycaster();
 const quat = new THREE.Quaternion();
 
@@ -1875,6 +1923,11 @@ leftController.addEventListener("connected", e => leftController.userData.gamepa
 rightController.addEventListener("connected", e => rightController.userData.gamepad = e.data.gamepad);
 
 function $(id) { return document.getElementById(id); }
+
+$("slider-pan-gain").oninput = (e) => {
+  panSensitivity = parseFloat(e.target.value);
+  $("val-pan-gain").textContent = `${panSensitivity.toFixed(1)}x`;
+};
 
 $("slider-fleet-count").oninput = (e) => {
   activeDroneCount = parseInt(e.target.value);
@@ -2294,8 +2347,10 @@ const DAMPING = 5.5;
 const REPEL_RADIUS_SQ = 64.0;
 const REPEL_STRENGTH = 45.0;
 
-const cPosL = new THREE.Vector3();
-const cPosR = new THREE.Vector3();
+const cPosWorldL = new THREE.Vector3();
+const cPosWorldR = new THREE.Vector3();
+const cPosLocalL = new THREE.Vector3();
+const cPosLocalR = new THREE.Vector3();
 
 let prevTime = performance.now();
 renderer.setAnimationLoop(now => {
@@ -2312,10 +2367,14 @@ renderer.setAnimationLoop(now => {
 
   const isVR = renderer.xr.isPresenting;
   if (isVR) {
-    cPosL.setFromMatrixPosition(leftController.matrixWorld);
-    cPosR.setFromMatrixPosition(rightController.matrixWorld);
     checkHUDInput();
     updateWorldGrab();
+    
+    // Convert controller world positions to stageGroup local coordinates
+    cPosWorldL.setFromMatrixPosition(leftController.matrixWorld);
+    cPosWorldR.setFromMatrixPosition(rightController.matrixWorld);
+    stageGroup.worldToLocal(cPosLocalL.copy(cPosWorldL));
+    stageGroup.worldToLocal(cPosLocalR.copy(cPosWorldR));
   }
 
   for (let i = 0; i < activeDroneCount; i++) {
@@ -2329,7 +2388,7 @@ renderer.setAnimationLoop(now => {
 
     if (isVR && !vrHUD.visible) {
       if (isTriggerDownL) {
-        const dxL = px - cPosL.x, dyL = py - cPosL.y, dzL = pz - cPosL.z;
+        const dxL = px - cPosLocalL.x, dyL = py - cPosLocalL.y, dzL = pz - cPosLocalL.z;
         const dSqL = dxL * dxL + dyL * dyL + dzL * dzL + 0.1;
         if (dSqL < REPEL_RADIUS_SQ) {
           const forceL = (1 - dSqL / REPEL_RADIUS_SQ) * REPEL_STRENGTH;
@@ -2339,7 +2398,7 @@ renderer.setAnimationLoop(now => {
         }
       }
       if (isTriggerDownR) {
-        const dxR = px - cPosR.x, dyR = py - cPosR.y, dzR = pz - cPosR.z;
+        const dxR = px - cPosLocalR.x, dyR = py - cPosLocalR.y, dzR = pz - cPosLocalR.z;
         const dSqR = dxR * dxR + dyR * dyR + dzR * dzR + 0.1;
         if (dSqR < REPEL_RADIUS_SQ) {
           const forceR = (1 - dSqR / REPEL_RADIUS_SQ) * REPEL_STRENGTH;
