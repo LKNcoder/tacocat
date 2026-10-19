@@ -297,14 +297,14 @@ body.xr-active #VRButton {
 <body>
 <div id="panel">
   <div id="title">DroneShow Designer XR</div>
-  <div id="status">Stage-Anchored 6DOF Locomotion · Zero Parallax Drift</div>
+  <div id="status">High-Gain 6DOF Locomotion · Anchor Math Fixed</div>
 
   <div class="section-label">
     <span>Locomotion Single-Hand Sensitivity</span>
-    <span id="val-pan-gain" style="color:#70e6ff; font-weight:bold;">2.5x</span>
+    <span id="val-pan-gain" style="color:#70e6ff; font-weight:bold;">12.0x</span>
   </div>
   <div class="ctrl-row" style="margin-bottom:8px;">
-    <input type="range" id="slider-pan-gain" min="1" max="10" step="0.5" value="2.5">
+    <input type="range" id="slider-pan-gain" min="1" max="30" step="1" value="12">
   </div>
 
   <div class="section-label">
@@ -437,7 +437,7 @@ body.xr-active #VRButton {
 
   <div id="hint">
     <b>Desktop:</b> Drag handles to retime · Click ruler to scrub.<br>
-    <b>VR Squeeze:</b> 1 Hand: drag world · 2 Hands: rotate/scale stage around hands.<br>
+    <b>VR Squeeze:</b> 1 Hand: drag world (high speed) · 2 Hands: rotate/scale stage.<br>
     <b>VR Trigger:</b> Empty space = Liquid Swarm Wave · Point at HUD to edit.
   </div>
 </div>
@@ -452,8 +452,9 @@ import { MeshSurfaceSampler } from "three/addons/math/MeshSurfaceSampler.js";
 const MAX_DRONES = 1200;
 let activeDroneCount = 400;
 let TOTAL_DURATION = 60.0;
-let panSensitivity = 2.5;
+let panSensitivity = 12.0;
 const GOLDEN = Math.PI * (3 - Math.sqrt(5));
+const Y_AXIS = new THREE.Vector3(0, 1, 0);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x02040d);
@@ -472,7 +473,6 @@ renderer.xr.setFoveation(0.0);
 document.body.appendChild(renderer.domElement);
 document.body.appendChild(VRButton.createButton(renderer));
 
-// The Camera Rig stays permanently at origin with scale 1.0 (No stereo breakdown)
 const xrRig = new THREE.Group();
 scene.add(xrRig);
 xrRig.add(camera);
@@ -481,7 +481,7 @@ const orbit = new OrbitControls(camera, renderer.domElement);
 orbit.target.set(0, 14, 0);
 orbit.update();
 
-// World Flight Stage (Transformed cleanly during VR grab locomotion)
+// Flight Stage Group
 const stageGroup = new THREE.Group();
 scene.add(stageGroup);
 
@@ -518,11 +518,9 @@ const forceMeshR = createForceSphere(rightController);
 
 scene.add(new THREE.HemisphereLight(0x9bbcff, 0x101629, 1.2));
 
-// Environment Floor Grid (Parented to stageGroup)
 const gridHelper = new THREE.GridHelper(90, 45, 0x274064, 0x14223b);
 stageGroup.add(gridHelper);
 
-// Glow Sprite
 const glowCanvas = document.createElement("canvas");
 glowCanvas.width = 64; glowCanvas.height = 64;
 const glowCtx = glowCanvas.getContext("2d");
@@ -536,7 +534,6 @@ glowCtx.fillRect(0, 0, 64, 64);
 const glowTexture = new THREE.CanvasTexture(glowCanvas);
 glowTexture.colorSpace = THREE.SRGBColorSpace;
 
-// Pre-Allocated Swarm Buffers
 const currentPositions = new Float32Array(MAX_DRONES * 3);
 const unrotatedPositions = new Float32Array(MAX_DRONES * 3);
 const targetPositions = new Float32Array(MAX_DRONES * 3);
@@ -667,7 +664,7 @@ export const SHAPE_PAGES = [
         ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
         ctx.arc(cx, cy, 26, 0, Math.PI * 2);
         ctx.moveTo(cx - 26, cy); ctx.lineTo(cx + 26, cy);
-        ctx.moveTo(cx, cy - 26); ctx.lineTo(cx, cy + 26); ctx.stroke();
+        ctx.moveTo(cx, cy - 26); ctx.lineTo(cx + 26, cy); ctx.stroke();
       },
       gen: (out, n) => {
         for (let i = 0; i < n; i++) {
@@ -713,7 +710,8 @@ export const SHAPE_PAGES = [
         ctx.strokeRect(cx - 26, cy - 18, 52, 36);
         ctx.beginPath();
         ctx.moveTo(cx - 9, cy - 18); ctx.lineTo(cx - 9, cy + 18);
-        ctx.moveTo(cx + 9, cy - 18); ctx.lineTo(cx + 9, cy + 18); ctx.stroke();
+        ctx.moveTo(cx + 9, cy - 18); ctx.lineTo(cx + 9, cy + 18);
+        ctx.stroke();
       },
       gen: (out, n) => {
         const cols = Math.floor(Math.sqrt(n * 1.5)), rows = Math.floor(n / cols);
@@ -956,7 +954,8 @@ export const SHAPE_PAGES = [
       gen: (out, n) => {
         for (let i = 0; i < n; i++) {
           const u = (i / n) * 40 - 20;
-          out[i * 3] = u; out[i * 3 + 1] = 14 + 5 * Math.sin(u * 0.25) + 2.5 * Math.sin(u * 0.5 + 1.2);
+          out[i * 3] = u;
+          out[i * 3 + 1] = 14 + 5 * Math.sin(u * 0.25) + 2.5 * Math.sin(u * 0.5 + 1.2);
           out[i * 3 + 2] = (Math.random() - 0.5) * 6;
         }
       }
@@ -1174,8 +1173,7 @@ export const SHAPE_PAGES = [
       drawCanvas: (ctx, cx, cy) => {
         ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
         ctx.moveTo(cx, cy + 24); ctx.lineTo(cx, cy + 4);
-        ctx.arc(cx, cy - 8, 18, 0, Math.PI * 2);
-        ctx.stroke();
+        ctx.arc(cx, cy - 8, 18, 0, Math.PI * 2); ctx.stroke();
       },
       gen: (out, n) => {
         for (let i = 0; i < n; i++) {
@@ -1482,13 +1480,12 @@ targetPositions.set(currentPositions);
 evaluateTimeline(0);
 currentColors.set(targetColors);
 
-// Robust Stage-Anchored Locomotion System (Applied to stageGroup, NOT xrRig)
+// Robust Stage-Anchored Locomotion System
 const grabState = {
   leftGrip: false,
   rightGrip: false,
-  mode: 'none', // 'none' | 'single-left' | 'single-right' | 'dual'
+  mode: 'none',
   
-  // Anchors recorded at grip engagement
   anchorHandL: new THREE.Vector3(),
   anchorHandR: new THREE.Vector3(),
   anchorMid: new THREE.Vector3(),
@@ -1509,7 +1506,6 @@ function onGripChange() {
   const l = grabState.leftGrip;
   const r = grabState.rightGrip;
 
-  // Read clean physical controller positions in tracking space
   posL.copy(leftController.position);
   posR.copy(rightController.position);
 
@@ -1520,7 +1516,7 @@ function onGripChange() {
     grabState.anchorMid.addVectors(posL, posR).multiplyScalar(0.5);
     
     diffVec.subVectors(posR, posL);
-    grabState.anchorDist = Math.max(0.05, Math.sqrt(diffVec.x * diffVec.x + diffVec.y * diffVec.y + diffVec.z * diffVec.z));
+    grabState.anchorDist = Math.max(0.08, diffVec.length());
     grabState.anchorAngle = Math.atan2(diffVec.x, diffVec.z);
     
     grabState.anchorStagePos.copy(stageGroup.position);
@@ -1553,27 +1549,24 @@ function updateWorldGrab() {
   if (grabState.mode === 'dual') {
     midCurr.addVectors(posL, posR).multiplyScalar(0.5);
     diffVec.subVectors(posR, posL);
-    const currDist = Math.max(0.05, Math.sqrt(diffVec.x * diffVec.x + diffVec.y * diffVec.y + diffVec.z * diffVec.z));
+    const currDist = Math.max(0.08, diffVec.length());
     const currAngle = Math.atan2(diffVec.x, diffVec.z);
 
-    // 1. Uniform Scale Clamp (0.05x to 20x)
     const scaleRatio = currDist / grabState.anchorDist;
-    const targetScale = THREE.MathUtils.clamp(grabState.anchorStageScale * scaleRatio, 0.05, 20.0);
+    const targetScale = THREE.MathUtils.clamp(grabState.anchorStageScale * scaleRatio, 0.05, 30.0);
     const effectiveRatio = targetScale / grabState.anchorStageScale;
     stageGroup.scale.setScalar(targetScale);
 
-    // 2. Yaw Rotation around hand midpoint
     const deltaAngle = currAngle - grabState.anchorAngle;
     stageGroup.rotation.y = grabState.anchorStageRotY + deltaAngle;
 
-    // 3. Midpoint Pivot Translation
-    const pivot = grabState.anchorMid;
-    const vOffset = new THREE.Vector3().subVectors(grabState.anchorStagePos, pivot);
+    // Closed-form pivot around anchorMid
+    const vOffset = new THREE.Vector3().subVectors(grabState.anchorStagePos, grabState.anchorMid);
     vOffset.multiplyScalar(effectiveRatio);
-    vOffset.applyAxisAngle(yAxis, deltaAngle);
-    
+    vOffset.applyAxisAngle(Y_AXIS, deltaAngle);
+
     const midDelta = new THREE.Vector3().subVectors(midCurr, grabState.anchorMid);
-    stageGroup.position.copy(pivot).add(vOffset).add(midDelta);
+    stageGroup.position.copy(grabState.anchorMid).add(midDelta).add(vOffset);
 
   } else if (grabState.mode === 'single-left') {
     const delta = new THREE.Vector3().subVectors(posL, grabState.anchorHandL).multiplyScalar(panSensitivity);
@@ -1585,7 +1578,7 @@ function updateWorldGrab() {
   }
 }
 
-// In-VR Director HUD
+// In-VR Director HUD (Anchored in Scene, Independent of Stage)
 const vrHUD = new THREE.Group();
 vrHUD.visible = false;
 scene.add(vrHUD);
@@ -1783,7 +1776,6 @@ function toggleHUD() {
   for (const ray of controllerRays) ray.visible = vrHUD.visible;
 }
 
-// Pure UV Raycast Hit Testing
 const raycaster = new THREE.Raycaster();
 const quat = new THREE.Quaternion();
 
@@ -1891,7 +1883,6 @@ function handleVRSelect(controller) {
   }
 }
 
-// Controller Triggers
 let isTriggerDownL = false;
 let isTriggerDownR = false;
 
@@ -2341,7 +2332,7 @@ renderer.xr.addEventListener("sessionend", () => {
   for (const ray of controllerRays) ray.visible = false;
 });
 
-// Main Animation Loop
+// Main Simulation Loop
 const SPRING = 18.0;
 const DAMPING = 5.5;
 const REPEL_RADIUS_SQ = 64.0;
@@ -2370,7 +2361,7 @@ renderer.setAnimationLoop(now => {
     checkHUDInput();
     updateWorldGrab();
     
-    // Convert controller world positions to stageGroup local coordinates
+    // Map controller coordinates into stage local space for force spheres
     cPosWorldL.setFromMatrixPosition(leftController.matrixWorld);
     cPosWorldR.setFromMatrixPosition(rightController.matrixWorld);
     stageGroup.worldToLocal(cPosLocalL.copy(cPosWorldL));
