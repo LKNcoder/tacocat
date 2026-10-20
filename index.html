@@ -75,9 +75,9 @@ canvas { display: block; }
   font-size: 11px;
 }
 .ctrl-row label { display: flex; align-items: center; gap: 6px; color: #c0d1ed; cursor: pointer; }
-.ctrl-row input[type="range"], .ctrl-row select {
+.ctrl-row input[type="range"], .ctrl-row select, .ctrl-row input[type="text"] {
   flex: 1; accent-color: #70e6ff; background:#111e33; color:#fff;
-  border:1px solid #233b5d; border-radius:4px; padding:2px;
+  border:1px solid #233b5d; border-radius:4px; padding:3px 6px; font-size:11px;
 }
 
 .context-card {
@@ -218,6 +218,7 @@ button.symbol-btn span { font-size: 9px; color: #8fa2c3; margin-top: 2px; }
 .block-element.active-block { outline: 2px solid #ffffff; z-index: 2; }
 .block-element.dragging { opacity: 0.4; }
 .block-element.flight-gate { background: #13382c !important; color: #70ffb0; cursor: default; }
+.block-element.text-block { background: #3b2054; color: #e4c2ff; border-left: 2px solid #df52ff; }
 
 .resize-handle {
   position: absolute; right: 0; top: 0; width: 10px; height: 100%;
@@ -281,7 +282,7 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
       <button class="toolbar-btn" id="btn-undo" title="Revert last action (Ctrl+Z)">↶ Undo</button>
     </div>
   </div>
-  <div id="status">Deterministic Slot Trajectories · Real-World Dynamics Active</div>
+  <div id="status">Typography & Text Choreography System Active</div>
 
   <!-- Flight Controls -->
   <div class="ctrl-row" style="margin-top:6px;">
@@ -330,7 +331,44 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
     <div class="icon-grid" id="desktop-icon-grid"></div>
   </div>
 
-  <!-- Context 2: Color Inspector -->
+  <!-- Context 2: Text Formation Inspector -->
+  <div class="context-card hidden" id="context-text">
+    <div class="section-label" style="margin:0;">
+      <span>Text Formation Editor</span>
+      <button class="toolbar-btn" id="btn-vr-keyboard" style="padding:2px 8px; font-size:10px;">⌨ Open Keyboard</button>
+    </div>
+    <div class="ctrl-row">
+      <span style="min-width:55px;">Message:</span>
+      <input type="text" id="input-text-msg" value="HAPPY NEW YEAR" maxlength="28">
+    </div>
+    <div class="ctrl-row">
+      <span style="min-width:55px;">Font:</span>
+      <select id="sel-text-font">
+        <option value="Impact" selected>Impact (Heavy Block)</option>
+        <option value="Arial">Arial (Clean Sans)</option>
+        <option value="Georgia">Georgia (Classic Serif)</option>
+        <option value="Courier New">Courier New (Monospace)</option>
+        <option value="Brush Script MT">Brush Script (Cursive)</option>
+      </select>
+    </div>
+    <div class="ctrl-row">
+      <span style="min-width:55px;">Motion FX:</span>
+      <select id="sel-text-fx">
+        <option value="none">Static Formation</option>
+        <option value="scroll" selected>Marquee Scroll (Left to Right)</option>
+        <option value="wave">Harmonic Ocean Wave</option>
+        <option value="dissolve">Wind Dissolve & Reform</option>
+        <option value="pulse">Breathing Pulse & Expand</option>
+      </select>
+    </div>
+    <div class="ctrl-row">
+      <span style="min-width:55px;">Speed:</span>
+      <input type="range" id="slider-text-speed" min="0.2" max="3.0" step="0.1" value="1.0">
+      <span id="val-text-speed" style="min-width:35px; text-align:right;">1.0x</span>
+    </div>
+  </div>
+
+  <!-- Context 3: Color Inspector -->
   <div class="context-card hidden" id="context-color">
     <div class="section-label" style="margin:0;">
       <span>Color Swatches & Lighting FX</span>
@@ -357,7 +395,7 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
     </div>
   </div>
 
-  <!-- Context 3: Rotation Inspector -->
+  <!-- Context 4: Rotation Inspector -->
   <div class="context-card hidden" id="context-rotation">
     <div class="section-label" style="margin:0;">
       <span>Rotation Kinematics</span>
@@ -378,8 +416,9 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
         <div class="header-cell">
           <span>SHAPES</span>
           <div class="header-actions">
+            <button class="track-add-btn" id="btn-add-text" title="Add text formation" style="color:#df52ff;">T</button>
             <button class="track-add-btn" id="btn-add-shape" title="Add shape block">+</button>
-            <button class="track-del-btn" id="btn-del-shape" title="Delete selected shape block">−</button>
+            <button class="track-del-btn" id="btn-del-shape" title="Delete selected block">−</button>
           </div>
         </div>
         <div class="header-cell">
@@ -412,14 +451,14 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
     <div class="timeline-bottom-row">
       <button id="btn-play" style="padding:4px 14px; font-size:11px; background:#1b3864; border:1px solid #70e6ff; color:#fff; border-radius:4px; cursor:pointer;">Play</button>
       <span id="time-display" style="font-size:11px; font-variant-numeric:tabular-nums; min-width:85px;">00:00 / 01:00</span>
-      <span style="font-size:10px; color:#8fa2c3; flex:1; text-align:right;">Zero-Stutter Deterministic Slots · No-Loop Finish</span>
+      <span style="font-size:10px; color:#8fa2c3; flex:1; text-align:right;">Click [T] to add text · Click text blocks to edit</span>
     </div>
   </div>
 
   <div id="hint">
-    <b>Playhead:</b> Click or drag the needle anywhere to scrub.<br>
-    <b>Snow Layer:</b> Stays parked on ground pad before launch; flurries only during show.<br>
-    <b>Velocity Cap:</b> Real-world physics capped at 8.5 m/s with natural damping.
+    <b>VR Keyboard:</b> Point at HUD "Edit Text" to summon Meta Quest native OS virtual keyboard.<br>
+    <b>Text Effects:</b> Marquee Scroll, Wave Ripple, Wind Dissolve, and Breathing Pulse.<br>
+    <b>Painting:</b> Select swatch, hold <b>Shift</b> + drag in 3D (Desktop) or squeeze trigger in VR.
   </div>
 </div>
 <div id="vr-tip">In VR: Press Left X for HUD · Trigger paints drones with active swatch</div>
@@ -428,7 +467,7 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { VRButton } from "three/addons/webxr/VRButton.js";
-import { SHAPE_PAGES, findShapeById } from "./shapes.js";
+import { SHAPE_PAGES, findShapeById, generateTextDrones } from "./shapes.js";
 
 function formatTime(s) {
   if (isNaN(s) || s === undefined || s === null) return "00:00";
@@ -446,7 +485,6 @@ let formationScale = 1.0;
 const BASE_DRONE_SIZE = 0.55;
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 
-// Takeoff & Landing Settings
 let takeoffDur = 8.0;
 let takeoffStyle = "wave";
 let landingDur = 8.0;
@@ -516,7 +554,6 @@ scene.add(new THREE.HemisphereLight(0x9bbcff, 0x101629, 1.2));
 const gridHelper = new THREE.GridHelper(90, 45, 0x274064, 0x14223b);
 stageGroup.add(gridHelper);
 
-// Centered Launch Pad
 const launchPadGeom = new THREE.PlaneGeometry(32, 32);
 const launchPadMat = new THREE.MeshBasicMaterial({ color: 0x071b33, side: THREE.DoubleSide });
 const launchPadMesh = new THREE.Mesh(launchPadGeom, launchPadMat);
@@ -537,7 +574,6 @@ glowCtx.fillRect(0, 0, 64, 64);
 const glowTexture = new THREE.CanvasTexture(glowCanvas);
 glowTexture.colorSpace = THREE.SRGBColorSpace;
 
-// Coordinate Buffers
 const currentPositions = new Float32Array(MAX_DRONES * 3);
 const targetPositions = new Float32Array(MAX_DRONES * 3);
 const velocities = new Float32Array(MAX_DRONES * 3);
@@ -545,7 +581,6 @@ const currentColors = new Float32Array(MAX_DRONES * 3);
 const targetColors = new Float32Array(MAX_DRONES * 3);
 const droneSwatchIndices = new Uint8Array(MAX_DRONES);
 
-// Ground Launchpad Coordinates: Always centered square based on active count
 const groundPositions = new Float32Array(MAX_DRONES * 3);
 function updateGroundPositions(n) {
   const cols = Math.ceil(Math.sqrt(n));
@@ -561,7 +596,6 @@ function updateGroundPositions(n) {
 }
 updateGroundPositions(activeDroneCount);
 
-// Ambient Snow Buffers
 const snowPositions = new Float32Array(MAX_DRONES * 3);
 const snowDriftSeeds = new Float32Array(MAX_DRONES);
 function initSnowPositions() {
@@ -574,7 +608,6 @@ function initSnowPositions() {
 }
 initSnowPositions();
 
-// Initial Drone Placement directly in centered launch slots
 for (let i = 0; i < MAX_DRONES; i++) {
   currentPositions[i * 3]     = groundPositions[i * 3];
   currentPositions[i * 3 + 1] = groundPositions[i * 3 + 1];
@@ -624,11 +657,12 @@ function assignMinimalPaths(currentPos, rawTargets, count) {
   return assigned;
 }
 
+// Timeline State with Text Formation Support
 const timelineData = {
   formationBlocks: [
-    { id: "f0", shapeId: "xmasTree", dur: 20.0, transDur: 4.0 },
-    { id: "f1", shapeId: "giftBox", dur: 20.0, transDur: 4.0 },
-    { id: "f2", shapeId: "snowflake", dur: 20.0, transDur: 0.0 }
+    { id: "f0", shapeId: "xmasTree", dur: 18.0, transDur: 4.0 },
+    { id: "t0", isText: true, text: "HAPPY NEW YEAR", font: "Impact", fx: "scroll", speed: 1.0, dur: 22.0, transDur: 4.0 },
+    { id: "f1", shapeId: "giftBox", dur: 18.0, transDur: 0.0 }
   ],
   colorBlocks: [
     {
@@ -640,7 +674,7 @@ const timelineData = {
       sparkle: true, sparkleDensity: 0.25
     },
     {
-      id: "c1", dur: 20.0,
+      id: "c1", dur: 24.0,
       palette: ["#ff0033", "#ffffff", "#ffd700"],
       activeSwatchIdx: 0,
       cycleSpeed: 0.5, run: true, runSpeed: 4.0,
@@ -658,7 +692,7 @@ const timelineData = {
   ],
   rotationBlocks: [
     { id: "r0", dur: 20.0, startX: 0, endX: 0, startY: 0, endY: 30, startZ: 0, endZ: 0 },
-    { id: "r1", dur: 20.0, startX: 0, endX: 0, startY: 30, endY: 90, startZ: 0, endZ: 0 },
+    { id: "r1", dur: 24.0, startX: 0, endX: 0, startY: 30, endY: 90, startZ: 0, endZ: 0 },
     { id: "r2", dur: 24.0, startX: 0, endX: 0, startY: 90, endY: 0, startZ: 0, endZ: 0 }
   ]
 };
@@ -669,7 +703,7 @@ let selectedFormationBlockId = "f0";
 let selectedColorBlockId = "c0";
 let selectedRotationBlockId = "r0";
 
-// Master Trajectory Store: Pre-calculates deterministic slot trajectories
+// Trajectory Store with Text Sampling Support
 let formationTrajectories = [];
 let formationSwatchStore = [];
 
@@ -682,13 +716,18 @@ function buildShowTrajectoryData() {
 
   for (let i = 0; i < timelineData.formationBlocks.length; i++) {
     const b = timelineData.formationBlocks[i];
-    const shape = findShapeById(b.shapeId);
     const raw = new Float32Array(formationCount * 3);
     const swatches = new Uint8Array(formationCount);
 
-    shape.gen(raw, formationCount, swatches);
-    const assigned = assignMinimalPaths(prevSlots, raw, formationCount);
+    if (b.isText) {
+      generateTextDrones(raw, b.text || "DRONE", formationCount, b.font || "Impact", 0.28, 14);
+      for (let s = 0; s < formationCount; s++) swatches[s] = s % 2; // Split 2 swatches across text
+    } else {
+      const shape = findShapeById(b.shapeId);
+      if (shape) shape.gen(raw, formationCount, swatches);
+    }
 
+    const assigned = assignMinimalPaths(prevSlots, raw, formationCount);
     formationTrajectories.push(assigned);
     formationSwatchStore.push(swatches);
     prevSlots = assigned;
@@ -851,7 +890,46 @@ function getRotationAtTime(t) {
   return { angleY };
 }
 
-// Transform shape-local coordinates into physical world space
+// Procedural Text Motion Effects Engine
+function applyTextProceduralFX(block, tOffset, count, inOutVecArray) {
+  if (!block || !block.isText || !block.fx || block.fx === "none") return;
+  const speed = block.speed || 1.0;
+  const time = tOffset * speed;
+
+  if (block.fx === "scroll") {
+    // Continuous horizontal marquee wrap-around
+    const scrollSpan = 38.0;
+    const xShift = (time * 8.5) % scrollSpan;
+    for (let i = 0; i < count; i++) {
+      let x = inOutVecArray[i * 3] - xShift;
+      if (x < -scrollSpan * 0.5) x += scrollSpan;
+      inOutVecArray[i * 3] = x;
+    }
+  } else if (block.fx === "wave") {
+    // Vertical undulating ocean wave
+    for (let i = 0; i < count; i++) {
+      const x = inOutVecArray[i * 3];
+      inOutVecArray[i * 3 + 1] += Math.sin(time * 3.5 + x * 0.28) * 2.2;
+    }
+  } else if (block.fx === "dissolve") {
+    // Wind flurry scatter and reform
+    const scatterCycle = Math.sin(time * 2.0);
+    const envelope = Math.max(0, scatterCycle * scatterCycle - 0.25) * 4.5;
+    for (let i = 0; i < count; i++) {
+      inOutVecArray[i * 3]     += Math.sin(i * 12.3 + time * 4.0) * envelope;
+      inOutVecArray[i * 3 + 1] += Math.cos(i * 7.1 + time * 3.0) * envelope;
+      inOutVecArray[i * 3 + 2] += Math.sin(i * 19.5 + time * 5.0) * envelope;
+    }
+  } else if (block.fx === "pulse") {
+    // Rhythmic breathing expansion
+    const s = 1.0 + Math.sin(time * 3.0) * 0.16;
+    for (let i = 0; i < count; i++) {
+      inOutVecArray[i * 3]     *= s;
+      inOutVecArray[i * 3 + 1] = 14 + (inOutVecArray[i * 3 + 1] - 14) * s;
+    }
+  }
+}
+
 function transformToSky(x, y, z, angleY, outVec) {
   rotEuler.set(0, angleY, 0);
   rotMatrix.makeRotationFromEuler(rotEuler);
@@ -870,8 +948,8 @@ function transformToSky(x, y, z, angleY, outVec) {
 
 const skyPosA = new THREE.Vector3();
 const skyPosB = new THREE.Vector3();
+const localScratchPoints = new Float32Array(MAX_DRONES * 3);
 
-// Fully Continuous, Glitch-Free Trajectory Evaluator
 function evaluateTimeline(t) {
   const formationCount = isSnowEnabled ? Math.max(50, activeDroneCount - snowDroneCount) : activeDroneCount;
   const showBodyEnd = TOTAL_DURATION - landingDur;
@@ -879,7 +957,7 @@ function evaluateTimeline(t) {
 
   if (formationTrajectories.length === 0) return;
 
-  // 1. PHASE 1: TAKEOFF ASCENT (No backtracking, unified interpolation)
+  // 1. PHASE 1: TAKEOFF ASCENT
   if (t <= takeoffDur) {
     const u = Math.max(0, t / takeoffDur);
     const firstTargets = formationTrajectories[0];
@@ -908,14 +986,13 @@ function evaluateTimeline(t) {
 
       if (firstSwatches) droneSwatchIndices[i] = firstSwatches[i];
 
-      // Soft navigation beacon during ascent
       targetColors[i * 3]     = 0.3 + 0.7 * ease;
       targetColors[i * 3 + 1] = 0.6 + 0.4 * ease;
       targetColors[i * 3 + 2] = 0.3 + 0.7 * ease;
     }
   }
 
-  // 2. PHASE 2: ACTIVE FORMATIONS & CONTINUOUS MORPHS
+  // 2. PHASE 2: ACTIVE SHOW & TEXT ANIMATION
   else if (t > takeoffDur && t < showBodyEnd) {
     const showT = t - takeoffDur;
     let curT = 0;
@@ -927,9 +1004,12 @@ function evaluateTimeline(t) {
       const currSwatches = formationSwatchStore[i];
 
       if (showT >= formStart && showT < formEnd) {
-        // Pure static hold of formation
+        // Copy base points to scratchpad for live motion FX
+        localScratchPoints.set(currTargets.subarray(0, formationCount * 3));
+        if (b.isText) applyTextProceduralFX(b, showT - formStart, formationCount, localScratchPoints);
+
         for (let j = 0; j < formationCount; j++) {
-          transformToSky(currTargets[j * 3], currTargets[j * 3 + 1], currTargets[j * 3 + 2], angleY, skyPosA);
+          transformToSky(localScratchPoints[j * 3], localScratchPoints[j * 3 + 1], localScratchPoints[j * 3 + 2], angleY, skyPosA);
           targetPositions[j * 3]     = skyPosA.x;
           targetPositions[j * 3 + 1] = skyPosA.y;
           targetPositions[j * 3 + 2] = skyPosA.z;
@@ -937,16 +1017,19 @@ function evaluateTimeline(t) {
         }
         break;
       } else if (showT >= formEnd && showT < transEnd) {
-        // Continuous, single-assignment morph to next formation
         const nextIdx = (i + 1 < timelineData.formationBlocks.length) ? i + 1 : 0;
+        const nextB = timelineData.formationBlocks[nextIdx];
         const nextTargets = formationTrajectories[nextIdx];
         const nextSwatches = formationSwatchStore[nextIdx];
 
         const progress = (showT - formEnd) / b.transDur;
         const ease = progress * progress * (3 - 2 * progress);
 
+        localScratchPoints.set(currTargets.subarray(0, formationCount * 3));
+        if (b.isText) applyTextProceduralFX(b, showT - formStart, formationCount, localScratchPoints);
+
         for (let j = 0; j < formationCount; j++) {
-          transformToSky(currTargets[j * 3], currTargets[j * 3 + 1], currTargets[j * 3 + 2], angleY, skyPosA);
+          transformToSky(localScratchPoints[j * 3], localScratchPoints[j * 3 + 1], localScratchPoints[j * 3 + 2], angleY, skyPosA);
           transformToSky(nextTargets[j * 3], nextTargets[j * 3 + 1], nextTargets[j * 3 + 2], angleY, skyPosB);
 
           targetPositions[j * 3]     = skyPosA.x + (skyPosB.x - skyPosA.x) * ease;
@@ -972,7 +1055,7 @@ function evaluateTimeline(t) {
     }
   }
 
-  // 3. PHASE 3: RETURN TO HOME (RTH LANDING)
+  // 3. PHASE 3: RTH LANDING
   else {
     const landT = t - showBodyEnd;
     const u = THREE.MathUtils.clamp(landT / landingDur, 0, 1);
@@ -1003,7 +1086,7 @@ function evaluateTimeline(t) {
     }
   }
 
-  // 4. SNOW LAYER (Flurries only while show is airborne)
+  // 4. SNOW LAYER
   if (isSnowEnabled) {
     for (let i = formationCount; i < activeDroneCount; i++) {
       const gx = groundPositions[i * 3];
@@ -1014,7 +1097,6 @@ function evaluateTimeline(t) {
       const sz = snowPositions[i * 3 + 2];
 
       if (t <= takeoffDur) {
-        // Rise with fleet from ground pad
         const u = Math.max(0, t / takeoffDur);
         const ease = u * u * (3 - 2 * u);
         targetPositions[i * 3]     = gx + (sx - gx) * ease;
@@ -1024,7 +1106,6 @@ function evaluateTimeline(t) {
         targetColors[i * 3 + 1] = 0.4 * ease;
         targetColors[i * 3 + 2] = 0.4 * ease;
       } else if (t > takeoffDur && t < showBodyEnd) {
-        // Airborne active flurry
         targetPositions[i * 3]     = sx;
         targetPositions[i * 3 + 1] = sy;
         targetPositions[i * 3 + 2] = sz;
@@ -1033,7 +1114,6 @@ function evaluateTimeline(t) {
         targetColors[i * 3 + 1] = glimmer;
         targetColors[i * 3 + 2] = glimmer;
       } else {
-        // Descend with fleet to ground pad
         const u = THREE.MathUtils.clamp((t - showBodyEnd) / landingDur, 0, 1);
         const ease = u * u * (3 - 2 * u);
         targetPositions[i * 3]     = sx + (gx - sx) * ease;
@@ -1048,7 +1128,7 @@ function evaluateTimeline(t) {
   }
 }
 
-// WORLD-SPACE LOCOMOTION
+// World-Space Locomotion
 const grabState = {
   leftGrip: false, rightGrip: false, mode: 'none',
   anchorHandL: new THREE.Vector3(), anchorHandR: new THREE.Vector3(),
@@ -1115,12 +1195,10 @@ function updateWorldGrab() {
 
     const midDelta = new THREE.Vector3().subVectors(midCurr, grabState.anchorMid);
     stageGroup.position.copy(grabState.anchorMid).add(midDelta).add(vOffset);
-
   } else if (grabState.mode === 'single-left') {
     const scaleFactor = Math.max(0.1, stageGroup.scale.x);
     const delta = new THREE.Vector3().subVectors(posL, grabState.anchorHandL).multiplyScalar(panSensitivity * scaleFactor);
     stageGroup.position.addVectors(grabState.anchorStagePos, delta);
-
   } else if (grabState.mode === 'single-right') {
     const scaleFactor = Math.max(0.1, stageGroup.scale.x);
     const delta = new THREE.Vector3().subVectors(posR, grabState.anchorHandR).multiplyScalar(panSensitivity * scaleFactor);
@@ -1166,6 +1244,15 @@ function renderHUD() {
   ctx.fillText("◀", 70, 52); ctx.fillText("▶", 450, 52);
   ctx.fillText(`PAGE ${currentSymbolPage + 1} / ${totalPages}`, 260, 52);
 
+  // In-VR Edit Text Button
+  const activeBlock = timelineData.formationBlocks.find(b => b.id === selectedFormationBlockId);
+  if (activeBlock && activeBlock.isText) {
+    ctx.fillStyle = "#df52ff"; ctx.fillRect(520, 20, 200, 48);
+    ctx.strokeStyle = "#ffffff"; ctx.strokeRect(520, 20, 200, 48);
+    ctx.fillStyle = "#fff"; ctx.font = "bold 15px system-ui"; ctx.textAlign = "center";
+    ctx.fillText("⌨ EDIT TEXT", 620, 50);
+  }
+
   const shapes = (SHAPE_PAGES && SHAPE_PAGES[currentSymbolPage]) ? SHAPE_PAGES[currentSymbolPage] : [];
   for (let i = 0; i < 4; i++) {
     const s = shapes[i];
@@ -1209,19 +1296,25 @@ function renderHUD() {
   ctx.fillStyle = specGrad; ctx.fillRect(40, 234, 944, 34);
   ctx.strokeStyle = "#ffffff44"; ctx.strokeRect(40, 234, 944, 34);
 
+  // Playback Lane in VR
   const availW = 944;
   let curX = 40;
   for (const b of timelineData.formationBlocks) {
     if (!b) continue;
     const fw = (b.dur / TOTAL_DURATION) * availW;
     const isSelected = selectedFormationBlockId === b.id;
-    ctx.fillStyle = isSelected ? "#2a548a" : "#1b3353";
+    ctx.fillStyle = b.isText ? (isSelected ? "#7e22ce" : "#4c1d95") : (isSelected ? "#2a548a" : "#1b3353");
     ctx.fillRect(curX, 335, fw, 34);
     ctx.strokeStyle = isSelected ? "#ffffff" : "#456a99";
     ctx.strokeRect(curX, 335, fw, 34);
 
-    const s = findShapeById(b.shapeId);
-    if (s && typeof s.drawCanvas === "function") s.drawCanvas(ctx, curX + fw / 2, 352);
+    if (b.isText) {
+      ctx.fillStyle = "#ffffff"; ctx.font = "bold 11px system-ui"; ctx.textAlign = "center";
+      ctx.fillText(b.text || "TEXT", curX + fw / 2, 356);
+    } else {
+      const s = findShapeById(b.shapeId);
+      if (s && typeof s.drawCanvas === "function") s.drawCanvas(ctx, curX + fw / 2, 352);
+    }
     curX += fw;
 
     if (b.transDur > 0) {
@@ -1262,6 +1355,25 @@ function toggleHUD() {
 const raycaster = new THREE.Raycaster();
 const quat = new THREE.Quaternion();
 
+// Trigger Native Meta Quest Virtual System Keyboard
+function promptVRSystemKeyboard() {
+  const activeBlock = timelineData.formationBlocks.find(b => b.id === selectedFormationBlockId);
+  if (!activeBlock || !activeBlock.isText) return;
+
+  // window.prompt invokes native Meta Quest OS virtual keyboard overlay in WebXR
+  const currentVal = activeBlock.text || "HAPPY NEW YEAR";
+  const result = window.prompt("Enter Drone Formation Text:", currentVal);
+  if (result !== null && result.trim() !== "") {
+    saveUndoState();
+    activeBlock.text = result.trim().toUpperCase();
+    $("input-text-msg").value = activeBlock.text;
+    buildShowTrajectoryData();
+    evaluateTimeline(playheadTime);
+    buildDesktopTimeline();
+    renderHUD();
+  }
+}
+
 function handleVRSelect(controller) {
   if (!vrHUD.visible) return;
   const origin = new THREE.Vector3();
@@ -1277,6 +1389,12 @@ function handleVRSelect(controller) {
   const inRect = (x, y, w, h) => px >= x && px <= x + w && py >= y && py <= y + h;
   const cb = timelineData.colorBlocks.find(x => x && x.id === selectedColorBlockId);
   const totalPages = Math.max(1, SHAPE_PAGES.length);
+
+  // Check VR Edit Text Button
+  if (inRect(520, 20, 200, 48)) {
+    promptVRSystemKeyboard();
+    return;
+  }
 
   if (inRect(40, 20, 60, 48)) {
     currentSymbolPage = (currentSymbolPage + totalPages - 1) % totalPages;
@@ -1296,6 +1414,7 @@ function handleVRSelect(controller) {
       const b = timelineData.formationBlocks.find(x => x && x.id === selectedFormationBlockId);
       if (b) {
         saveUndoState();
+        b.isText = false;
         b.shapeId = s.id;
         buildShowTrajectoryData();
         evaluateTimeline(playheadTime);
@@ -1422,22 +1541,91 @@ onEvent("slider-snow-count", "input", (e) => {
   evaluateTimeline(playheadTime);
 });
 
+// Contextual Inspector Updates
 function updateContextPanels() {
-  $("context-shape").classList.toggle("hidden", activeInspectorType !== "shape");
+  const curBlock = timelineData.formationBlocks.find(b => b.id === selectedFormationBlockId);
+  const isSelectedText = curBlock && curBlock.isText;
+
+  $("context-shape").classList.toggle("hidden", activeInspectorType !== "shape" || isSelectedText);
+  $("context-text").classList.toggle("hidden", activeInspectorType !== "shape" || !isSelectedText);
   $("context-color").classList.toggle("hidden", activeInspectorType !== "color");
   $("context-rotation").classList.toggle("hidden", activeInspectorType !== "rotation");
 
   if (activeInspectorType === "shape") {
-    const curBlock = timelineData.formationBlocks.find(b => b.id === selectedFormationBlockId);
-    const s = curBlock ? findShapeById(curBlock.shapeId) : null;
-    if (s && $("inspector-shape-name")) $("inspector-shape-name").textContent = s.id;
-    populateDesktopIcons();
+    if (isSelectedText) {
+      $("input-text-msg").value = curBlock.text || "DRONE";
+      $("sel-text-font").value = curBlock.font || "Impact";
+      $("sel-text-fx").value = curBlock.fx || "scroll";
+      $("slider-text-speed").value = curBlock.speed || 1.0;
+      $("val-text-speed").textContent = (curBlock.speed || 1.0).toFixed(1) + "x";
+    } else {
+      const s = curBlock ? findShapeById(curBlock.shapeId) : null;
+      if (s && $("inspector-shape-name")) $("inspector-shape-name").textContent = s.id;
+      populateDesktopIcons();
+    }
   } else if (activeInspectorType === "color") {
     syncDesktopPalette();
   } else if (activeInspectorType === "rotation") {
     syncDesktopRotation();
   }
 }
+
+// Text Inspector Input Handlers
+onEvent("input-text-msg", "input", (e) => {
+  const curBlock = timelineData.formationBlocks.find(b => b.id === selectedFormationBlockId);
+  if (curBlock && curBlock.isText) {
+    curBlock.text = e.target.value.toUpperCase();
+    buildShowTrajectoryData();
+    evaluateTimeline(playheadTime);
+    buildDesktopTimeline();
+    if (vrHUD.visible) renderHUD();
+  }
+});
+onEvent("sel-text-font", "change", (e) => {
+  saveUndoState();
+  const curBlock = timelineData.formationBlocks.find(b => b.id === selectedFormationBlockId);
+  if (curBlock && curBlock.isText) {
+    curBlock.font = e.target.value;
+    buildShowTrajectoryData();
+    evaluateTimeline(playheadTime);
+    buildDesktopTimeline();
+  }
+});
+onEvent("sel-text-fx", "change", (e) => {
+  saveUndoState();
+  const curBlock = timelineData.formationBlocks.find(b => b.id === selectedFormationBlockId);
+  if (curBlock && curBlock.isText) {
+    curBlock.fx = e.target.value;
+    evaluateTimeline(playheadTime);
+  }
+});
+onEvent("slider-text-speed", "input", (e) => {
+  const curBlock = timelineData.formationBlocks.find(b => b.id === selectedFormationBlockId);
+  if (curBlock && curBlock.isText) {
+    curBlock.speed = parseFloat(e.target.value);
+    $("val-text-speed").textContent = curBlock.speed.toFixed(1) + "x";
+    evaluateTimeline(playheadTime);
+  }
+});
+onEvent("btn-vr-keyboard", "click", () => {
+  promptVRSystemKeyboard();
+});
+
+// Add Text Formation directly to track
+onEvent("btn-add-text", "click", () => {
+  saveUndoState();
+  const id = "t" + Date.now();
+  timelineData.formationBlocks.push({
+    id, isText: true, text: "HELLO XR", font: "Impact", fx: "scroll", speed: 1.0, dur: 20.0, transDur: 4.0
+  });
+  selectedFormationBlockId = id;
+  activeInspectorType = "shape";
+  recalculateTimelineDuration();
+  buildShowTrajectoryData();
+  buildDesktopTimeline();
+  updateContextPanels();
+  renderHUD();
+});
 
 // Track Add / Del Actions
 onEvent("btn-add-shape", "click", () => {
@@ -1551,13 +1739,14 @@ function populateDesktopIcons() {
   for (const s of shapes) {
     if (!s) continue;
     const btn = document.createElement("button");
-    btn.className = "symbol-btn" + (activeFormation?.shapeId === s.id ? " active" : "");
+    btn.className = "symbol-btn" + (activeFormation?.shapeId === s.id && !activeFormation?.isText ? " active" : "");
     btn.draggable = true;
     btn.innerHTML = `<svg viewBox="0 0 24 24">${s.drawSVG || ""}</svg><span>${s.id}</span>`;
 
     btn.onclick = () => {
       if (activeFormation) {
         saveUndoState();
+        activeFormation.isText = false;
         activeFormation.shapeId = s.id;
         buildShowTrajectoryData();
         evaluateTimeline(playheadTime);
@@ -1575,7 +1764,7 @@ function populateDesktopIcons() {
   }
 }
 
-// Drag and Drop Shape onto Shapes Track
+// Drag Shape onto Lane
 const laneShapesEl = $("lane-shapes");
 laneShapesEl.addEventListener("dragover", (e) => {
   e.preventDefault();
@@ -1782,13 +1971,19 @@ function buildDesktopTimeline() {
 
   for (let i = 0; i < timelineData.formationBlocks.length; i++) {
     const b = timelineData.formationBlocks[i];
-    const s = findShapeById(b.shapeId);
     const fBlock = document.createElement("div");
     fBlock.className = "block-element" + (selectedFormationBlockId === b.id ? " active-block" : "");
+    if (b.isText) fBlock.classList.add("text-block");
     fBlock.dataset.trackType = "formation";
     fBlock.style.width = (b.dur / TOTAL_DURATION) * 100 + "%";
-    fBlock.style.background = "#1b3353";
-    fBlock.innerHTML = `<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#70e6ff;fill:none;">${s ? (s.drawSVG || "") : ""}</svg>`;
+
+    if (b.isText) {
+      fBlock.innerHTML = `<span>T: ${b.text || "TEXT"}</span>`;
+    } else {
+      fBlock.style.background = "#1b3353";
+      const s = findShapeById(b.shapeId);
+      fBlock.innerHTML = `<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#70e6ff;fill:none;">${s ? (s.drawSVG || "") : ""}</svg>`;
+    }
 
     fBlock.onclick = (e) => {
       e.stopPropagation();
@@ -1896,7 +2091,7 @@ function syncDesktopTimeline() {
   if (disp) disp.textContent = `${formatTime(playheadTime)} / ${formatTime(TOTAL_DURATION)}`;
 }
 
-// Full Timeline Scrubbing
+// Scrubbing Handlers
 const lanesArea = $("timeline-lanes-area");
 let isScrubbing = false;
 
@@ -1972,7 +2167,7 @@ window.addEventListener("pointermove", (e) => {
   if (e.buttons === 1 && e.shiftKey) paintDroneAtMouse(e);
 });
 
-// Initial Boot
+// Boot
 populateDesktopIcons();
 updateContextPanels();
 buildDesktopTimeline();
@@ -1994,10 +2189,10 @@ renderer.xr.addEventListener("sessionend", () => {
   for (const ray of controllerRays) ray.visible = false;
 });
 
-// Simulation Loop: Realistic Velocity Cap & Non-Looping Playback
+// Simulation Loop with Cap and Snow Gate
 const SPRING = 7.5;
 const DAMPING = 4.0;
-const MAX_DRONE_SPEED = 8.5; // Cap at realistic 8.5 m/s
+const MAX_DRONE_SPEED = 8.5;
 
 const cPosWorldL = new THREE.Vector3();
 const cPosWorldR = new THREE.Vector3();
@@ -2009,7 +2204,6 @@ renderer.setAnimationLoop(now => {
   const dt = Math.min(0.05, (now - prevTime) / 1000);
   prevTime = now;
 
-  // Non-Looping Playback: Halts cleanly on final landing frame
   if (isPlaying) {
     playheadTime += dt;
     if (playheadTime >= TOTAL_DURATION) {
@@ -2061,7 +2255,6 @@ renderer.setAnimationLoop(now => {
 
   dronePoints.material.size = Math.max(0.02, BASE_DRONE_SIZE * stageGroup.scale.x);
 
-  // 1. Realistic Physics with Velocity Clamping
   for (let i = 0; i < activeDroneCount; i++) {
     const idx = i * 3;
     let px = currentPositions[idx], py = currentPositions[idx + 1], pz = currentPositions[idx + 2];
@@ -2075,7 +2268,6 @@ renderer.setAnimationLoop(now => {
     vy += fy * dt;
     vz += fz * dt;
 
-    // Commercial drone speed limit enforcement
     const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
     if (speed > MAX_DRONE_SPEED) {
       vx = (vx / speed) * MAX_DRONE_SPEED;
@@ -2096,7 +2288,7 @@ renderer.setAnimationLoop(now => {
     currentColors[idx + 2] += (targetColors[idx + 2] - currentColors[idx + 2]) * 7.0 * dt;
   }
 
-  // 2. Snow Flurry Downward Drift (Only active during airborne show)
+  // Snow Flurries active only while airborne
   const showBodyEnd = TOTAL_DURATION - landingDur;
   if (isSnowEnabled && playheadTime > takeoffDur && playheadTime < showBodyEnd) {
     const snowFallSpeed = 2.4;
