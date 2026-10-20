@@ -279,6 +279,13 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { VRButton } from "three/addons/webxr/VRButton.js";
 import { SHAPE_PAGES, findShapeById } from "./shapes.js";
 
+  function formatTime(s) {
+  if (isNaN(s) || s === undefined || s === null) return "00:00";
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return String(m).padStart(2, "0") + ":" + String(sec).padStart(2, "0");
+}
+
 const MAX_DRONES = 1200;
 let activeDroneCount = 400;
 let TOTAL_DURATION = 60.0;
