@@ -161,7 +161,16 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
 <body>
 <div id="panel">
   <div id="title">DroneShow Designer XR</div>
-  <div id="status">World-Space Rig Anchors · Interactive Brush Active</div>
+  <div id="status">Tree Mantle Lights · Autonomous Snow Layer Active</div>
+
+  <div class="section-label">
+    <span>Environmental Snow Layer</span>
+    <span id="val-snow-count" style="color:#70e6ff; font-weight:bold;">50 Snow Drones</span>
+  </div>
+  <div class="ctrl-row" style="margin-bottom:8px;">
+    <label><input type="checkbox" id="chk-snow" checked> <b>Active Snow Fall</b></label>
+    <input type="range" id="slider-snow-count" min="20" max="100" step="5" value="50">
+  </div>
 
   <div class="section-label">
     <span>Formation Position & Ground Clearance</span>
@@ -280,12 +289,11 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
   </div>
 
   <div id="hint">
-    <b>VR Painting:</b> Select a swatch, hold trigger, and touch drones with your hand sphere.<br>
-    <b>Desktop Painting:</b> Hold <b>Shift</b> and drag the mouse over drones in 3D.<br>
-    <b>VR View:</b> Headset spawns at 38m south perimeter; HUD opens 1.8m in front of eyes.
+    <b>Environmental Snow:</b> 50 drones run autonomous ambient flurries.<br>
+    <b>Christmas Tree:</b> Gold Apex Star, Emerald Foliage, Brown Trunk, Red & Cyan Lights.
   </div>
 </div>
-<div id="vr-tip">In VR: Press Left X for HUD · Pull trigger to paint drones with active swatch</div>
+<div id="vr-tip">In VR: Press Left X for HUD · Trigger paints drones with active swatch</div>
 
 <script type="module">
 import * as THREE from "three";
@@ -293,7 +301,6 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { VRButton } from "three/addons/webxr/VRButton.js";
 import { SHAPE_PAGES, findShapeById } from "./shapes.js";
 
-// Top-Level Helper (Always Available Globally)
 function formatTime(s) {
   if (isNaN(s) || s === undefined || s === null) return "00:00";
   const m = Math.floor(s / 60);
@@ -309,6 +316,10 @@ let formationAltitude = 18.0;
 let formationScale = 1.0;
 const BASE_DRONE_SIZE = 0.55;
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
+
+// Environmental Snow Layer State
+let isSnowEnabled = true;
+let snowDroneCount = 50;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x02040d);
@@ -391,9 +402,17 @@ const targetPositions = new Float32Array(MAX_DRONES * 3);
 const velocities = new Float32Array(MAX_DRONES * 3);
 const currentColors = new Float32Array(MAX_DRONES * 3);
 const targetColors = new Float32Array(MAX_DRONES * 3);
-
-// Per-Drone Swatch Indexing (0 to 4)
 const droneSwatchIndices = new Uint8Array(MAX_DRONES);
+
+// Initialize Snow Particle Buffers
+const snowPositions = new Float32Array(MAX_DRONES * 3);
+const snowDriftSeeds = new Float32Array(MAX_DRONES);
+for (let i = 0; i < MAX_DRONES; i++) {
+  snowPositions[i * 3]     = (Math.random() - 0.5) * 36;
+  snowPositions[i * 3 + 1] = 1.5 + Math.random() * 32;
+  snowPositions[i * 3 + 2] = (Math.random() - 0.5) * 36;
+  snowDriftSeeds[i]        = Math.random() * Math.PI * 2;
+}
 
 const transitionFromPositions = new Float32Array(MAX_DRONES * 3);
 const transitionToPositions = new Float32Array(MAX_DRONES * 3);
@@ -457,7 +476,7 @@ const timelineData = {
   colorBlocks: [
     {
       id: "c0", dur: 20.0,
-      palette: ["#ffd700", "#00ff66", "#8b4513"], // Gold Star (0), Green Foliage (1), Brown Trunk (2)
+      palette: ["#ffd700", "#00c853", "#8b4513", "#ff1744", "#00e5ff"], // Star, Tree, Trunk, Red Lights, Cyan Lights
       activeSwatchIdx: 0,
       cycleSpeed: 0.0, run: false, runSpeed: 3.0,
       blink: false, blinkSpeed: 3.0,
@@ -510,13 +529,13 @@ let lastShapeB = null;
 
 const tempColor = new THREE.Color();
 
-// Manual Auto-Zone: Only triggered when clicking the button
 function applyAutoZoneColors() {
   const cb = timelineData.colorBlocks.find(x => x && x.id === selectedColorBlockId);
   if (!cb || cb.palette.length <= 1) return;
 
+  const formationCount = isSnowEnabled ? Math.max(50, activeDroneCount - snowDroneCount) : activeDroneCount;
   let minY = Infinity, maxY = -Infinity;
-  for (let i = 0; i < activeDroneCount; i++) {
+  for (let i = 0; i < formationCount; i++) {
     const y = unrotatedPositions[i * 3 + 1];
     if (y < minY) minY = y;
     if (y > maxY) maxY = y;
@@ -524,7 +543,7 @@ function applyAutoZoneColors() {
   const span = Math.max(0.1, maxY - minY);
   const nSwatches = cb.palette.length;
 
-  for (let i = 0; i < activeDroneCount; i++) {
+  for (let i = 0; i < formationCount; i++) {
     const normH = (unrotatedPositions[i * 3 + 1] - minY) / span;
     const swatchIdx = Math.min(nSwatches - 1, Math.floor((1.0 - normH) * nSwatches));
     droneSwatchIndices[i] = swatchIdx;
@@ -534,15 +553,22 @@ function applyAutoZoneColors() {
 function applyLightingFX(block, timeSec) {
   const pal = block.palette || ["#ffffff"];
   const nColors = pal.length;
+  const formationCount = isSnowEnabled ? Math.max(50, activeDroneCount - snowDroneCount) : activeDroneCount;
 
-  for (let i = 0; i < activeDroneCount; i++) {
+  for (let i = 0; i < formationCount; i++) {
     let r = 1, g = 1, b = 1;
     const swatchIdx = droneSwatchIndices[i] % nColors;
     tempColor.set(pal[swatchIdx]);
     r = tempColor.r; g = tempColor.g; b = tempColor.b;
 
+    // Glimmer on light swatches (3 & 4)
+    if (swatchIdx === 3 || swatchIdx === 4) {
+      const twinkle = Math.sin(timeSec * 6.0 + i * 2.3) * 0.35 + 0.85;
+      r = Math.min(1, r * twinkle); g = Math.min(1, g * twinkle); b = Math.min(1, b * twinkle);
+    }
+
     if (block.run) {
-      const wave = Math.sin(timeSec * block.runSpeed - (i / activeDroneCount) * 8.0);
+      const wave = Math.sin(timeSec * block.runSpeed - (i / formationCount) * 8.0);
       if (wave > 0.3) { r = Math.min(1, r * 1.5); g = Math.min(1, g * 1.5); b = Math.min(1, b * 1.5); }
     }
     if (block.blink) {
@@ -584,6 +610,8 @@ function getRotationAtTime(t) {
 }
 
 function evaluateTimeline(t) {
+  const formationCount = isSnowEnabled ? Math.max(50, activeDroneCount - snowDroneCount) : activeDroneCount;
+
   let curT = 0;
   for (let i = 0; i < timelineData.formationBlocks.length; i++) {
     const b = timelineData.formationBlocks[i];
@@ -593,9 +621,9 @@ function evaluateTimeline(t) {
       const activeShape = findShapeById(b.shapeId);
       if (activeShape && lastShapeA !== activeShape.id) {
         lastShapeA = activeShape.id; lastShapeB = null;
-        const raw = new Float32Array(activeDroneCount * 3);
-        activeShape.gen(raw, activeDroneCount, droneSwatchIndices);
-        unrotatedPositions.set(assignMinimalPaths(currentPositions, raw, activeDroneCount));
+        const raw = new Float32Array(formationCount * 3);
+        activeShape.gen(raw, formationCount, droneSwatchIndices);
+        unrotatedPositions.set(assignMinimalPaths(currentPositions, raw, formationCount));
       }
       break;
     } else if (t >= formEnd && t < transEnd) {
@@ -607,12 +635,12 @@ function evaluateTimeline(t) {
 
       if (shapeA && shapeB && (lastShapeA !== shapeA.id || lastShapeB !== shapeB.id)) {
         lastShapeA = shapeA.id; lastShapeB = shapeB.id;
-        shapeA.gen(transitionFromPositions, activeDroneCount, droneSwatchIndices);
-        const rawB = new Float32Array(activeDroneCount * 3);
-        shapeB.gen(rawB, activeDroneCount, droneSwatchIndices);
-        transitionToPositions.set(assignMinimalPaths(transitionFromPositions, rawB, activeDroneCount));
+        shapeA.gen(transitionFromPositions, formationCount, droneSwatchIndices);
+        const rawB = new Float32Array(formationCount * 3);
+        shapeB.gen(rawB, formationCount, droneSwatchIndices);
+        transitionToPositions.set(assignMinimalPaths(transitionFromPositions, rawB, formationCount));
       }
-      for (let j = 0; j < activeDroneCount * 3; j++) {
+      for (let j = 0; j < formationCount * 3; j++) {
         unrotatedPositions[j] = transitionFromPositions[j] + (transitionToPositions[j] - transitionFromPositions[j]) * ease;
       }
       break;
@@ -628,7 +656,7 @@ function evaluateTimeline(t) {
   const tempP = new THREE.Vector3();
   let lowestY = Infinity;
 
-  for (let i = 0; i < activeDroneCount; i++) {
+  for (let i = 0; i < formationCount; i++) {
     tempP.set(
       unrotatedPositions[i * 3] * formationScale,
       (unrotatedPositions[i * 3 + 1] - 14) * formationScale + formationAltitude,
@@ -646,7 +674,7 @@ function evaluateTimeline(t) {
 
   if (lowestY < 1.5) {
     const lift = 1.5 - lowestY;
-    for (let i = 0; i < activeDroneCount; i++) {
+    for (let i = 0; i < formationCount; i++) {
       targetPositions[i * 3 + 1] += lift;
     }
   }
@@ -785,7 +813,6 @@ function renderHUD() {
   ctx.lineWidth = 4;
   ctx.strokeRect(8, 8, 1008, 684);
 
-  // Symbol Page Controls
   const totalPages = Math.max(1, SHAPE_PAGES.length);
   ctx.fillStyle = "rgba(27, 56, 100, 0.9)";
   ctx.fillRect(40, 20, 60, 48); ctx.fillRect(420, 20, 60, 48);
@@ -801,8 +828,6 @@ function renderHUD() {
     const x = 40 + i * 238;
     ctx.fillStyle = "rgba(23, 39, 66, 0.85)";
     ctx.fillRect(x, 82, 224, 96);
-
-    // Guard against undefined shapes
     if (!s) continue;
 
     const activeShapeId = timelineData.formationBlocks.find(b => b && b.id === selectedFormationBlockId)?.shapeId;
@@ -843,7 +868,6 @@ function renderHUD() {
   ctx.fillStyle = specGrad; ctx.fillRect(40, 234, 944, 34);
   ctx.strokeStyle = "#ffffff44"; ctx.strokeRect(40, 234, 944, 34);
 
-  // Playback Track
   const availW = 944;
   let curX = 40;
   for (const b of timelineData.formationBlocks) {
@@ -1006,6 +1030,19 @@ function onEvent(id, event, handler) {
   const el = document.getElementById(id);
   if (el) el.addEventListener(event, handler);
 }
+
+onEvent("chk-snow", "change", (e) => {
+  isSnowEnabled = e.target.checked;
+  lastShapeA = null;
+  evaluateTimeline(playheadTime);
+});
+
+onEvent("slider-snow-count", "input", (e) => {
+  snowDroneCount = parseInt(e.target.value);
+  const el = $("val-snow-count"); if (el) el.textContent = `${snowDroneCount} Snow Drones`;
+  lastShapeA = null;
+  evaluateTimeline(playheadTime);
+});
 
 onEvent("slider-altitude", "input", (e) => {
   formationAltitude = parseFloat(e.target.value);
@@ -1332,7 +1369,6 @@ renderer.xr.addEventListener("sessionstart", () => {
   document.body.classList.add("xr-active");
   renderer.xr.setFoveation(0.0);
 
-  // Position viewer 38 meters back along south perimeter
   xrRig.position.set(0, 0, 38);
   xrRig.rotation.set(0, 0, 0);
 
@@ -1346,7 +1382,7 @@ renderer.xr.addEventListener("sessionend", () => {
   for (const ray of controllerRays) ray.visible = false;
 });
 
-// Simulation Loop & VR Painting
+// Simulation Loop & Autonomous Snow Flurry Engine
 const SPRING = 18.0;
 const DAMPING = 5.5;
 
@@ -1379,7 +1415,7 @@ renderer.setAnimationLoop(now => {
     stageGroup.worldToLocal(cPosLocalL.copy(cPosWorldL));
     stageGroup.worldToLocal(cPosLocalR.copy(cPosWorldR));
 
-    // VR Swarm Spray Painting (Trigger down, HUD closed)
+    // VR Swarm Spray Painting
     const cb = timelineData.colorBlocks.find(x => x && x.id === selectedColorBlockId);
     if (cb && !vrHUD.visible) {
       const activeIdx = cb.activeSwatchIdx;
@@ -1411,7 +1447,10 @@ renderer.setAnimationLoop(now => {
 
   dronePoints.material.size = Math.max(0.02, BASE_DRONE_SIZE * stageGroup.scale.x);
 
-  for (let i = 0; i < activeDroneCount; i++) {
+  const formationCount = isSnowEnabled ? Math.max(50, activeDroneCount - snowDroneCount) : activeDroneCount;
+
+  // 1. Update Primary Formation Drones
+  for (let i = 0; i < formationCount; i++) {
     const idx = i * 3;
     let px = currentPositions[idx], py = currentPositions[idx + 1], pz = currentPositions[idx + 2];
     let vx = velocities[idx], vy = velocities[idx + 1], vz = velocities[idx + 2];
@@ -1427,9 +1466,42 @@ renderer.setAnimationLoop(now => {
 
     velocities[idx] = vx; velocities[idx + 1] = vy; velocities[idx + 2] = vz;
 
-    currentColors[idx] += (targetColors[idx] - currentColors[idx]) * 6.0 * dt;
-    currentColors[idx + 1] += (targetColors[idx + 1] - currentColors[idx + 1]) * 6.0 * dt;
-    currentColors[idx + 2] += (targetColors[idx + 2] - currentColors[idx + 2]) * 6.0 * dt;
+    currentColors[idx] += (targetColors[idx] - currentColors[idx]) * 8.0 * dt;
+    currentColors[idx + 1] += (targetColors[idx + 1] - currentColors[idx + 1]) * 8.0 * dt;
+    currentColors[idx + 2] += (targetColors[idx + 2] - currentColors[idx + 2]) * 8.0 * dt;
+  }
+
+  // 2. Autonomous Snow Particle Simulation (Drones formationCount to activeDroneCount - 1)
+  if (isSnowEnabled) {
+    const snowFallSpeed = 2.4;
+    const timeSec = now / 1000;
+
+    for (let i = formationCount; i < activeDroneCount; i++) {
+      const idx = i * 3;
+      const seed = snowDriftSeeds[i];
+
+      // Downward velocity with harmonic drift
+      snowPositions[idx + 1] -= snowFallSpeed * dt;
+      snowPositions[idx]     += Math.sin(timeSec * 1.5 + seed) * 0.8 * dt;
+      snowPositions[idx + 2] += Math.cos(timeSec * 1.2 + seed) * 0.8 * dt;
+
+      // Wrap-around ground plane (1.5m) back to top (32m)
+      if (snowPositions[idx + 1] < 1.5) {
+        snowPositions[idx + 1] = 32.0;
+        snowPositions[idx]     = (Math.random() - 0.5) * 36;
+        snowPositions[idx + 2] = (Math.random() - 0.5) * 36;
+      }
+
+      currentPositions[idx]     = snowPositions[idx];
+      currentPositions[idx + 1] = snowPositions[idx + 1];
+      currentPositions[idx + 2] = snowPositions[idx + 2];
+
+      // Pure Ice White with gentle glimmer twinkle
+      const glimmer = Math.sin(timeSec * 8.0 + seed * 5.0) > 0.4 ? 1.0 : 0.65;
+      currentColors[idx]     = glimmer;
+      currentColors[idx + 1] = glimmer;
+      currentColors[idx + 2] = glimmer;
+    }
   }
 
   droneGeometry.attributes.position.needsUpdate = true;
