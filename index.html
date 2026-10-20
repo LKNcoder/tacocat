@@ -75,7 +75,10 @@ canvas { display: block; }
   font-size: 11px;
 }
 .ctrl-row label { display: flex; align-items: center; gap: 6px; color: #c0d1ed; cursor: pointer; }
-.ctrl-row input[type="range"], .ctrl-row select { flex: 1; accent-color: #70e6ff; background:#111e33; color:#fff; border:1px solid #233b5d; border-radius:4px; padding:2px; }
+.ctrl-row input[type="range"], .ctrl-row select {
+  flex: 1; accent-color: #70e6ff; background:#111e33; color:#fff;
+  border:1px solid #233b5d; border-radius:4px; padding:2px;
+}
 
 .context-card {
   background: #0a1424;
@@ -214,7 +217,7 @@ button.symbol-btn span { font-size: 9px; color: #8fa2c3; margin-top: 2px; }
 .block-element:active { cursor: grabbing; }
 .block-element.active-block { outline: 2px solid #ffffff; z-index: 2; }
 .block-element.dragging { opacity: 0.4; }
-.block-element.flight-gate { background: #13382c !important; color: #70ffb0; }
+.block-element.flight-gate { background: #13382c !important; color: #70ffb0; cursor: default; }
 
 .resize-handle {
   position: absolute; right: 0; top: 0; width: 10px; height: 100%;
@@ -278,14 +281,14 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
       <button class="toolbar-btn" id="btn-undo" title="Revert last action (Ctrl+Z)">↶ Undo</button>
     </div>
   </div>
-  <div id="status">Continuous Trajectories · Autonomous Launch & RTH Active</div>
+  <div id="status">Deterministic Slot Trajectories · Real-World Dynamics Active</div>
 
-  <!-- Launch & Landing Controls -->
+  <!-- Flight Controls -->
   <div class="ctrl-row" style="margin-top:6px;">
     <span style="min-width:65px;">Takeoff:</span>
     <select id="sel-takeoff-style">
-      <option value="uniform">Uniform Elevator</option>
       <option value="wave" selected>Concentric Wave</option>
+      <option value="uniform">Uniform Elevator</option>
       <option value="spiral">Spiral Vortex</option>
     </select>
     <input type="range" id="slider-takeoff-dur" min="4" max="15" step="1" value="8" style="max-width:80px;">
@@ -301,7 +304,6 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
     <span id="val-landing-dur" style="min-width:35px; text-align:right;">8s</span>
   </div>
 
-  <!-- Global Scene Sliders -->
   <div class="ctrl-row" style="margin-top:4px;">
     <span style="min-width:65px;">Altitude:</span>
     <input type="range" id="slider-altitude" min="6" max="36" step="1" value="18">
@@ -322,7 +324,7 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
   <div class="context-card" id="context-shape">
     <div class="section-label" style="margin:0;">
       <span>Shape Library · Drag onto Timeline</span>
-      <span id="inspector-shape-name" style="color:#70e6ff;">Christmas Tree</span>
+      <span id="inspector-shape-name" style="color:#70e6ff;">xmasTree</span>
     </div>
     <div class="tab-row" id="page-tabs"></div>
     <div class="icon-grid" id="desktop-icon-grid"></div>
@@ -410,13 +412,14 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
     <div class="timeline-bottom-row">
       <button id="btn-play" style="padding:4px 14px; font-size:11px; background:#1b3864; border:1px solid #70e6ff; color:#fff; border-radius:4px; cursor:pointer;">Play</button>
       <span id="time-display" style="font-size:11px; font-variant-numeric:tabular-nums; min-width:85px;">00:00 / 01:00</span>
-      <span style="font-size:10px; color:#8fa2c3; flex:1; text-align:right;">Takeoff & Landing auto-framed · Drag icons to Shapes track</span>
+      <span style="font-size:10px; color:#8fa2c3; flex:1; text-align:right;">Zero-Stutter Deterministic Slots · No-Loop Finish</span>
     </div>
   </div>
 
   <div id="hint">
-    <b>Flight Envelope:</b> Show starts on launchpad, executes timeline, and lands at RTH.<br>
-    <b>Painting:</b> Select swatch, hold <b>Shift</b> + drag in 3D (Desktop) or squeeze trigger in VR.
+    <b>Playhead:</b> Click or drag the needle anywhere to scrub.<br>
+    <b>Snow Layer:</b> Stays parked on ground pad before launch; flurries only during show.<br>
+    <b>Velocity Cap:</b> Real-world physics capped at 8.5 m/s with natural damping.
   </div>
 </div>
 <div id="vr-tip">In VR: Press Left X for HUD · Trigger paints drones with active swatch</div>
@@ -513,8 +516,8 @@ scene.add(new THREE.HemisphereLight(0x9bbcff, 0x101629, 1.2));
 const gridHelper = new THREE.GridHelper(90, 45, 0x274064, 0x14223b);
 stageGroup.add(gridHelper);
 
-// Launch Pad Ground Decal
-const launchPadGeom = new THREE.PlaneGeometry(36, 36);
+// Centered Launch Pad
+const launchPadGeom = new THREE.PlaneGeometry(32, 32);
 const launchPadMat = new THREE.MeshBasicMaterial({ color: 0x071b33, side: THREE.DoubleSide });
 const launchPadMesh = new THREE.Mesh(launchPadGeom, launchPadMat);
 launchPadMesh.rotation.x = -Math.PI / 2;
@@ -536,44 +539,42 @@ glowTexture.colorSpace = THREE.SRGBColorSpace;
 
 // Coordinate Buffers
 const currentPositions = new Float32Array(MAX_DRONES * 3);
-const unrotatedPositions = new Float32Array(MAX_DRONES * 3);
 const targetPositions = new Float32Array(MAX_DRONES * 3);
 const velocities = new Float32Array(MAX_DRONES * 3);
 const currentColors = new Float32Array(MAX_DRONES * 3);
 const targetColors = new Float32Array(MAX_DRONES * 3);
 const droneSwatchIndices = new Uint8Array(MAX_DRONES);
 
-// Ground Launchpad Coordinates
+// Ground Launchpad Coordinates: Always centered square based on active count
 const groundPositions = new Float32Array(MAX_DRONES * 3);
 function updateGroundPositions(n) {
   const cols = Math.ceil(Math.sqrt(n));
-  const spacing = 1.1;
+  const rows = Math.ceil(n / cols);
+  const spacing = 1.15;
   for (let i = 0; i < n; i++) {
     const r = Math.floor(i / cols);
     const c = i % cols;
-    groundPositions[i * 3]     = (c - cols / 2 + 0.5) * spacing;
-    groundPositions[i * 3 + 1] = 0.12; // Flush with ground pad
-    groundPositions[i * 3 + 2] = (r - cols / 2 + 0.5) * spacing;
+    groundPositions[i * 3]     = (c - (cols - 1) * 0.5) * spacing;
+    groundPositions[i * 3 + 1] = 0.12;
+    groundPositions[i * 3 + 2] = (r - (rows - 1) * 0.5) * spacing;
   }
 }
-updateGroundPositions(MAX_DRONES);
+updateGroundPositions(activeDroneCount);
 
-// Continuous Transition Cache
-const transitionFromPositions = new Float32Array(MAX_DRONES * 3);
-const transitionToPositions = new Float32Array(MAX_DRONES * 3);
-let cachedTransitionBlockId = null;
-
-// Ambient Snow
+// Ambient Snow Buffers
 const snowPositions = new Float32Array(MAX_DRONES * 3);
 const snowDriftSeeds = new Float32Array(MAX_DRONES);
-for (let i = 0; i < MAX_DRONES; i++) {
-  snowPositions[i * 3]     = (Math.random() - 0.5) * 36;
-  snowPositions[i * 3 + 1] = 1.5 + Math.random() * 32;
-  snowPositions[i * 3 + 2] = (Math.random() - 0.5) * 36;
-  snowDriftSeeds[i]        = Math.random() * Math.PI * 2;
+function initSnowPositions() {
+  for (let i = 0; i < MAX_DRONES; i++) {
+    snowPositions[i * 3]     = (Math.random() - 0.5) * 36;
+    snowPositions[i * 3 + 1] = 1.5 + Math.random() * 32;
+    snowPositions[i * 3 + 2] = (Math.random() - 0.5) * 36;
+    snowDriftSeeds[i]        = Math.random() * Math.PI * 2;
+  }
 }
+initSnowPositions();
 
-// Initial Spawn on Ground
+// Initial Drone Placement directly in centered launch slots
 for (let i = 0; i < MAX_DRONES; i++) {
   currentPositions[i * 3]     = groundPositions[i * 3];
   currentPositions[i * 3 + 1] = groundPositions[i * 3 + 1];
@@ -616,7 +617,7 @@ function assignMinimalPaths(currentPos, rawTargets, count) {
       if (d < minD) { minD = d; closest = tIdx; }
     }
     unassigned.delete(closest);
-    assigned[i * 3] = rawTargets[closest * 3];
+    assigned[i * 3]     = rawTargets[closest * 3];
     assigned[i * 3 + 1] = rawTargets[closest * 3 + 1];
     assigned[i * 3 + 2] = rawTargets[closest * 3 + 2];
   }
@@ -668,6 +669,45 @@ let selectedFormationBlockId = "f0";
 let selectedColorBlockId = "c0";
 let selectedRotationBlockId = "r0";
 
+// Master Trajectory Store: Pre-calculates deterministic slot trajectories
+let formationTrajectories = [];
+let formationSwatchStore = [];
+
+function buildShowTrajectoryData() {
+  const formationCount = isSnowEnabled ? Math.max(50, activeDroneCount - snowDroneCount) : activeDroneCount;
+  formationTrajectories = [];
+  formationSwatchStore = [];
+
+  let prevSlots = groundPositions;
+
+  for (let i = 0; i < timelineData.formationBlocks.length; i++) {
+    const b = timelineData.formationBlocks[i];
+    const shape = findShapeById(b.shapeId);
+    const raw = new Float32Array(formationCount * 3);
+    const swatches = new Uint8Array(formationCount);
+
+    shape.gen(raw, formationCount, swatches);
+    const assigned = assignMinimalPaths(prevSlots, raw, formationCount);
+
+    formationTrajectories.push(assigned);
+    formationSwatchStore.push(swatches);
+    prevSlots = assigned;
+  }
+}
+
+function recalculateTimelineDuration() {
+  let formTotal = 0;
+  for (const b of timelineData.formationBlocks) formTotal += b.dur + (b.transDur || 0);
+  let colorTotal = 0;
+  for (const b of timelineData.colorBlocks) colorTotal += b.dur;
+  let rotTotal = 0;
+  for (const b of timelineData.rotationBlocks) rotTotal += b.dur;
+
+  TOTAL_DURATION = takeoffDur + Math.max(formTotal, colorTotal, rotTotal, 20.0) + landingDur;
+}
+recalculateTimelineDuration();
+buildShowTrajectoryData();
+
 // Multi-Level Undo
 const undoStack = [];
 function saveUndoState() {
@@ -711,7 +751,7 @@ function performUndo() {
   $("val-landing-dur").textContent = `${landingDur}s`;
 
   recalculateTimelineDuration();
-  cachedTransitionBlockId = null;
+  buildShowTrajectoryData();
   evaluateTimeline(playheadTime);
   buildDesktopTimeline();
   updateContextPanels();
@@ -727,19 +767,6 @@ window.addEventListener("keydown", (e) => {
   }
 });
 
-function recalculateTimelineDuration() {
-  let formTotal = 0;
-  for (const b of timelineData.formationBlocks) formTotal += b.dur + (b.transDur || 0);
-  let colorTotal = 0;
-  for (const b of timelineData.colorBlocks) colorTotal += b.dur;
-  let rotTotal = 0;
-  for (const b of timelineData.rotationBlocks) rotTotal += b.dur;
-
-  // Master Timeline encapsulates Takeoff + Formations + Landing
-  TOTAL_DURATION = takeoffDur + Math.max(formTotal, colorTotal, rotTotal, 20.0) + landingDur;
-}
-recalculateTimelineDuration();
-
 let playheadTime = 0.0;
 let isPlaying = false;
 const tempColor = new THREE.Color();
@@ -752,7 +779,7 @@ function applyAutoZoneColors() {
   const formationCount = isSnowEnabled ? Math.max(50, activeDroneCount - snowDroneCount) : activeDroneCount;
   let minY = Infinity, maxY = -Infinity;
   for (let i = 0; i < formationCount; i++) {
-    const y = unrotatedPositions[i * 3 + 1];
+    const y = targetPositions[i * 3 + 1];
     if (y < minY) minY = y;
     if (y > maxY) maxY = y;
   }
@@ -760,7 +787,7 @@ function applyAutoZoneColors() {
   const nSwatches = cb.palette.length;
 
   for (let i = 0; i < formationCount; i++) {
-    const normH = (unrotatedPositions[i * 3 + 1] - minY) / span;
+    const normH = (targetPositions[i * 3 + 1] - minY) / span;
     const swatchIdx = Math.min(nSwatches - 1, Math.floor((1.0 - normH) * nSwatches));
     droneSwatchIndices[i] = swatchIdx;
   }
@@ -794,7 +821,9 @@ function applyLightingFX(block, timeSec) {
       r = 1.0; g = 1.0; b = 1.0;
     }
 
-    targetColors[i * 3] = r; targetColors[i * 3 + 1] = g; targetColors[i * 3 + 2] = b;
+    targetColors[i * 3]     = r;
+    targetColors[i * 3 + 1] = g;
+    targetColors[i * 3 + 2] = b;
   }
 }
 
@@ -822,91 +851,116 @@ function getRotationAtTime(t) {
   return { angleY };
 }
 
-// 100% Continuous, Non-Reversing Timeline & Flight Evaluator
+// Transform shape-local coordinates into physical world space
+function transformToSky(x, y, z, angleY, outVec) {
+  rotEuler.set(0, angleY, 0);
+  rotMatrix.makeRotationFromEuler(rotEuler);
+  centerPt.set(0, formationAltitude, 0);
+
+  outVec.set(
+    x * formationScale,
+    (y - 14) * formationScale + formationAltitude,
+    z * formationScale
+  );
+  outVec.sub(centerPt);
+  outVec.applyMatrix4(rotMatrix);
+  outVec.add(centerPt);
+  outVec.y = Math.max(0.12, outVec.y);
+}
+
+const skyPosA = new THREE.Vector3();
+const skyPosB = new THREE.Vector3();
+
+// Fully Continuous, Glitch-Free Trajectory Evaluator
 function evaluateTimeline(t) {
   const formationCount = isSnowEnabled ? Math.max(50, activeDroneCount - snowDroneCount) : activeDroneCount;
   const showBodyEnd = TOTAL_DURATION - landingDur;
+  const { angleY } = getRotationAtTime(t);
 
-  // PHASE 1: TAKEOFF ASCENT (Ground Pad to First Formation)
-  if (t < takeoffDur) {
-    cachedTransitionBlockId = null;
+  if (formationTrajectories.length === 0) return;
+
+  // 1. PHASE 1: TAKEOFF ASCENT (No backtracking, unified interpolation)
+  if (t <= takeoffDur) {
     const u = Math.max(0, t / takeoffDur);
-    const firstShape = findShapeById(timelineData.formationBlocks[0].shapeId);
-    const rawFirst = new Float32Array(formationCount * 3);
-    firstShape.gen(rawFirst, formationCount, droneSwatchIndices);
-    const assignedFirst = assignMinimalPaths(groundPositions, rawFirst, formationCount);
+    const firstTargets = formationTrajectories[0];
+    const firstSwatches = formationSwatchStore[0];
 
     for (let i = 0; i < formationCount; i++) {
-      const gx = groundPositions[i * 3], gy = groundPositions[i * 3 + 1], gz = groundPositions[i * 3 + 2];
-      const tx = assignedFirst[i * 3], ty = assignedFirst[i * 3 + 1], tz = assignedFirst[i * 3 + 2];
+      const gx = groundPositions[i * 3];
+      const gy = groundPositions[i * 3 + 1];
+      const gz = groundPositions[i * 3 + 2];
+
+      transformToSky(firstTargets[i * 3], firstTargets[i * 3 + 1], firstTargets[i * 3 + 2], angleY, skyPosA);
 
       let prog = u;
       if (takeoffStyle === "wave") {
-        const distFromCenter = Math.sqrt(gx * gx + gz * gz) / 18.0;
-        prog = THREE.MathUtils.clamp((u - distFromCenter * 0.4) / 0.6, 0, 1);
+        const dist = Math.sqrt(gx * gx + gz * gz) / 16.0;
+        prog = THREE.MathUtils.clamp((u - dist * 0.35) / 0.65, 0, 1);
       } else if (takeoffStyle === "spiral") {
         const angle = Math.atan2(gz, gx);
-        prog = THREE.MathUtils.clamp((u - (angle / Math.PI + 1) * 0.2) / 0.6, 0, 1);
+        prog = THREE.MathUtils.clamp((u - (angle / (Math.PI * 2) + 0.5) * 0.3) / 0.7, 0, 1);
       }
       const ease = prog * prog * (3 - 2 * prog);
 
-      unrotatedPositions[i * 3]     = gx + (tx - gx) * ease;
-      unrotatedPositions[i * 3 + 1] = gy + (ty - gy) * ease;
-      unrotatedPositions[i * 3 + 2] = gz + (tz - gz) * ease;
+      targetPositions[i * 3]     = gx + (skyPosA.x - gx) * ease;
+      targetPositions[i * 3 + 1] = gy + (skyPosA.y - gy) * ease;
+      targetPositions[i * 3 + 2] = gz + (skyPosA.z - gz) * ease;
 
-      // Soft amber beacon during takeoff
-      targetColors[i * 3] = 0.2 + 0.8 * ease;
+      if (firstSwatches) droneSwatchIndices[i] = firstSwatches[i];
+
+      // Soft navigation beacon during ascent
+      targetColors[i * 3]     = 0.3 + 0.7 * ease;
       targetColors[i * 3 + 1] = 0.6 + 0.4 * ease;
-      targetColors[i * 3 + 2] = 0.2 + 0.8 * ease;
+      targetColors[i * 3 + 2] = 0.3 + 0.7 * ease;
     }
   }
 
-  // PHASE 2: ACTIVE SHOW FORMATIONS & REVERSIBLE CONTINUOUS MORPHS
-  else if (t >= takeoffDur && t < showBodyEnd) {
+  // 2. PHASE 2: ACTIVE FORMATIONS & CONTINUOUS MORPHS
+  else if (t > takeoffDur && t < showBodyEnd) {
     const showT = t - takeoffDur;
     let curT = 0;
 
     for (let i = 0; i < timelineData.formationBlocks.length; i++) {
       const b = timelineData.formationBlocks[i];
       const formStart = curT, formEnd = curT + b.dur, transEnd = formEnd + (b.transDur || 0);
+      const currTargets = formationTrajectories[i];
+      const currSwatches = formationSwatchStore[i];
 
       if (showT >= formStart && showT < formEnd) {
-        // Static Hold of Formation
-        const activeShape = findShapeById(b.shapeId);
-        if (cachedTransitionBlockId !== b.id) {
-          cachedTransitionBlockId = b.id;
-          const raw = new Float32Array(formationCount * 3);
-          activeShape.gen(raw, formationCount, droneSwatchIndices);
-          unrotatedPositions.set(assignMinimalPaths(unrotatedPositions, raw, formationCount));
+        // Pure static hold of formation
+        for (let j = 0; j < formationCount; j++) {
+          transformToSky(currTargets[j * 3], currTargets[j * 3 + 1], currTargets[j * 3 + 2], angleY, skyPosA);
+          targetPositions[j * 3]     = skyPosA.x;
+          targetPositions[j * 3 + 1] = skyPosA.y;
+          targetPositions[j * 3 + 2] = skyPosA.z;
+          if (currSwatches) droneSwatchIndices[j] = currSwatches[j];
         }
         break;
       } else if (showT >= formEnd && showT < transEnd) {
-        // Continuous, Monotonic Transition Window
-        const transitionKey = `${b.id}->next`;
-        const nextB = timelineData.formationBlocks[i + 1] || timelineData.formationBlocks[0];
-        const nextShape = findShapeById(nextB.shapeId);
-
-        if (cachedTransitionBlockId !== transitionKey) {
-          cachedTransitionBlockId = transitionKey;
-          // Freeze current physical coordinates: guarantees smooth paths without jumping
-          transitionFromPositions.set(unrotatedPositions.subarray(0, formationCount * 3));
-          const rawNext = new Float32Array(formationCount * 3);
-          nextShape.gen(rawNext, formationCount, droneSwatchIndices);
-          transitionToPositions.set(assignMinimalPaths(transitionFromPositions, rawNext, formationCount));
-        }
+        // Continuous, single-assignment morph to next formation
+        const nextIdx = (i + 1 < timelineData.formationBlocks.length) ? i + 1 : 0;
+        const nextTargets = formationTrajectories[nextIdx];
+        const nextSwatches = formationSwatchStore[nextIdx];
 
         const progress = (showT - formEnd) / b.transDur;
         const ease = progress * progress * (3 - 2 * progress);
 
-        for (let j = 0; j < formationCount * 3; j++) {
-          unrotatedPositions[j] = transitionFromPositions[j] + (transitionToPositions[j] - transitionFromPositions[j]) * ease;
+        for (let j = 0; j < formationCount; j++) {
+          transformToSky(currTargets[j * 3], currTargets[j * 3 + 1], currTargets[j * 3 + 2], angleY, skyPosA);
+          transformToSky(nextTargets[j * 3], nextTargets[j * 3 + 1], nextTargets[j * 3 + 2], angleY, skyPosB);
+
+          targetPositions[j * 3]     = skyPosA.x + (skyPosB.x - skyPosA.x) * ease;
+          targetPositions[j * 3 + 1] = skyPosA.y + (skyPosB.y - skyPosA.y) * ease;
+          targetPositions[j * 3 + 2] = skyPosA.z + (skyPosB.z - skyPosA.z) * ease;
+
+          if (ease > 0.5 && nextSwatches) droneSwatchIndices[j] = nextSwatches[j];
+          else if (currSwatches) droneSwatchIndices[j] = currSwatches[j];
         }
         break;
       }
       curT = transEnd;
     }
 
-    // Color Track Evaluation
     let colorT = 0;
     for (let i = 0; i < timelineData.colorBlocks.length; i++) {
       const cb = timelineData.colorBlocks[i];
@@ -918,62 +972,78 @@ function evaluateTimeline(t) {
     }
   }
 
-  // PHASE 3: RETURN TO HOME (RTH LANDING)
+  // 3. PHASE 3: RETURN TO HOME (RTH LANDING)
   else {
-    cachedTransitionBlockId = null;
     const landT = t - showBodyEnd;
-    const u = Math.min(1, landT / landingDur);
+    const u = THREE.MathUtils.clamp(landT / landingDur, 0, 1);
+    const lastTargets = formationTrajectories[formationTrajectories.length - 1];
 
     for (let i = 0; i < formationCount; i++) {
-      const gx = groundPositions[i * 3], gy = groundPositions[i * 3 + 1], gz = groundPositions[i * 3 + 2];
-      const curX = unrotatedPositions[i * 3], curY = unrotatedPositions[i * 3 + 1], curZ = unrotatedPositions[i * 3 + 2];
+      const gx = groundPositions[i * 3];
+      const gy = groundPositions[i * 3 + 1];
+      const gz = groundPositions[i * 3 + 2];
+
+      transformToSky(lastTargets[i * 3], lastTargets[i * 3 + 1], lastTargets[i * 3 + 2], angleY, skyPosA);
 
       let prog = u;
       if (landingStyle === "wave") {
-        const dist = Math.sqrt(gx * gx + gz * gz) / 18.0;
+        const dist = Math.sqrt(gx * gx + gz * gz) / 16.0;
         prog = THREE.MathUtils.clamp((u - (1 - dist) * 0.3) / 0.7, 0, 1);
       }
       const ease = prog * prog * (3 - 2 * prog);
 
-      unrotatedPositions[i * 3]     = curX + (gx - curX) * ease;
-      unrotatedPositions[i * 3 + 1] = curY + (gy - curY) * ease;
-      unrotatedPositions[i * 3 + 2] = curZ + (gz - curZ) * ease;
+      targetPositions[i * 3]     = skyPosA.x + (gx - skyPosA.x) * ease;
+      targetPositions[i * 3 + 1] = skyPosA.y + (gy - skyPosA.y) * ease;
+      targetPositions[i * 3 + 2] = skyPosA.z + (gz - skyPosA.z) * ease;
 
-      // Pulse red/amber landing navigation lights
-      const navPulse = Math.sin(t * 8.0 + i) > 0.5 ? 1.0 : 0.2;
-      targetColors[i * 3] = navPulse;
+      const navPulse = (Math.sin(t * 8.0 + i) > 0.5 && u < 0.95) ? 1.0 : 0.15;
+      targetColors[i * 3]     = navPulse;
       targetColors[i * 3 + 1] = navPulse * 0.4;
       targetColors[i * 3 + 2] = 0.05;
     }
   }
 
-  // 3D Kinematics and Altitude Elevation
-  const { angleY } = getRotationAtTime(t);
-  rotEuler.set(0, angleY, 0);
-  rotMatrix.makeRotationFromEuler(rotEuler);
+  // 4. SNOW LAYER (Flurries only while show is airborne)
+  if (isSnowEnabled) {
+    for (let i = formationCount; i < activeDroneCount; i++) {
+      const gx = groundPositions[i * 3];
+      const gy = groundPositions[i * 3 + 1];
+      const gz = groundPositions[i * 3 + 2];
+      const sx = snowPositions[i * 3];
+      const sy = snowPositions[i * 3 + 1];
+      const sz = snowPositions[i * 3 + 2];
 
-  centerPt.set(0, formationAltitude, 0);
-  const tempP = new THREE.Vector3();
-
-  for (let i = 0; i < formationCount; i++) {
-    // If on ground or landing, do not apply formation rotation matrix
-    if (t < takeoffDur * 0.3 || t > (TOTAL_DURATION - landingDur * 0.3)) {
-      targetPositions[i * 3]     = unrotatedPositions[i * 3];
-      targetPositions[i * 3 + 1] = unrotatedPositions[i * 3 + 1];
-      targetPositions[i * 3 + 2] = unrotatedPositions[i * 3 + 2];
-    } else {
-      tempP.set(
-        unrotatedPositions[i * 3] * formationScale,
-        (unrotatedPositions[i * 3 + 1] - 14) * formationScale + formationAltitude,
-        unrotatedPositions[i * 3 + 2] * formationScale
-      );
-      tempP.sub(centerPt);
-      tempP.applyMatrix4(rotMatrix);
-      tempP.add(centerPt);
-
-      targetPositions[i * 3]     = tempP.x;
-      targetPositions[i * 3 + 1] = Math.max(0.12, tempP.y);
-      targetPositions[i * 3 + 2] = tempP.z;
+      if (t <= takeoffDur) {
+        // Rise with fleet from ground pad
+        const u = Math.max(0, t / takeoffDur);
+        const ease = u * u * (3 - 2 * u);
+        targetPositions[i * 3]     = gx + (sx - gx) * ease;
+        targetPositions[i * 3 + 1] = gy + (sy - gy) * ease;
+        targetPositions[i * 3 + 2] = gz + (sz - gz) * ease;
+        targetColors[i * 3]     = 0.4 * ease;
+        targetColors[i * 3 + 1] = 0.4 * ease;
+        targetColors[i * 3 + 2] = 0.4 * ease;
+      } else if (t > takeoffDur && t < showBodyEnd) {
+        // Airborne active flurry
+        targetPositions[i * 3]     = sx;
+        targetPositions[i * 3 + 1] = sy;
+        targetPositions[i * 3 + 2] = sz;
+        const glimmer = Math.sin(t * 8.0 + snowDriftSeeds[i] * 5.0) > 0.4 ? 1.0 : 0.65;
+        targetColors[i * 3]     = glimmer;
+        targetColors[i * 3 + 1] = glimmer;
+        targetColors[i * 3 + 2] = glimmer;
+      } else {
+        // Descend with fleet to ground pad
+        const u = THREE.MathUtils.clamp((t - showBodyEnd) / landingDur, 0, 1);
+        const ease = u * u * (3 - 2 * u);
+        targetPositions[i * 3]     = sx + (gx - sx) * ease;
+        targetPositions[i * 3 + 1] = sy + (gy - sy) * ease;
+        targetPositions[i * 3 + 2] = sz + (gz - sz) * ease;
+        const navPulse = (Math.sin(t * 8.0 + i) > 0.5 && u < 0.95) ? 1.0 : 0.15;
+        targetColors[i * 3]     = navPulse * (1 - ease * 0.8);
+        targetColors[i * 3 + 1] = navPulse * 0.4 * (1 - ease * 0.8);
+        targetColors[i * 3 + 2] = 0.05;
+      }
     }
   }
 }
@@ -1045,10 +1115,12 @@ function updateWorldGrab() {
 
     const midDelta = new THREE.Vector3().subVectors(midCurr, grabState.anchorMid);
     stageGroup.position.copy(grabState.anchorMid).add(midDelta).add(vOffset);
+
   } else if (grabState.mode === 'single-left') {
     const scaleFactor = Math.max(0.1, stageGroup.scale.x);
     const delta = new THREE.Vector3().subVectors(posL, grabState.anchorHandL).multiplyScalar(panSensitivity * scaleFactor);
     stageGroup.position.addVectors(grabState.anchorStagePos, delta);
+
   } else if (grabState.mode === 'single-right') {
     const scaleFactor = Math.max(0.1, stageGroup.scale.x);
     const delta = new THREE.Vector3().subVectors(posR, grabState.anchorHandR).multiplyScalar(panSensitivity * scaleFactor);
@@ -1137,7 +1209,6 @@ function renderHUD() {
   ctx.fillStyle = specGrad; ctx.fillRect(40, 234, 944, 34);
   ctx.strokeStyle = "#ffffff44"; ctx.strokeRect(40, 234, 944, 34);
 
-  // Playback Lane in VR
   const availW = 944;
   let curX = 40;
   for (const b of timelineData.formationBlocks) {
@@ -1226,7 +1297,7 @@ function handleVRSelect(controller) {
       if (b) {
         saveUndoState();
         b.shapeId = s.id;
-        cachedTransitionBlockId = null;
+        buildShowTrajectoryData();
         evaluateTimeline(playheadTime);
         buildDesktopTimeline();
         updateContextPanels();
@@ -1299,7 +1370,7 @@ function onEvent(id, event, handler) {
   if (el) el.addEventListener(event, handler);
 }
 
-// Takeoff & Landing Handlers
+// Takeoff & Landing Settings
 onEvent("sel-takeoff-style", "change", (e) => {
   saveUndoState();
   takeoffStyle = e.target.value;
@@ -1336,18 +1407,18 @@ onEvent("slider-fleet-count", "input", (e) => {
   const el = $("val-fleet-count"); if (el) el.textContent = `${activeDroneCount}`;
   droneGeometry.setDrawRange(0, activeDroneCount);
   updateGroundPositions(activeDroneCount);
-  cachedTransitionBlockId = null;
+  buildShowTrajectoryData();
   evaluateTimeline(playheadTime);
 });
 onEvent("chk-snow", "change", (e) => {
   isSnowEnabled = e.target.checked;
-  cachedTransitionBlockId = null;
+  buildShowTrajectoryData();
   evaluateTimeline(playheadTime);
 });
 onEvent("slider-snow-count", "input", (e) => {
   snowDroneCount = parseInt(e.target.value);
   const el = $("val-snow-count"); if (el) el.textContent = `${snowDroneCount} D`;
-  cachedTransitionBlockId = null;
+  buildShowTrajectoryData();
   evaluateTimeline(playheadTime);
 });
 
@@ -1368,7 +1439,7 @@ function updateContextPanels() {
   }
 }
 
-// Track Add / Del
+// Track Add / Del Actions
 onEvent("btn-add-shape", "click", () => {
   saveUndoState();
   const id = "f" + Date.now();
@@ -1376,6 +1447,7 @@ onEvent("btn-add-shape", "click", () => {
   selectedFormationBlockId = id;
   activeInspectorType = "shape";
   recalculateTimelineDuration();
+  buildShowTrajectoryData();
   buildDesktopTimeline();
   updateContextPanels();
   renderHUD();
@@ -1387,7 +1459,7 @@ onEvent("btn-del-shape", "click", () => {
     if (idx !== -1) timelineData.formationBlocks.splice(idx, 1);
     selectedFormationBlockId = timelineData.formationBlocks[Math.max(0, idx - 1)].id;
     recalculateTimelineDuration();
-    cachedTransitionBlockId = null;
+    buildShowTrajectoryData();
     evaluateTimeline(playheadTime);
     buildDesktopTimeline();
     updateContextPanels();
@@ -1487,7 +1559,7 @@ function populateDesktopIcons() {
       if (activeFormation) {
         saveUndoState();
         activeFormation.shapeId = s.id;
-        cachedTransitionBlockId = null;
+        buildShowTrajectoryData();
         evaluateTimeline(playheadTime);
         buildDesktopTimeline();
         updateContextPanels();
@@ -1503,7 +1575,7 @@ function populateDesktopIcons() {
   }
 }
 
-// Drag Shape onto Lane
+// Drag and Drop Shape onto Shapes Track
 const laneShapesEl = $("lane-shapes");
 laneShapesEl.addEventListener("dragover", (e) => {
   e.preventDefault();
@@ -1540,7 +1612,7 @@ laneShapesEl.addEventListener("drop", (e) => {
   selectedFormationBlockId = id;
   activeInspectorType = "shape";
   recalculateTimelineDuration();
-  cachedTransitionBlockId = null;
+  buildShowTrajectoryData();
   evaluateTimeline(playheadTime);
   buildDesktopTimeline();
   updateContextPanels();
@@ -1676,7 +1748,7 @@ function attachBlockReorder(blockEl, list, index) {
         saveUndoState();
         const movedItem = list.splice(data.index, 1)[0];
         list.splice(index, 0, movedItem);
-        cachedTransitionBlockId = null;
+        buildShowTrajectoryData();
         evaluateTimeline(playheadTime);
         buildDesktopTimeline();
         updateContextPanels();
@@ -1698,19 +1770,16 @@ function buildDesktopTimeline() {
     ruler.appendChild(m);
   }
 
-  // Shapes Lane (Framed with Takeoff and Landing Gates)
+  // Shapes Lane
   const laneShapes = $("lane-shapes");
   laneShapes.innerHTML = "";
 
-  // 1. Takeoff Gate Block
   const takeoffBlock = document.createElement("div");
   takeoffBlock.className = "block-element flight-gate";
   takeoffBlock.style.width = (takeoffDur / TOTAL_DURATION) * 100 + "%";
   takeoffBlock.textContent = `▲ LAUNCH (${takeoffDur}s)`;
-  takeoffBlock.title = `Takeoff: ${takeoffStyle} ascent`;
   laneShapes.appendChild(takeoffBlock);
 
-  // 2. Formation Blocks
   for (let i = 0; i < timelineData.formationBlocks.length; i++) {
     const b = timelineData.formationBlocks[i];
     const s = findShapeById(b.shapeId);
@@ -1744,12 +1813,10 @@ function buildDesktopTimeline() {
     }
   }
 
-  // 3. Landing Gate Block
   const landingBlock = document.createElement("div");
   landingBlock.className = "block-element flight-gate";
   landingBlock.style.width = (landingDur / TOTAL_DURATION) * 100 + "%";
   landingBlock.textContent = `▼ LAND (${landingDur}s)`;
-  landingBlock.title = `Landing: ${landingStyle} RTH descent`;
   laneShapes.appendChild(landingBlock);
 
   // Colors Lane
@@ -1866,8 +1933,12 @@ handleEl.onpointerup = (e) => {
 };
 
 onEvent("btn-play", "click", () => {
+  if (playheadTime >= TOTAL_DURATION - 0.1) {
+    playheadTime = 0.0;
+  }
   isPlaying = !isPlaying;
-  const btn = $("btn-play"); if (btn) btn.textContent = isPlaying ? "Pause" : "Play";
+  const btn = $("btn-play");
+  if (btn) btn.textContent = isPlaying ? "Pause" : "Play";
   renderHUD();
 });
 
@@ -1923,9 +1994,11 @@ renderer.xr.addEventListener("sessionend", () => {
   for (const ray of controllerRays) ray.visible = false;
 });
 
-// Simulation Loop
-const SPRING = 18.0;
-const DAMPING = 5.5;
+// Simulation Loop: Realistic Velocity Cap & Non-Looping Playback
+const SPRING = 7.5;
+const DAMPING = 4.0;
+const MAX_DRONE_SPEED = 8.5; // Cap at realistic 8.5 m/s
+
 const cPosWorldL = new THREE.Vector3();
 const cPosWorldR = new THREE.Vector3();
 const cPosLocalL = new THREE.Vector3();
@@ -1936,9 +2009,15 @@ renderer.setAnimationLoop(now => {
   const dt = Math.min(0.05, (now - prevTime) / 1000);
   prevTime = now;
 
+  // Non-Looping Playback: Halts cleanly on final landing frame
   if (isPlaying) {
     playheadTime += dt;
-    if (playheadTime >= TOTAL_DURATION) playheadTime = 0.0;
+    if (playheadTime >= TOTAL_DURATION) {
+      playheadTime = TOTAL_DURATION;
+      isPlaying = false;
+      const btn = $("btn-play");
+      if (btn) btn.textContent = "Play";
+    }
     evaluateTimeline(playheadTime);
     syncDesktopTimeline();
     if (vrHUD.visible) renderHUD();
@@ -1982,10 +2061,8 @@ renderer.setAnimationLoop(now => {
 
   dronePoints.material.size = Math.max(0.02, BASE_DRONE_SIZE * stageGroup.scale.x);
 
-  const formationCount = isSnowEnabled ? Math.max(50, activeDroneCount - snowDroneCount) : activeDroneCount;
-
-  // 1. Physical Drone Integration
-  for (let i = 0; i < formationCount; i++) {
+  // 1. Realistic Physics with Velocity Clamping
+  for (let i = 0; i < activeDroneCount; i++) {
     const idx = i * 3;
     let px = currentPositions[idx], py = currentPositions[idx + 1], pz = currentPositions[idx + 2];
     let vx = velocities[idx], vy = velocities[idx + 1], vz = velocities[idx + 2];
@@ -1994,22 +2071,37 @@ renderer.setAnimationLoop(now => {
     let fy = (targetPositions[idx + 1] - py) * SPRING - vy * DAMPING;
     let fz = (targetPositions[idx + 2] - pz) * SPRING - vz * DAMPING;
 
-    vx += fx * dt; vy += fy * dt; vz += fz * dt;
-    currentPositions[idx] += vx * dt;
+    vx += fx * dt;
+    vy += fy * dt;
+    vz += fz * dt;
+
+    // Commercial drone speed limit enforcement
+    const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
+    if (speed > MAX_DRONE_SPEED) {
+      vx = (vx / speed) * MAX_DRONE_SPEED;
+      vy = (vy / speed) * MAX_DRONE_SPEED;
+      vz = (vz / speed) * MAX_DRONE_SPEED;
+    }
+
+    currentPositions[idx]     += vx * dt;
     currentPositions[idx + 1] += vy * dt;
     currentPositions[idx + 2] += vz * dt;
 
-    velocities[idx] = vx; velocities[idx + 1] = vy; velocities[idx + 2] = vz;
+    velocities[idx]     = vx;
+    velocities[idx + 1] = vy;
+    velocities[idx + 2] = vz;
 
-    currentColors[idx] += (targetColors[idx] - currentColors[idx]) * 8.0 * dt;
-    currentColors[idx + 1] += (targetColors[idx + 1] - currentColors[idx + 1]) * 8.0 * dt;
-    currentColors[idx + 2] += (targetColors[idx + 2] - currentColors[idx + 2]) * 8.0 * dt;
+    currentColors[idx]     += (targetColors[idx] - currentColors[idx]) * 7.0 * dt;
+    currentColors[idx + 1] += (targetColors[idx + 1] - currentColors[idx + 1]) * 7.0 * dt;
+    currentColors[idx + 2] += (targetColors[idx + 2] - currentColors[idx + 2]) * 7.0 * dt;
   }
 
-  // 2. Ambient Snow Flurries
-  if (isSnowEnabled) {
+  // 2. Snow Flurry Downward Drift (Only active during airborne show)
+  const showBodyEnd = TOTAL_DURATION - landingDur;
+  if (isSnowEnabled && playheadTime > takeoffDur && playheadTime < showBodyEnd) {
     const snowFallSpeed = 2.4;
     const timeSec = now / 1000;
+    const formationCount = Math.max(50, activeDroneCount - snowDroneCount);
 
     for (let i = formationCount; i < activeDroneCount; i++) {
       const idx = i * 3;
@@ -2024,15 +2116,6 @@ renderer.setAnimationLoop(now => {
         snowPositions[idx]     = (Math.random() - 0.5) * 36;
         snowPositions[idx + 2] = (Math.random() - 0.5) * 36;
       }
-
-      currentPositions[idx]     = snowPositions[idx];
-      currentPositions[idx + 1] = snowPositions[idx + 1];
-      currentPositions[idx + 2] = snowPositions[idx + 2];
-
-      const glimmer = Math.sin(timeSec * 8.0 + seed * 5.0) > 0.4 ? 1.0 : 0.65;
-      currentColors[idx]     = glimmer;
-      currentColors[idx + 1] = glimmer;
-      currentColors[idx + 2] = glimmer;
     }
   }
 
