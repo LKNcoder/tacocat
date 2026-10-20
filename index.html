@@ -22,7 +22,7 @@ canvas { display: block; }
   z-index: 2;
   left: 16px;
   top: 16px;
-  width: min(540px, calc(100vw - 32px));
+  width: min(550px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   overflow-y: auto;
   padding: 14px;
@@ -297,22 +297,23 @@ body.xr-active #VRButton {
 <body>
 <div id="panel">
   <div id="title">DroneShow Designer XR</div>
-  <div id="status">Scale-Relative Motion & Point Size Invariance Active</div>
-
-  <div class="section-label">
-    <span>Locomotion Base Sensitivity</span>
-    <span id="val-pan-gain" style="color:#70e6ff; font-weight:bold;">5.0x</span>
-  </div>
-  <div class="ctrl-row" style="margin-bottom:8px;">
-    <input type="range" id="slider-pan-gain" min="1" max="15" step="0.5" value="5">
-  </div>
+  <div id="status">Adaptive Row Distribution · Procedural Motion Active</div>
 
   <div class="section-label">
     <span>Active Drone Fleet Capacity</span>
     <span id="val-fleet-count" style="color:#70e6ff; font-weight:bold;">400 Drones</span>
   </div>
   <div class="ctrl-row" style="margin-bottom:8px;">
-    <input type="range" id="slider-fleet-count" min="100" max="1200" step="50" value="400">
+    <input type="range" id="slider-fleet-count" min="100" max="1200" step="10" value="400">
+  </div>
+
+  <div class="section-label">
+    <span>Procedural Shape Animation Speed</span>
+    <span id="val-anim-speed" style="color:#70e6ff; font-weight:bold;">1.0x</span>
+  </div>
+  <div class="ctrl-row" style="margin-bottom:8px;">
+    <label><input type="checkbox" id="chk-anim-motion" checked> <b>Live Motion</b></label>
+    <input type="range" id="slider-anim-speed" min="0" max="4" step="0.1" value="1">
   </div>
 
   <div class="section-label">
@@ -399,10 +400,12 @@ body.xr-active #VRButton {
   <div class="section-label">
     <span>Synchronized Multi-Track Timeline</span>
     <div>
-      <button class="swatch-ctrl-btn" id="btn-add-color-block">+ Color Block</button>
-      <button class="swatch-ctrl-btn" id="btn-del-color-block">− Color Block</button>
-      <button class="swatch-ctrl-btn" id="btn-add-rot-block">+ Rot Block</button>
-      <button class="swatch-ctrl-btn" id="btn-del-rot-block">− Rot Block</button>
+      <button class="swatch-ctrl-btn" id="btn-add-form-block">+ Shape (20s)</button>
+      <button class="swatch-ctrl-btn" id="btn-del-form-block">− Shape</button>
+      <button class="swatch-ctrl-btn" id="btn-add-color-block">+ Color (20s)</button>
+      <button class="swatch-ctrl-btn" id="btn-del-color-block">− Color</button>
+      <button class="swatch-ctrl-btn" id="btn-add-rot-block">+ Rot (20s)</button>
+      <button class="swatch-ctrl-btn" id="btn-del-rot-block">− Rot</button>
     </div>
   </div>
   <div class="timeline-module" id="timeline-container" style="position:relative;">
@@ -431,13 +434,13 @@ body.xr-active #VRButton {
     <div class="timeline-bottom-row">
       <button id="btn-play" style="padding:4px 14px; font-size:11px; background:#1b3864; border:1px solid #70e6ff; color:#fff; border-radius:4px; cursor:pointer;">Play</button>
       <span id="time-display" style="font-size:11px; font-variant-numeric:tabular-nums; min-width:80px;">00:00 / 01:00</span>
-      <span style="font-size:10px; color:#8fa2c3; flex:1; text-align:right;">Click ruler to scrub · Drag right handles to retime</span>
+      <span style="font-size:10px; color:#8fa2c3; flex:1; text-align:right;">Default block: 20s · Auto-expanding duration</span>
     </div>
   </div>
 
   <div id="hint">
-    <b>Desktop:</b> Drag handles to retime · Click ruler to scrub.<br>
-    <b>VR Squeeze:</b> 1 Hand: drag world · 2 Hands: rotate/scale stage around hands.<br>
+    <b>Desktop:</b> Drag fleet slider to test arbitrary counts · Scrub timeline.<br>
+    <b>VR Squeeze:</b> 1 Hand: drag world · 2 Hands: rotate/scale stage.<br>
     <b>VR Trigger:</b> Empty space = Liquid Swarm Wave · Point at HUD to edit.
   </div>
 </div>
@@ -453,6 +456,8 @@ const MAX_DRONES = 1200;
 let activeDroneCount = 400;
 let TOTAL_DURATION = 60.0;
 let panSensitivity = 5.0;
+let animSpeed = 1.0;
+let isMotionActive = true;
 const BASE_DRONE_SIZE = 0.55;
 const GOLDEN = Math.PI * (3 - Math.sqrt(5));
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
@@ -482,7 +487,7 @@ const orbit = new OrbitControls(camera, renderer.domElement);
 orbit.target.set(0, 14, 0);
 orbit.update();
 
-// Stage Group
+// Flight Stage
 const stageGroup = new THREE.Group();
 scene.add(stageGroup);
 
@@ -573,6 +578,29 @@ const dronePoints = new THREE.Points(
   })
 );
 stageGroup.add(dronePoints);
+
+// Balanced Variable-Pitch Planar Raster (Flush Edge-to-Edge, Zero Missing Drones)
+function generateBalancedGrid(out, count, width = 32, height = 20, altitude = 14) {
+  const aspect = width / height;
+  const R = Math.max(2, Math.round(Math.sqrt(count / aspect)));
+  const Cbase = Math.floor(count / R);
+  const remainder = count % R;
+
+  let droneIdx = 0;
+  for (let r = 0; r < R; r++) {
+    // Distribute remainder across rows so each row stretches flush from -width/2 to +width/2
+    const numInRow = r < remainder ? (Cbase + 1) : Cbase;
+    const y = (r / (R - 1) - 0.5) * height + altitude;
+
+    for (let c = 0; c < numInRow; c++) {
+      const x = numInRow > 1 ? (c / (numInRow - 1) - 0.5) * width : 0;
+      out[droneIdx * 3] = x;
+      out[droneIdx * 3 + 1] = y;
+      out[droneIdx * 3 + 2] = 0;
+      droneIdx++;
+    }
+  }
+}
 
 function sampleSVGString(svgD, out, count, scale = 0.22, altitude = 14) {
   const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
@@ -665,7 +693,7 @@ export const SHAPE_PAGES = [
         ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
         ctx.arc(cx, cy, 26, 0, Math.PI * 2);
         ctx.moveTo(cx - 26, cy); ctx.lineTo(cx + 26, cy);
-        ctx.moveTo(cx, cy - 26); ctx.lineTo(cx + 26, cy); ctx.stroke();
+        ctx.moveTo(cx, cy - 26); ctx.lineTo(cx, cy + 26); ctx.stroke();
       },
       gen: (out, n) => {
         for (let i = 0; i < n; i++) {
@@ -681,7 +709,7 @@ export const SHAPE_PAGES = [
       }
     }
   ],
-  // Page 2: Flags
+  // Page 2: Flags (Balanced Variable-Pitch Rasters)
   [
     {
       id: "wavingFlag",
@@ -694,14 +722,7 @@ export const SHAPE_PAGES = [
         ctx.lineTo(cx + 24, cy);
         ctx.bezierCurveTo(cx + 8, cy + 10, cx - 8, cy - 10, cx - 24, cy); ctx.stroke();
       },
-      gen: (out, n) => {
-        const cols = Math.floor(Math.sqrt(n * 1.5)), rows = Math.floor(n / cols);
-        for (let i = 0; i < n; i++) {
-          const c = i % cols, r = Math.floor(i / cols);
-          const x = (c / cols - 0.5) * 32, y = (r / rows - 0.5) * 20;
-          out[i * 3] = x; out[i * 3 + 1] = 14 + y; out[i * 3 + 2] = Math.sin(x * 0.28) * 3.2;
-        }
-      }
+      gen: (out, n) => generateBalancedGrid(out, n, 32, 20, 14)
     },
     {
       id: "tricolorBanner",
@@ -711,17 +732,9 @@ export const SHAPE_PAGES = [
         ctx.strokeRect(cx - 26, cy - 18, 52, 36);
         ctx.beginPath();
         ctx.moveTo(cx - 9, cy - 18); ctx.lineTo(cx - 9, cy + 18);
-        ctx.moveTo(cx + 9, cy - 18); ctx.lineTo(cx + 9, cy + 18);
-        ctx.stroke();
+        ctx.moveTo(cx + 9, cy - 18); ctx.lineTo(cx + 9, cy + 18); ctx.stroke();
       },
-      gen: (out, n) => {
-        const cols = Math.floor(Math.sqrt(n * 1.5)), rows = Math.floor(n / cols);
-        for (let i = 0; i < n; i++) {
-          const c = i % cols, r = Math.floor(i / cols);
-          out[i * 3] = (c / cols - 0.5) * 30; out[i * 3 + 1] = 14 + (r / rows - 0.5) * 18;
-          out[i * 3 + 2] = Math.sin((c / cols) * Math.PI * 2) * 2.0;
-        }
-      }
+      gen: (out, n) => generateBalancedGrid(out, n, 30, 18, 14)
     },
     {
       id: "starSpangledPennant",
@@ -733,7 +746,7 @@ export const SHAPE_PAGES = [
       gen: (out, n) => {
         for (let i = 0; i < n; i++) {
           const u = i / n, spanX = u * 32 - 16, halfH = (1 - u) * 14;
-          out[i * 3] = spanX; out[i * 3 + 1] = 14 + (Math.random() - 0.5) * 2 * halfH; out[i * 3 + 2] = Math.sin(u * 8) * 1.5;
+          out[i * 3] = spanX; out[i * 3 + 1] = 14 + (Math.random() - 0.5) * 2 * halfH; out[i * 3 + 2] = 0;
         }
       }
     },
@@ -906,7 +919,7 @@ export const SHAPE_PAGES = [
       gen: (out, n) => {
         for (let i = 0; i < n; i++) {
           const u = (i / n) * 2 - 1, span = u * 20, sweep = -Math.abs(u) * 6, flap = Math.cos(u * Math.PI * 0.9) * 4.2;
-          out[i * 3] = span; out[i * 3 + 1] = 14 + flap + (Math.random() - 0.5); out[i * 3 + 2] = sweep + (Math.random() - 0.5) * 1.2;
+          out[i * 3] = span; out[i * 3 + 1] = 14 + flap; out[i * 3 + 2] = sweep;
         }
       }
     },
@@ -1173,7 +1186,8 @@ export const SHAPE_PAGES = [
       drawCanvas: (ctx, cx, cy) => {
         ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
         ctx.moveTo(cx, cy + 24); ctx.lineTo(cx, cy + 4);
-        ctx.arc(cx, cy - 8, 18, 0, Math.PI * 2); ctx.stroke();
+        ctx.arc(cx, cy - 8, 18, 0, Math.PI * 2);
+        ctx.stroke();
       },
       gen: (out, n) => {
         for (let i = 0; i < n; i++) {
@@ -1223,60 +1237,43 @@ function getClosestColorName(hexStr) {
   return "Red";
 }
 
+// 20-Second Default Blocks for Natural Choreography
 const timelineData = {
   formationBlocks: [
-    { id: "f0", shapeId: "wavingFlag", dur: 12.0, transDur: 3.0 },
-    { id: "f1", shapeId: "shieldCrest", dur: 12.0, transDur: 3.0 },
-    { id: "f2", shapeId: "torusKnot3D", dur: 12.0, transDur: 3.0 },
-    { id: "f3", shapeId: "trophyCup", dur: 15.0, transDur: 0.0 }
+    { id: "f0", shapeId: "wavingFlag", dur: 20.0, transDur: 4.0 },
+    { id: "f1", shapeId: "heart", dur: 20.0, transDur: 4.0 },
+    { id: "f2", shapeId: "eagle", dur: 20.0, transDur: 0.0 }
   ],
   colorBlocks: [
     {
-      id: "c0", dur: 7.0,
-      palette: ["#ff0033"],
+      id: "c0", dur: 20.0,
+      palette: ["#ff0033", "#ffffff", "#0022ff"],
       activeSwatchIdx: 0,
-      cycleSpeed: 1.0, run: false, runSpeed: 3.0,
+      cycleSpeed: 0.0, run: false, runSpeed: 3.0,
       blink: false, blinkSpeed: 3.0,
       sparkle: false, sparkleDensity: 0.35
     },
     {
-      id: "c1", dur: 8.0,
-      palette: ["#0088ff", "#00ffff"],
+      id: "c1", dur: 20.0,
+      palette: ["#ff0055", "#ff00aa"],
       activeSwatchIdx: 0,
       cycleSpeed: 1.5, run: true, runSpeed: 4.0,
       blink: false, blinkSpeed: 3.0,
-      sparkle: false, sparkleDensity: 0.35
-    },
-    {
-      id: "c2", dur: 15.0,
-      palette: ["#ffb700", "#ff0044"],
-      activeSwatchIdx: 0,
-      cycleSpeed: 2.0, run: false, runSpeed: 3.0,
-      blink: false, blinkSpeed: 4.0,
       sparkle: true, sparkleDensity: 0.35
     },
     {
-      id: "c3", dur: 15.0,
-      palette: ["#70e6ff", "#df52ff"],
+      id: "c2", dur: 24.0,
+      palette: ["#ffb700", "#ffffff"],
       activeSwatchIdx: 0,
       cycleSpeed: 1.0, run: false, runSpeed: 3.0,
-      blink: false, blinkSpeed: 3.0,
-      sparkle: false, sparkleDensity: 0.4
-    },
-    {
-      id: "c4", dur: 15.0,
-      palette: ["#ffea00", "#ffffff"],
-      activeSwatchIdx: 0,
-      cycleSpeed: 0.5, run: true, runSpeed: 5.0,
-      blink: false, blinkSpeed: 3.0,
-      sparkle: true, sparkleDensity: 0.35
+      blink: false, blinkSpeed: 4.0,
+      sparkle: false, sparkleDensity: 0.35
     }
   ],
   rotationBlocks: [
-    { id: "r0", dur: 15.0, startX: 0, endX: 0, startY: 0, endY: 90, startZ: 0, endZ: 0 },
-    { id: "r1", dur: 15.0, startX: 0, endX: 0, startY: 90, endY: 90, startZ: 0, endZ: 0 },
-    { id: "r2", dur: 15.0, startX: 0, endX: 30, startY: 90, endY: 0, startZ: 0, endZ: 0 },
-    { id: "r3", dur: 15.0, startX: 30, endX: 0, startY: 0, endY: 0, startZ: 0, endZ: 0 }
+    { id: "r0", dur: 20.0, startX: 0, endX: 0, startY: 0, endY: 30, startZ: 0, endZ: 0 },
+    { id: "r1", dur: 20.0, startX: 0, endX: 0, startY: 30, endY: 90, startZ: 0, endZ: 0 },
+    { id: "r2", dur: 24.0, startX: 0, endX: 0, startY: 90, endY: 0, startZ: 0, endZ: 0 }
   ]
 };
 
@@ -1293,6 +1290,7 @@ function recalculateTimelineDuration() {
   let rotTotal = 0;
   for (const b of timelineData.rotationBlocks) rotTotal += b.dur;
 
+  // Auto-fit timeline length
   TOTAL_DURATION = Math.max(formTotal, colorTotal, rotTotal, 20.0);
 }
 recalculateTimelineDuration();
@@ -1310,6 +1308,7 @@ let playheadTime = 0.0;
 let isPlaying = false;
 let lastShapeA = null;
 let lastShapeB = null;
+let activeShapeId = "wavingFlag";
 
 const tempColorA = new THREE.Color();
 const tempColorB = new THREE.Color();
@@ -1408,6 +1407,46 @@ function getRotationAtTime(t) {
   return { angleX, angleY, angleZ };
 }
 
+// Procedural Shape Deformation Displacements
+function applyProceduralShapeAnimation(timeSec) {
+  if (!isMotionActive || animSpeed <= 0) return;
+  const t = timeSec * animSpeed;
+
+  if (activeShapeId === "wavingFlag" || activeShapeId === "tricolorBanner") {
+    // Traveling ripple anchored to left pole (x = -16)
+    for (let i = 0; i < activeDroneCount; i++) {
+      const idx = i * 3;
+      const x = unrotatedPositions[idx];
+      const y = unrotatedPositions[idx + 1] - 14;
+      const envelope = Math.max(0, (x + 16) / 32); // 0 at flagpole, 1 at right edge
+      const wave = Math.sin(t * 3.5 - x * 0.35) * Math.cos(y * 0.15) * (3.8 * envelope);
+      targetPositions[idx + 2] += wave;
+    }
+  } else if (activeShapeId === "heart") {
+    // Two-phase ventricular heartbeat (systole + diastole)
+    const beat = Math.pow(Math.sin(t * 4.0), 6) + 0.35 * Math.pow(Math.sin(t * 4.0 - 0.45), 6);
+    const scale = 1.0 + beat * 0.18;
+    for (let i = 0; i < activeDroneCount; i++) {
+      const idx = i * 3;
+      targetPositions[idx] = (targetPositions[idx] - centerPt.x) * scale + centerPt.x;
+      targetPositions[idx + 1] = (targetPositions[idx + 1] - centerPt.y) * scale + centerPt.y;
+      targetPositions[idx + 2] = (targetPositions[idx + 2] - centerPt.z) * scale + centerPt.z;
+    }
+  } else if (activeShapeId === "eagle" || activeShapeId === "butterfly") {
+    // Wing flap oscillation around central spine
+    const flap = Math.sin(t * 3.0) * 0.35;
+    for (let i = 0; i < activeDroneCount; i++) {
+      const idx = i * 3;
+      const x = unrotatedPositions[idx];
+      if (Math.abs(x) > 2) {
+        const wingDist = Math.abs(x) / 18.0;
+        targetPositions[idx + 1] += Math.sin(flap * wingDist * 3.14) * 3.5;
+        targetPositions[idx + 2] += Math.cos(flap * wingDist * 3.14) * 1.5;
+      }
+    }
+  }
+}
+
 function evaluateTimeline(t) {
   let curT = 0;
   for (let i = 0; i < timelineData.formationBlocks.length; i++) {
@@ -1418,6 +1457,7 @@ function evaluateTimeline(t) {
 
     if (t >= formStart && t < formEnd) {
       const activeShape = findShapeById(b.shapeId);
+      activeShapeId = activeShape.id;
       if (lastShapeA !== activeShape.id) {
         lastShapeA = activeShape.id; lastShapeB = null;
         const raw = new Float32Array(activeDroneCount * 3);
@@ -1429,6 +1469,7 @@ function evaluateTimeline(t) {
       const nextB = timelineData.formationBlocks[i + 1] || timelineData.formationBlocks[0];
       const shapeA = findShapeById(b.shapeId);
       const shapeB = findShapeById(nextB.shapeId);
+      activeShapeId = shapeA.id;
       const progress = (t - formEnd) / b.transDur;
       const ease = progress * progress * (3 - 2 * progress);
 
@@ -1447,6 +1488,7 @@ function evaluateTimeline(t) {
     curT = transEnd;
   }
 
+  // Kinematic 3D Rotation
   const { angleX, angleY, angleZ } = getRotationAtTime(t);
   rotEuler.set(angleX, angleY, angleZ);
   rotMatrix.makeRotationFromEuler(rotEuler);
@@ -1462,6 +1504,10 @@ function evaluateTimeline(t) {
     targetPositions[i * 3 + 2] = tempP.z;
   }
 
+  // Apply Procedural Animation Wave Deformations
+  applyProceduralShapeAnimation(t);
+
+  // Evaluate Independent Color Track
   let colorT = 0;
   for (let i = 0; i < timelineData.colorBlocks.length; i++) {
     const cb = timelineData.colorBlocks[i];
@@ -1474,7 +1520,7 @@ function evaluateTimeline(t) {
   }
 }
 
-SHAPE_PAGES[0][0].gen(currentPositions, activeDroneCount);
+SHAPE_PAGES[1][0].gen(currentPositions, activeDroneCount); // Flag initial
 unrotatedPositions.set(currentPositions);
 targetPositions.set(currentPositions);
 evaluateTimeline(0);
@@ -1485,13 +1531,11 @@ const grabState = {
   leftGrip: false,
   rightGrip: false,
   mode: 'none',
-  
   anchorHandL: new THREE.Vector3(),
   anchorHandR: new THREE.Vector3(),
   anchorMid: new THREE.Vector3(),
   anchorDist: 1.0,
   anchorAngle: 0.0,
-  
   anchorStagePos: new THREE.Vector3(),
   anchorStageScale: 1.0,
   anchorStageRotY: 0.0
@@ -1573,7 +1617,6 @@ function updateWorldGrab() {
     stageGroup.position.copy(grabState.anchorMid).add(midDelta).add(vOffset);
 
   } else if (grabState.mode === 'single-left') {
-    // Relative Sensitivity Proportional to Stage Scale
     const scaleFactor = Math.max(0.1, stageGroup.scale.x);
     const delta = new THREE.Vector3().subVectors(posL, grabState.anchorHandL).multiplyScalar(panSensitivity * scaleFactor);
     stageGroup.position.addVectors(grabState.anchorStagePos, delta);
@@ -1585,7 +1628,7 @@ function updateWorldGrab() {
   }
 }
 
-// In-VR Director HUD (Anchored in Scene, Independent of Stage)
+// In-VR Director HUD
 const vrHUD = new THREE.Group();
 vrHUD.visible = false;
 scene.add(vrHUD);
@@ -1604,7 +1647,7 @@ const hudMesh = new THREE.Mesh(
 hudMesh.name = "HUD_CANVAS_SURFACE";
 vrHUD.add(hudMesh);
 
-let currentSymbolPage = 0;
+let currentSymbolPage = 1; // Start on Flags page
 
 function renderHUD() {
   const ctx = hudCtx;
@@ -1927,6 +1970,16 @@ $("slider-pan-gain").oninput = (e) => {
   $("val-pan-gain").textContent = `${panSensitivity.toFixed(1)}x`;
 };
 
+$("slider-anim-speed").oninput = (e) => {
+  animSpeed = parseFloat(e.target.value);
+  $("val-anim-speed").textContent = `${animSpeed.toFixed(1)}x`;
+};
+
+$("chk-anim-motion").onchange = (e) => {
+  isMotionActive = e.target.checked;
+};
+
+// Resampling Any Arbitrary Fleet Count with Dynamic Balance
 $("slider-fleet-count").oninput = (e) => {
   activeDroneCount = parseInt(e.target.value);
   $("val-fleet-count").textContent = `${activeDroneCount} Drones`;
@@ -1938,7 +1991,7 @@ $("slider-fleet-count").oninput = (e) => {
 const pageTabs = $("page-tabs");
 for (let p = 0; p < 8; p++) {
   const b = document.createElement("button");
-  b.className = "page-btn" + (p === 0 ? " active" : "");
+  b.className = "page-btn" + (p === 1 ? " active" : "");
   b.textContent = String(p + 1);
   b.onclick = () => {
     document.querySelectorAll(".page-btn").forEach(btn => btn.classList.remove("active"));
@@ -2099,10 +2152,28 @@ $("rot-end-z").oninput = (e) => {
   if (rb) { rb.endZ = parseInt(e.target.value); syncDesktopRotation(); renderHUD(); }
 };
 
+// 20-Second Default Block Additions with Auto-Expanding Master Timeline
+$("btn-add-form-block").onclick = () => {
+  const id = "f" + Date.now();
+  timelineData.formationBlocks.push({ id, shapeId: "heart", dur: 20.0, transDur: 4.0 });
+  selectedFormationBlockId = id;
+  recalculateTimelineDuration();
+  buildDesktopTimeline(); populateDesktopIcons(); renderHUD();
+};
+$("btn-del-form-block").onclick = () => {
+  if (timelineData.formationBlocks.length > 1) {
+    const idx = timelineData.formationBlocks.findIndex(f => f.id === selectedFormationBlockId);
+    if (idx !== -1) timelineData.formationBlocks.splice(idx, 1);
+    selectedFormationBlockId = timelineData.formationBlocks[0].id;
+    recalculateTimelineDuration();
+    buildDesktopTimeline(); populateDesktopIcons(); renderHUD();
+  }
+};
+
 $("btn-add-color-block").onclick = () => {
   const id = "c" + Date.now();
   timelineData.colorBlocks.push({
-    id, dur: 10.0,
+    id, dur: 20.0,
     palette: ["#70e6ff"],
     activeSwatchIdx: 0,
     cycleSpeed: 1.0, run: false, runSpeed: 3.0,
@@ -2125,7 +2196,7 @@ $("btn-del-color-block").onclick = () => {
 
 $("btn-add-rot-block").onclick = () => {
   const id = "r" + Date.now();
-  timelineData.rotationBlocks.push({ id, dur: 10.0, startX: 0, endX: 0, startY: 0, endY: 60, startZ: 0, endZ: 0 });
+  timelineData.rotationBlocks.push({ id, dur: 20.0, startX: 0, endX: 0, startY: 0, endY: 60, startZ: 0, endZ: 0 });
   selectedRotationBlockId = id;
   recalculateTimelineDuration();
   buildDesktopTimeline(); syncDesktopRotation(); renderHUD();
@@ -2159,7 +2230,7 @@ function attachResizeHandle(handleEl, blockObj, getTrackWidth) {
     const deltaPx = e.clientX - startX;
     const trackWidth = getTrackWidth();
     const deltaSec = (deltaPx / trackWidth) * TOTAL_DURATION;
-    blockObj.dur = Math.max(1.0, origDur + deltaSec);
+    blockObj.dur = Math.max(2.0, origDur + deltaSec);
     recalculateTimelineDuration();
     syncDesktopTimeline();
   };
@@ -2339,7 +2410,7 @@ renderer.xr.addEventListener("sessionend", () => {
   for (const ray of controllerRays) ray.visible = false;
 });
 
-// Main Animation Loop
+// Simulation Loop
 const SPRING = 18.0;
 const DAMPING = 5.5;
 const REPEL_RADIUS_SQ = 64.0;
@@ -2374,7 +2445,7 @@ renderer.setAnimationLoop(now => {
     stageGroup.worldToLocal(cPosLocalR.copy(cPosWorldR));
   }
 
-  // Continuous Point Scale Invariance
+  // Point Size Invariance across Stage Scales
   dronePoints.material.size = Math.max(0.02, BASE_DRONE_SIZE * stageGroup.scale.x);
 
   for (let i = 0; i < activeDroneCount; i++) {
