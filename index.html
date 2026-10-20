@@ -232,6 +232,20 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
   </div>
 
   <div class="section-label">
+    <span>3D Formation Kinematic Rotation</span>
+  </div>
+  <div class="fx-controls">
+    <div class="ctrl-row">
+      <span style="width:75px;">Y Spin:</span>
+      <span style="font-size:10px; color:#8fa2c3;">Start:</span>
+      <input type="range" id="rot-start-y" min="-180" max="180" step="5" value="0">
+      <span style="font-size:10px; color:#8fa2c3;">End:</span>
+      <input type="range" id="rot-end-y" min="-180" max="180" step="5" value="90">
+      <span id="val-rot-y" style="min-width:65px; font-size:10px; text-align:right;">0→90°/s</span>
+    </div>
+  </div>
+
+  <div class="section-label">
     <span>Synchronized Multi-Track Timeline</span>
     <div>
       <button class="swatch-ctrl-btn" id="btn-add-form-block">+ Shape</button>
@@ -279,7 +293,8 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { VRButton } from "three/addons/webxr/VRButton.js";
 import { SHAPE_PAGES, findShapeById } from "./shapes.js";
 
-  function formatTime(s) {
+// Top-Level Helper (Always Available Globally)
+function formatTime(s) {
   if (isNaN(s) || s === undefined || s === null) return "00:00";
   const m = Math.floor(s / 60);
   const sec = Math.floor(s % 60);
@@ -497,7 +512,7 @@ const tempColor = new THREE.Color();
 
 // Manual Auto-Zone: Only triggered when clicking the button
 function applyAutoZoneColors() {
-  const cb = timelineData.colorBlocks.find(x => x.id === selectedColorBlockId);
+  const cb = timelineData.colorBlocks.find(x => x && x.id === selectedColorBlockId);
   if (!cb || cb.palette.length <= 1) return;
 
   let minY = Infinity, maxY = -Infinity;
@@ -576,10 +591,9 @@ function evaluateTimeline(t) {
 
     if (t >= formStart && t < formEnd) {
       const activeShape = findShapeById(b.shapeId);
-      if (lastShapeA !== activeShape.id) {
+      if (activeShape && lastShapeA !== activeShape.id) {
         lastShapeA = activeShape.id; lastShapeB = null;
         const raw = new Float32Array(activeDroneCount * 3);
-        // Pass droneSwatchIndices directly so the 3D Christmas Tree stamps its own star/tree/trunk
         activeShape.gen(raw, activeDroneCount, droneSwatchIndices);
         unrotatedPositions.set(assignMinimalPaths(currentPositions, raw, activeDroneCount));
       }
@@ -591,7 +605,7 @@ function evaluateTimeline(t) {
       const progress = (t - formEnd) / b.transDur;
       const ease = progress * progress * (3 - 2 * progress);
 
-      if (lastShapeA !== shapeA.id || lastShapeB !== shapeB.id) {
+      if (shapeA && shapeB && (lastShapeA !== shapeA.id || lastShapeB !== shapeB.id)) {
         lastShapeA = shapeA.id; lastShapeB = shapeB.id;
         shapeA.gen(transitionFromPositions, activeDroneCount, droneSwatchIndices);
         const rawB = new Float32Array(activeDroneCount * 3);
@@ -630,7 +644,6 @@ function evaluateTimeline(t) {
     if (tempP.y < lowestY) lowestY = tempP.y;
   }
 
-  // Ground Clearance: Automatic lift if lower drones dip below 1.5m
   if (lowestY < 1.5) {
     const lift = 1.5 - lowestY;
     for (let i = 0; i < activeDroneCount; i++) {
@@ -651,13 +664,16 @@ function evaluateTimeline(t) {
 }
 
 // Initial Spawn
-SHAPE_PAGES[0][0].gen(currentPositions, activeDroneCount, droneSwatchIndices);
+const initialShape = findShapeById(timelineData.formationBlocks[0].shapeId);
+if (initialShape) {
+  initialShape.gen(currentPositions, activeDroneCount, droneSwatchIndices);
+}
 unrotatedPositions.set(currentPositions);
 targetPositions.set(currentPositions);
 evaluateTimeline(0);
 currentColors.set(targetColors);
 
-// WORLD-SPACE LOCOMOTION (Zero Distorted Pivots)
+// WORLD-SPACE LOCOMOTION
 const grabState = {
   leftGrip: false, rightGrip: false, mode: 'none',
   anchorHandL: new THREE.Vector3(), anchorHandR: new THREE.Vector3(),
@@ -670,7 +686,6 @@ const posL = new THREE.Vector3(), posR = new THREE.Vector3(), midCurr = new THRE
 function onGripChange() {
   const l = grabState.leftGrip, r = grabState.rightGrip;
 
-  // Crucial: Sample WORLD positions so rig offset (Z=38) does not corrupt hand pivots
   leftController.getWorldPosition(posL);
   rightController.getWorldPosition(posR);
 
@@ -722,7 +737,6 @@ function updateWorldGrab() {
     const deltaAngle = currAngle - grabState.anchorAngle;
     stageGroup.rotation.y = grabState.anchorStageRotY + deltaAngle;
 
-    // Direct affine rotation and scale around the hands' physical midpoint
     const vOffset = new THREE.Vector3().subVectors(grabState.anchorStagePos, grabState.anchorMid);
     vOffset.multiplyScalar(effectiveRatio);
     vOffset.applyAxisAngle(Y_AXIS, deltaAngle);
@@ -742,7 +756,7 @@ function updateWorldGrab() {
   }
 }
 
-// In-VR HUD (Targeted to Headset World Position)
+// In-VR HUD
 const vrHUD = new THREE.Group();
 vrHUD.visible = false;
 scene.add(vrHUD);
@@ -772,31 +786,40 @@ function renderHUD() {
   ctx.strokeRect(8, 8, 1008, 684);
 
   // Symbol Page Controls
+  const totalPages = Math.max(1, SHAPE_PAGES.length);
   ctx.fillStyle = "rgba(27, 56, 100, 0.9)";
   ctx.fillRect(40, 20, 60, 48); ctx.fillRect(420, 20, 60, 48);
   ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2;
   ctx.strokeRect(40, 20, 60, 48); ctx.strokeRect(420, 20, 60, 48);
   ctx.fillStyle = "#fff"; ctx.font = "bold 22px system-ui"; ctx.textAlign = "center";
   ctx.fillText("◀", 70, 52); ctx.fillText("▶", 450, 52);
-  ctx.fillText(`PAGE ${currentSymbolPage + 1} / 4`, 260, 52);
+  ctx.fillText(`PAGE ${currentSymbolPage + 1} / ${totalPages}`, 260, 52);
 
-  const shapes = SHAPE_PAGES[currentSymbolPage];
+  const shapes = (SHAPE_PAGES && SHAPE_PAGES[currentSymbolPage]) ? SHAPE_PAGES[currentSymbolPage] : [];
   for (let i = 0; i < 4; i++) {
     const s = shapes[i];
     const x = 40 + i * 238;
     ctx.fillStyle = "rgba(23, 39, 66, 0.85)";
     ctx.fillRect(x, 82, 224, 96);
-    ctx.strokeStyle = (selectedFormationBlockId && timelineData.formationBlocks.find(b => b.id === selectedFormationBlockId)?.shapeId === s.id) ? "#70e6ff" : "#375077";
+
+    // Guard against undefined shapes
+    if (!s) continue;
+
+    const activeShapeId = timelineData.formationBlocks.find(b => b && b.id === selectedFormationBlockId)?.shapeId;
+    ctx.strokeStyle = (activeShapeId === s.id) ? "#70e6ff" : "#375077";
     ctx.lineWidth = 2;
     ctx.strokeRect(x, 82, 224, 96);
-    s.drawCanvas(ctx, x + 112, 130);
+
+    if (typeof s.drawCanvas === "function") {
+      s.drawCanvas(ctx, x + 112, 130);
+    }
   }
 
-  const activeColorBlock = timelineData.colorBlocks.find(b => b.id === selectedColorBlockId) || timelineData.colorBlocks[0];
+  const activeColorBlock = timelineData.colorBlocks.find(b => b && b.id === selectedColorBlockId) || timelineData.colorBlocks[0];
   ctx.fillStyle = "#8fa2c3"; ctx.font = "bold 13px system-ui"; ctx.textAlign = "left";
   ctx.fillText("ACTIVE PAINT SWATCH:", 40, 208);
 
-  const pal = activeColorBlock.palette || ["#ffffff"];
+  const pal = (activeColorBlock && activeColorBlock.palette) ? activeColorBlock.palette : ["#ffffff"];
   for (let sIdx = 0; sIdx < pal.length; sIdx++) {
     const sx = 200 + sIdx * 50;
     ctx.fillStyle = pal[sIdx];
@@ -806,7 +829,7 @@ function renderHUD() {
     ctx.stroke();
   }
 
-  // Auto-Zone Manual Trigger on HUD
+  // Auto-Zone Button on HUD
   ctx.fillStyle = "#1b3864"; ctx.fillRect(480, 185, 140, 34);
   ctx.strokeStyle = "#70e6ff"; ctx.strokeRect(480, 185, 140, 34);
   ctx.fillStyle = "#fff"; ctx.font = "bold 13px system-ui"; ctx.textAlign = "center";
@@ -824,13 +847,18 @@ function renderHUD() {
   const availW = 944;
   let curX = 40;
   for (const b of timelineData.formationBlocks) {
+    if (!b) continue;
     const fw = (b.dur / TOTAL_DURATION) * availW;
     const isSelected = selectedFormationBlockId === b.id;
     ctx.fillStyle = isSelected ? "#2a548a" : "#1b3353";
     ctx.fillRect(curX, 335, fw, 34);
     ctx.strokeStyle = isSelected ? "#ffffff" : "#456a99";
     ctx.strokeRect(curX, 335, fw, 34);
-    findShapeById(b.shapeId).drawCanvas(ctx, curX + fw / 2, 352);
+
+    const s = findShapeById(b.shapeId);
+    if (s && typeof s.drawCanvas === "function") {
+      s.drawCanvas(ctx, curX + fw / 2, 352);
+    }
     curX += fw;
 
     if (b.transDur > 0) {
@@ -856,7 +884,6 @@ const headWorldDir = new THREE.Vector3();
 function toggleHUD() {
   vrHUD.visible = !vrHUD.visible;
   if (vrHUD.visible) {
-    // Correctly sample Headset in WORLD space so HUD spawns right in front of user
     camera.getWorldPosition(headWorldPos);
     camera.getWorldDirection(headWorldDir);
     headWorldDir.y = 0; headWorldDir.normalize();
@@ -885,22 +912,25 @@ function handleVRSelect(controller) {
 
   const px = hits[0].uv.x * 1024, py = (1 - hits[0].uv.y) * 700;
   const inRect = (x, y, w, h) => px >= x && px <= x + w && py >= y && py <= y + h;
-  const cb = timelineData.colorBlocks.find(x => x.id === selectedColorBlockId);
+  const cb = timelineData.colorBlocks.find(x => x && x.id === selectedColorBlockId);
+  const totalPages = Math.max(1, SHAPE_PAGES.length);
 
   if (inRect(40, 20, 60, 48)) {
-    currentSymbolPage = (currentSymbolPage + 3) % 4;
+    currentSymbolPage = (currentSymbolPage + totalPages - 1) % totalPages;
     populateDesktopIcons(); renderHUD(); return;
   }
   if (inRect(420, 20, 60, 48)) {
-    currentSymbolPage = (currentSymbolPage + 1) % 4;
+    currentSymbolPage = (currentSymbolPage + 1) % totalPages;
     populateDesktopIcons(); renderHUD(); return;
   }
 
+  const shapes = (SHAPE_PAGES && SHAPE_PAGES[currentSymbolPage]) ? SHAPE_PAGES[currentSymbolPage] : [];
   for (let i = 0; i < 4; i++) {
     const x = 40 + i * 238;
     if (inRect(x, 82, 224, 96)) {
-      const s = SHAPE_PAGES[currentSymbolPage][i];
-      const b = timelineData.formationBlocks.find(x => x.id === selectedFormationBlockId);
+      const s = shapes[i];
+      if (!s) return;
+      const b = timelineData.formationBlocks.find(x => x && x.id === selectedFormationBlockId);
       if (b) {
         b.shapeId = s.id;
         lastShapeA = null;
@@ -1004,7 +1034,8 @@ onEvent("btn-auto-zone", "click", () => {
 
 const pageTabs = $("page-tabs");
 if (pageTabs) {
-  for (let p = 0; p < 4; p++) {
+  const totalPages = Math.max(1, SHAPE_PAGES.length);
+  for (let p = 0; p < totalPages; p++) {
     const b = document.createElement("button");
     b.className = "page-btn" + (p === 0 ? " active" : "");
     b.textContent = String(p + 1);
@@ -1023,13 +1054,14 @@ function populateDesktopIcons() {
   const container = $("desktop-icon-grid");
   if (!container) return;
   container.innerHTML = "";
-  const shapes = SHAPE_PAGES[currentSymbolPage];
-  const activeFormation = timelineData.formationBlocks.find(b => b.id === selectedFormationBlockId);
+  const shapes = (SHAPE_PAGES && SHAPE_PAGES[currentSymbolPage]) ? SHAPE_PAGES[currentSymbolPage] : [];
+  const activeFormation = timelineData.formationBlocks.find(b => b && b.id === selectedFormationBlockId);
 
   for (const s of shapes) {
+    if (!s) continue;
     const btn = document.createElement("button");
     btn.className = "symbol-btn" + (activeFormation?.shapeId === s.id ? " active" : "");
-    btn.innerHTML = `<svg viewBox="0 0 24 24">${s.drawSVG}</svg>`;
+    btn.innerHTML = `<svg viewBox="0 0 24 24">${s.drawSVG || ""}</svg>`;
     btn.onclick = () => {
       if (activeFormation) {
         activeFormation.shapeId = s.id;
@@ -1045,7 +1077,7 @@ function populateDesktopIcons() {
 }
 
 function syncDesktopPalette() {
-  const cb = timelineData.colorBlocks.find(x => x.id === selectedColorBlockId);
+  const cb = timelineData.colorBlocks.find(x => x && x.id === selectedColorBlockId);
   if (!cb) return;
   const container = $("swatches-container");
   if (!container) return;
@@ -1062,14 +1094,13 @@ function syncDesktopPalette() {
     container.appendChild(slot);
   }
 
-  // Update VR Paint Brush color to match active swatch
   const activeHex = cb.palette[cb.activeSwatchIdx] || "#ffffff";
   paintMeshL.material.color.set(activeHex);
   paintMeshR.material.color.set(activeHex);
 }
 
 onEvent("btn-add-color", "click", () => {
-  const cb = timelineData.colorBlocks.find(x => x.id === selectedColorBlockId);
+  const cb = timelineData.colorBlocks.find(x => x && x.id === selectedColorBlockId);
   if (cb && cb.palette.length < 5) {
     cb.palette.push("#ffffff");
     cb.activeSwatchIdx = cb.palette.length - 1;
@@ -1078,7 +1109,7 @@ onEvent("btn-add-color", "click", () => {
 });
 
 onEvent("btn-del-color", "click", () => {
-  const cb = timelineData.colorBlocks.find(x => x.id === selectedColorBlockId);
+  const cb = timelineData.colorBlocks.find(x => x && x.id === selectedColorBlockId);
   if (cb && cb.palette.length > 1) {
     cb.palette.splice(cb.activeSwatchIdx, 1);
     cb.activeSwatchIdx = Math.max(0, cb.activeSwatchIdx - 1);
@@ -1087,18 +1118,18 @@ onEvent("btn-del-color", "click", () => {
 });
 
 function syncDesktopRotation() {
-  const rb = timelineData.rotationBlocks.find(r => r.id === selectedRotationBlockId);
+  const rb = timelineData.rotationBlocks.find(r => r && r.id === selectedRotationBlockId);
   if (!rb) return;
   const sy = $("rot-start-y"), ey = $("rot-end-y"), vy = $("val-rot-y");
   if (sy && ey && vy) { sy.value = rb.startY; ey.value = rb.endY; vy.textContent = `${rb.startY}→${rb.endY}°/s`; }
 }
 
 onEvent("rot-start-y", "input", (e) => {
-  const rb = timelineData.rotationBlocks.find(r => r.id === selectedRotationBlockId);
+  const rb = timelineData.rotationBlocks.find(r => r && r.id === selectedRotationBlockId);
   if (rb) { rb.startY = parseInt(e.target.value); syncDesktopRotation(); renderHUD(); }
 });
 onEvent("rot-end-y", "input", (e) => {
-  const rb = timelineData.rotationBlocks.find(r => r.id === selectedRotationBlockId);
+  const rb = timelineData.rotationBlocks.find(r => r && r.id === selectedRotationBlockId);
   if (rb) { rb.endY = parseInt(e.target.value); syncDesktopRotation(); renderHUD(); }
 });
 
@@ -1147,12 +1178,13 @@ function buildDesktopTimeline() {
   if (laneShapes) {
     laneShapes.innerHTML = "";
     for (const b of timelineData.formationBlocks) {
+      if (!b) continue;
       const s = findShapeById(b.shapeId);
       const fBlock = document.createElement("div");
       fBlock.className = "block-element" + (selectedFormationBlockId === b.id ? " active-block" : "");
       fBlock.style.width = (b.dur / TOTAL_DURATION) * 100 + "%";
       fBlock.style.background = "#1b3353";
-      fBlock.innerHTML = `<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#70e6ff;fill:none;">${s.drawSVG}</svg>`;
+      fBlock.innerHTML = `<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#70e6ff;fill:none;">${s ? (s.drawSVG || "") : ""}</svg>`;
       fBlock.onclick = () => {
         selectedFormationBlockId = b.id;
         buildDesktopTimeline(); populateDesktopIcons(); renderHUD();
@@ -1176,6 +1208,7 @@ function buildDesktopTimeline() {
   if (laneColors) {
     laneColors.innerHTML = "";
     for (const cb of timelineData.colorBlocks) {
+      if (!cb) continue;
       const cBlock = document.createElement("div");
       cBlock.className = "block-element" + (selectedColorBlockId === cb.id ? " active-block" : "");
       cBlock.style.width = (cb.dur / TOTAL_DURATION) * 100 + "%";
@@ -1200,6 +1233,7 @@ function buildDesktopTimeline() {
   if (laneRot) {
     laneRot.innerHTML = "";
     for (const rb of timelineData.rotationBlocks) {
+      if (!rb) continue;
       const rBlock = document.createElement("div");
       rBlock.className = "block-element" + (selectedRotationBlockId === rb.id ? " active-block" : "");
       rBlock.style.width = (rb.dur / TOTAL_DURATION) * 100 + "%";
@@ -1245,7 +1279,7 @@ if (specBar) {
     const rect = specBar.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const hex = "#" + new THREE.Color().setHSL(ratio, 1.0, 0.5).getHexString();
-    const cb = timelineData.colorBlocks.find(x => x.id === selectedColorBlockId);
+    const cb = timelineData.colorBlocks.find(x => x && x.id === selectedColorBlockId);
     if (cb && cb.palette.length) {
       cb.palette[cb.activeSwatchIdx] = hex;
       syncDesktopPalette(); buildDesktopTimeline(); renderHUD();
@@ -1271,7 +1305,7 @@ function paintDroneAtMouse(e) {
 
   const intersects = desktopRaycaster.intersectObject(dronePoints, false);
   if (intersects.length > 0) {
-    const cb = timelineData.colorBlocks.find(x => x.id === selectedColorBlockId);
+    const cb = timelineData.colorBlocks.find(x => x && x.id === selectedColorBlockId);
     if (!cb) return;
     const swatchIdx = cb.activeSwatchIdx;
     for (const hit of intersects) {
@@ -1293,7 +1327,7 @@ syncDesktopPalette();
 syncDesktopRotation();
 buildDesktopTimeline();
 
-// WebXR Session Management: Initial Perimeter Placement
+// WebXR Session Management
 renderer.xr.addEventListener("sessionstart", () => {
   document.body.classList.add("xr-active");
   renderer.xr.setFoveation(0.0);
@@ -1312,7 +1346,7 @@ renderer.xr.addEventListener("sessionend", () => {
   for (const ray of controllerRays) ray.visible = false;
 });
 
-// Simulation Loop & VR Controller Painting
+// Simulation Loop & VR Painting
 const SPRING = 18.0;
 const DAMPING = 5.5;
 
@@ -1342,15 +1376,13 @@ renderer.setAnimationLoop(now => {
     leftController.getWorldPosition(cPosWorldL);
     rightController.getWorldPosition(cPosWorldR);
 
-    // Transform hand world positions directly into stage-local coordinate frame
     stageGroup.worldToLocal(cPosLocalL.copy(cPosWorldL));
     stageGroup.worldToLocal(cPosLocalR.copy(cPosWorldR));
 
     // VR Swarm Spray Painting (Trigger down, HUD closed)
-    const cb = timelineData.colorBlocks.find(x => x.id === selectedColorBlockId);
+    const cb = timelineData.colorBlocks.find(x => x && x.id === selectedColorBlockId);
     if (cb && !vrHUD.visible) {
       const activeIdx = cb.activeSwatchIdx;
-      // In stage-local space, brush radius must be normalized by scale
       const localRadius = 1.6 / Math.max(0.05, stageGroup.scale.x);
       const brushRadiusSq = localRadius * localRadius;
 
@@ -1395,9 +1427,9 @@ renderer.setAnimationLoop(now => {
 
     velocities[idx] = vx; velocities[idx + 1] = vy; velocities[idx + 2] = vz;
 
-    currentColors[idx] += (targetColors[idx] - currentColors[idx]) * 8.0 * dt;
-    currentColors[idx + 1] += (targetColors[idx + 1] - currentColors[idx + 1]) * 8.0 * dt;
-    currentColors[idx + 2] += (targetColors[idx + 2] - currentColors[idx + 2]) * 8.0 * dt;
+    currentColors[idx] += (targetColors[idx] - currentColors[idx]) * 6.0 * dt;
+    currentColors[idx + 1] += (targetColors[idx + 1] - currentColors[idx + 1]) * 6.0 * dt;
+    currentColors[idx + 2] += (targetColors[idx + 2] - currentColors[idx + 2]) * 6.0 * dt;
   }
 
   droneGeometry.attributes.position.needsUpdate = true;
