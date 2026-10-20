@@ -161,7 +161,7 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
 <body>
 <div id="panel">
   <div id="title">DroneShow Designer XR</div>
-  <div id="status">Perimeter Spawn · Swarm Paint Engine · Ground Invariant</div>
+  <div id="status">World-Space Rig Anchors · Interactive Brush Active</div>
 
   <div class="section-label">
     <span>Formation Position & Ground Clearance</span>
@@ -186,13 +186,13 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
   </div>
 
   <div class="section-label">
-    <span>Shape Library (8 Categorized Pages)</span>
+    <span>Shape Library (4 Curated Packs)</span>
   </div>
   <div class="tab-row" id="page-tabs"></div>
   <div class="icon-grid" id="desktop-icon-grid"></div>
 
   <div class="section-label">
-    <span>Drone Color Painting & Palette</span>
+    <span>Multi-Color Palette (Selected Color Block)</span>
     <label style="font-size:10px; cursor:pointer; color:#9cb5db;">
       <input type="checkbox" id="chk-labels"> Labels
     </label>
@@ -232,20 +232,6 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
   </div>
 
   <div class="section-label">
-    <span>3D Formation Kinematic Rotation</span>
-  </div>
-  <div class="fx-controls">
-    <div class="ctrl-row">
-      <span style="width:75px;">Y Spin:</span>
-      <span style="font-size:10px; color:#8fa2c3;">Start:</span>
-      <input type="range" id="rot-start-y" min="-180" max="180" step="5" value="0">
-      <span style="font-size:10px; color:#8fa2c3;">End:</span>
-      <input type="range" id="rot-end-y" min="-180" max="180" step="5" value="90">
-      <span id="val-rot-y" style="min-width:65px; font-size:10px; text-align:right;">0→90°/s</span>
-    </div>
-  </div>
-
-  <div class="section-label">
     <span>Synchronized Multi-Track Timeline</span>
     <div>
       <button class="swatch-ctrl-btn" id="btn-add-form-block">+ Shape</button>
@@ -275,17 +261,17 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
     <div class="timeline-bottom-row">
       <button id="btn-play" style="padding:4px 14px; font-size:11px; background:#1b3864; border:1px solid #70e6ff; color:#fff; border-radius:4px; cursor:pointer;">Play</button>
       <span id="time-display" style="font-size:11px; font-variant-numeric:tabular-nums; min-width:80px;">00:00 / 01:00</span>
-      <span style="font-size:10px; color:#8fa2c3; flex:1; text-align:right;">Click Auto-Zone or pull VR trigger to spray-paint</span>
+      <span style="font-size:10px; color:#8fa2c3; flex:1; text-align:right;">VR: Pull trigger to paint · Desktop: Shift + Drag to paint</span>
     </div>
   </div>
 
   <div id="hint">
-    <b>Desktop Paint:</b> Click "Auto-Zone" to segment swatches vertically.<br>
-    <b>VR Paint Brush:</b> Squeeze Trigger to spray-paint drones with active swatch.<br>
-    <b>VR View:</b> Automatically starts at the outer perimeter (38m south).
+    <b>VR Painting:</b> Select a swatch, hold trigger, and touch drones with your hand sphere.<br>
+    <b>Desktop Painting:</b> Hold <b>Shift</b> and drag the mouse over drones in 3D.<br>
+    <b>VR View:</b> Headset spawns at 38m south perimeter; HUD opens 1.8m in front of eyes.
   </div>
 </div>
-<div id="vr-tip">In VR: Press Left X for HUD · Trigger paints drones with active swatch</div>
+<div id="vr-tip">In VR: Press Left X for HUD · Pull trigger to paint drones with active swatch</div>
 
 <script type="module">
 import * as THREE from "three";
@@ -350,8 +336,8 @@ createRay(leftController);
 createRay(rightController);
 
 function createPaintSphere(controller) {
-  const geom = new THREE.SphereGeometry(2.2, 16, 12);
-  const mat = new THREE.MeshBasicMaterial({ color: 0x70e6ff, wireframe: true, transparent: true, opacity: 0.35 });
+  const geom = new THREE.SphereGeometry(1.6, 16, 12);
+  const mat = new THREE.MeshBasicMaterial({ color: 0x70e6ff, wireframe: true, transparent: true, opacity: 0.45 });
   const mesh = new THREE.Mesh(geom, mat);
   mesh.visible = false;
   controller.add(mesh);
@@ -449,7 +435,7 @@ const timelineData = {
   colorBlocks: [
     {
       id: "c0", dur: 20.0,
-      palette: ["#ffd700", "#00ff66", "#8b4513"], // Gold Star, Emerald Foliage, Brown Trunk
+      palette: ["#ffd700", "#00ff66", "#8b4513"], // Gold Star (0), Green Foliage (1), Brown Trunk (2)
       activeSwatchIdx: 0,
       cycleSpeed: 0.0, run: false, runSpeed: 3.0,
       blink: false, blinkSpeed: 3.0,
@@ -502,7 +488,7 @@ let lastShapeB = null;
 
 const tempColor = new THREE.Color();
 
-// Height-based auto-zone color distribution
+// Manual Auto-Zone: Only triggered when clicking the button
 function applyAutoZoneColors() {
   const cb = timelineData.colorBlocks.find(x => x.id === selectedColorBlockId);
   if (!cb || cb.palette.length <= 1) return;
@@ -517,9 +503,8 @@ function applyAutoZoneColors() {
   const nSwatches = cb.palette.length;
 
   for (let i = 0; i < activeDroneCount; i++) {
-    const normalizedH = (unrotatedPositions[i * 3 + 1] - minY) / span;
-    // Top height gets Swatch 0 (Star/Header), bottom gets last swatch (Trunk/Base)
-    const swatchIdx = Math.min(nSwatches - 1, Math.floor((1.0 - normalizedH) * nSwatches));
+    const normH = (unrotatedPositions[i * 3 + 1] - minY) / span;
+    const swatchIdx = Math.min(nSwatches - 1, Math.floor((1.0 - normH) * nSwatches));
     droneSwatchIndices[i] = swatchIdx;
   }
 }
@@ -556,7 +541,7 @@ const rotMatrix = new THREE.Matrix4();
 const centerPt = new THREE.Vector3(0, 18, 0);
 
 function getRotationAtTime(t) {
-  let curT = 0, angleX = 0, angleY = 0, angleZ = 0;
+  let curT = 0, angleY = 0;
   for (let i = 0; i < timelineData.rotationBlocks.length; i++) {
     const rb = timelineData.rotationBlocks[i];
     const bStart = curT, bEnd = curT + rb.dur;
@@ -573,7 +558,7 @@ function getRotationAtTime(t) {
     }
     curT = bEnd;
   }
-  return { angleX, angleY, angleZ };
+  return { angleY };
 }
 
 function evaluateTimeline(t) {
@@ -587,9 +572,9 @@ function evaluateTimeline(t) {
       if (lastShapeA !== activeShape.id) {
         lastShapeA = activeShape.id; lastShapeB = null;
         const raw = new Float32Array(activeDroneCount * 3);
-        activeShape.gen(raw, activeDroneCount);
+        // Pass droneSwatchIndices directly so the 3D Christmas Tree stamps its own star/tree/trunk
+        activeShape.gen(raw, activeDroneCount, droneSwatchIndices);
         unrotatedPositions.set(assignMinimalPaths(currentPositions, raw, activeDroneCount));
-        applyAutoZoneColors();
       }
       break;
     } else if (t >= formEnd && t < transEnd) {
@@ -601,9 +586,9 @@ function evaluateTimeline(t) {
 
       if (lastShapeA !== shapeA.id || lastShapeB !== shapeB.id) {
         lastShapeA = shapeA.id; lastShapeB = shapeB.id;
-        shapeA.gen(transitionFromPositions, activeDroneCount);
+        shapeA.gen(transitionFromPositions, activeDroneCount, droneSwatchIndices);
         const rawB = new Float32Array(activeDroneCount * 3);
-        shapeB.gen(rawB, activeDroneCount);
+        shapeB.gen(rawB, activeDroneCount, droneSwatchIndices);
         transitionToPositions.set(assignMinimalPaths(transitionFromPositions, rawB, activeDroneCount));
       }
       for (let j = 0; j < activeDroneCount * 3; j++) {
@@ -614,7 +599,6 @@ function evaluateTimeline(t) {
     curT = transEnd;
   }
 
-  // Kinematic 3D Rotation & Altitude/Scale Integration
   const { angleY } = getRotationAtTime(t);
   rotEuler.set(0, angleY, 0);
   rotMatrix.makeRotationFromEuler(rotEuler);
@@ -624,7 +608,11 @@ function evaluateTimeline(t) {
   let lowestY = Infinity;
 
   for (let i = 0; i < activeDroneCount; i++) {
-    tempP.set(unrotatedPositions[i * 3] * formationScale, (unrotatedPositions[i * 3 + 1] - 14) * formationScale + formationAltitude, unrotatedPositions[i * 3 + 2] * formationScale);
+    tempP.set(
+      unrotatedPositions[i * 3] * formationScale,
+      (unrotatedPositions[i * 3 + 1] - 14) * formationScale + formationAltitude,
+      unrotatedPositions[i * 3 + 2] * formationScale
+    );
     tempP.sub(centerPt);
     tempP.applyMatrix4(rotMatrix);
     tempP.add(centerPt);
@@ -635,7 +623,7 @@ function evaluateTimeline(t) {
     if (tempP.y < lowestY) lowestY = tempP.y;
   }
 
-  // Automatic Floor Clearance Clamp (Never allow drones to dip below 1.5m)
+  // Ground Clearance: Automatic lift if lower drones dip below 1.5m
   if (lowestY < 1.5) {
     const lift = 1.5 - lowestY;
     for (let i = 0; i < activeDroneCount; i++) {
@@ -643,7 +631,6 @@ function evaluateTimeline(t) {
     }
   }
 
-  // Evaluate Palette Colors
   let colorT = 0;
   for (let i = 0; i < timelineData.colorBlocks.length; i++) {
     const cb = timelineData.colorBlocks[i];
@@ -657,14 +644,13 @@ function evaluateTimeline(t) {
 }
 
 // Initial Spawn
-SHAPE_PAGES[0][0].gen(currentPositions, activeDroneCount);
+SHAPE_PAGES[0][0].gen(currentPositions, activeDroneCount, droneSwatchIndices);
 unrotatedPositions.set(currentPositions);
 targetPositions.set(currentPositions);
-applyAutoZoneColors();
 evaluateTimeline(0);
 currentColors.set(targetColors);
 
-// Locomotion
+// WORLD-SPACE LOCOMOTION (Zero Distorted Pivots)
 const grabState = {
   leftGrip: false, rightGrip: false, mode: 'none',
   anchorHandL: new THREE.Vector3(), anchorHandR: new THREE.Vector3(),
@@ -676,7 +662,10 @@ const posL = new THREE.Vector3(), posR = new THREE.Vector3(), midCurr = new THRE
 
 function onGripChange() {
   const l = grabState.leftGrip, r = grabState.rightGrip;
-  posL.copy(leftController.position); posR.copy(rightController.position);
+
+  // Crucial: Sample WORLD positions so rig offset (Z=38) does not corrupt hand pivots
+  leftController.getWorldPosition(posL);
+  rightController.getWorldPosition(posR);
 
   if (l && r) {
     grabState.mode = 'dual';
@@ -706,7 +695,9 @@ rightController.addEventListener("squeezeend", () => { grabState.rightGrip = fal
 
 function updateWorldGrab() {
   if (!renderer.xr.isPresenting || grabState.mode === 'none') return;
-  posL.copy(leftController.position); posR.copy(rightController.position);
+
+  leftController.getWorldPosition(posL);
+  rightController.getWorldPosition(posR);
 
   if (grabState.mode === 'dual') {
     midCurr.addVectors(posL, posR).multiplyScalar(0.5);
@@ -720,22 +711,23 @@ function updateWorldGrab() {
     stageGroup.scale.setScalar(targetScale);
 
     dronePoints.material.size = Math.max(0.02, BASE_DRONE_SIZE * targetScale);
-    paintMeshL.scale.setScalar(targetScale);
-    paintMeshR.scale.setScalar(targetScale);
 
     const deltaAngle = currAngle - grabState.anchorAngle;
     stageGroup.rotation.y = grabState.anchorStageRotY + deltaAngle;
 
+    // Direct affine rotation and scale around the hands' physical midpoint
     const vOffset = new THREE.Vector3().subVectors(grabState.anchorStagePos, grabState.anchorMid);
     vOffset.multiplyScalar(effectiveRatio);
     vOffset.applyAxisAngle(Y_AXIS, deltaAngle);
 
     const midDelta = new THREE.Vector3().subVectors(midCurr, grabState.anchorMid);
     stageGroup.position.copy(grabState.anchorMid).add(midDelta).add(vOffset);
+
   } else if (grabState.mode === 'single-left') {
     const scaleFactor = Math.max(0.1, stageGroup.scale.x);
     const delta = new THREE.Vector3().subVectors(posL, grabState.anchorHandL).multiplyScalar(panSensitivity * scaleFactor);
     stageGroup.position.addVectors(grabState.anchorStagePos, delta);
+
   } else if (grabState.mode === 'single-right') {
     const scaleFactor = Math.max(0.1, stageGroup.scale.x);
     const delta = new THREE.Vector3().subVectors(posR, grabState.anchorHandR).multiplyScalar(panSensitivity * scaleFactor);
@@ -743,7 +735,7 @@ function updateWorldGrab() {
   }
 }
 
-// In-VR HUD
+// In-VR HUD (Targeted to Headset World Position)
 const vrHUD = new THREE.Group();
 vrHUD.visible = false;
 scene.add(vrHUD);
@@ -795,7 +787,7 @@ function renderHUD() {
 
   const activeColorBlock = timelineData.colorBlocks.find(b => b.id === selectedColorBlockId) || timelineData.colorBlocks[0];
   ctx.fillStyle = "#8fa2c3"; ctx.font = "bold 13px system-ui"; ctx.textAlign = "left";
-  ctx.fillText("SWATCH PAINT BRUSH:", 40, 208);
+  ctx.fillText("ACTIVE PAINT SWATCH:", 40, 208);
 
   const pal = activeColorBlock.palette || ["#ffffff"];
   for (let sIdx = 0; sIdx < pal.length; sIdx++) {
@@ -807,7 +799,7 @@ function renderHUD() {
     ctx.stroke();
   }
 
-  // Auto-Zone Button on HUD
+  // Auto-Zone Manual Trigger on HUD
   ctx.fillStyle = "#1b3864"; ctx.fillRect(480, 185, 140, 34);
   ctx.strokeStyle = "#70e6ff"; ctx.strokeRect(480, 185, 140, 34);
   ctx.fillStyle = "#fff"; ctx.font = "bold 13px system-ui"; ctx.textAlign = "center";
@@ -821,7 +813,7 @@ function renderHUD() {
   ctx.fillStyle = specGrad; ctx.fillRect(40, 234, 944, 34);
   ctx.strokeStyle = "#ffffff44"; ctx.strokeRect(40, 234, 944, 34);
 
-  // Playback & Scrub Timeline
+  // Playback Track
   const availW = 944;
   let curX = 40;
   for (const b of timelineData.formationBlocks) {
@@ -851,20 +843,20 @@ function renderHUD() {
   hudTex.needsUpdate = true;
 }
 
-function formatTime(s) {
-  const m = Math.floor(s / 60);
-  return String(m).padStart(2, "0") + ":" + String(Math.floor(s % 60)).padStart(2, "0");
-}
+const headWorldPos = new THREE.Vector3();
+const headWorldDir = new THREE.Vector3();
 
 function toggleHUD() {
   vrHUD.visible = !vrHUD.visible;
   if (vrHUD.visible) {
-    const dir = new THREE.Vector3();
-    camera.getWorldDirection(dir);
-    dir.y = 0; dir.normalize();
-    vrHUD.position.copy(camera.position).addScaledVector(dir, 2.0);
-    vrHUD.position.y = camera.position.y;
-    vrHUD.rotation.set(0, Math.atan2(-dir.x, -dir.z), 0);
+    // Correctly sample Headset in WORLD space so HUD spawns right in front of user
+    camera.getWorldPosition(headWorldPos);
+    camera.getWorldDirection(headWorldDir);
+    headWorldDir.y = 0; headWorldDir.normalize();
+
+    vrHUD.position.copy(headWorldPos).addScaledVector(headWorldDir, 1.8);
+    vrHUD.position.y = headWorldPos.y;
+    vrHUD.rotation.set(0, Math.atan2(-headWorldDir.x, -headWorldDir.z), 0);
     renderHUD();
   }
   for (const ray of controllerRays) ray.visible = vrHUD.visible;
@@ -875,7 +867,8 @@ const quat = new THREE.Quaternion();
 
 function handleVRSelect(controller) {
   if (!vrHUD.visible) return;
-  const origin = new THREE.Vector3().setFromMatrixPosition(controller.matrixWorld);
+  const origin = new THREE.Vector3();
+  controller.getWorldPosition(origin);
   controller.getWorldQuaternion(quat);
   const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(quat).normalize();
   raycaster.set(origin, dir);
@@ -921,7 +914,6 @@ function handleVRSelect(controller) {
     }
   }
 
-  // Auto-Zone Click in VR
   if (inRect(480, 185, 140, 34)) {
     applyAutoZoneColors();
     evaluateTimeline(playheadTime);
@@ -940,7 +932,7 @@ function handleVRSelect(controller) {
   }
 }
 
-// In-VR Swarm Spray Painting via Trigger
+// In-VR Manual Painting via Trigger
 let isTriggerDownL = false, isTriggerDownR = false;
 
 leftController.addEventListener("selectstart", () => {
@@ -971,7 +963,7 @@ function checkHUDInput() {
 leftController.addEventListener("connected", e => leftController.userData.gamepad = e.data.gamepad);
 rightController.addEventListener("connected", e => rightController.userData.gamepad = e.data.gamepad);
 
-// DOM & Event Binding
+// DOM & Defensive Event Binding
 function $(id) { return document.getElementById(id); }
 function onEvent(id, event, handler) {
   const el = document.getElementById(id);
@@ -1036,7 +1028,9 @@ function populateDesktopIcons() {
         activeFormation.shapeId = s.id;
         lastShapeA = null;
         evaluateTimeline(playheadTime);
-        buildDesktopTimeline(); populateDesktopIcons(); renderHUD();
+        buildDesktopTimeline();
+        populateDesktopIcons();
+        renderHUD();
       }
     };
     container.appendChild(btn);
@@ -1061,7 +1055,7 @@ function syncDesktopPalette() {
     container.appendChild(slot);
   }
 
-  // Update VR Paint Sphere Colors to Match Active Swatch
+  // Update VR Paint Brush color to match active swatch
   const activeHex = cb.palette[cb.activeSwatchIdx] || "#ffffff";
   paintMeshL.material.color.set(activeHex);
   paintMeshR.material.color.set(activeHex);
@@ -1257,17 +1251,47 @@ if (specBar) {
   };
 }
 
+// DESKTOP INTERACTIVE PAINT BRUSH (Shift + Click/Drag)
+const desktopRaycaster = new THREE.Raycaster();
+desktopRaycaster.params.Points.threshold = 1.4;
+const mouse = new THREE.Vector2();
+
+function paintDroneAtMouse(e) {
+  if (!e.shiftKey) return;
+  mouse.x = (e.clientX / innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+  desktopRaycaster.setFromCamera(mouse, camera);
+
+  const intersects = desktopRaycaster.intersectObject(dronePoints, false);
+  if (intersects.length > 0) {
+    const cb = timelineData.colorBlocks.find(x => x.id === selectedColorBlockId);
+    if (!cb) return;
+    const swatchIdx = cb.activeSwatchIdx;
+    for (const hit of intersects) {
+      if (hit.index !== undefined && hit.index < activeDroneCount) {
+        droneSwatchIndices[hit.index] = swatchIdx;
+      }
+    }
+    evaluateTimeline(playheadTime);
+  }
+}
+
+window.addEventListener("pointerdown", paintDroneAtMouse);
+window.addEventListener("pointermove", (e) => {
+  if (e.buttons === 1) paintDroneAtMouse(e);
+});
+
 populateDesktopIcons();
 syncDesktopPalette();
 syncDesktopRotation();
 buildDesktopTimeline();
 
-// WebXR Session Management: Position Spectator at the Perimeter
+// WebXR Session Management: Initial Perimeter Placement
 renderer.xr.addEventListener("sessionstart", () => {
   document.body.classList.add("xr-active");
   renderer.xr.setFoveation(0.0);
-  
-  // Position viewer 38 meters back on the south perimeter
+
+  // Position viewer 38 meters back along south perimeter
   xrRig.position.set(0, 0, 38);
   xrRig.rotation.set(0, 0, 0);
 
@@ -1281,7 +1305,7 @@ renderer.xr.addEventListener("sessionend", () => {
   for (const ray of controllerRays) ray.visible = false;
 });
 
-// Simulation Loop & VR Spray Painting
+// Simulation Loop & VR Controller Painting
 const SPRING = 18.0;
 const DAMPING = 5.5;
 
@@ -1308,23 +1332,29 @@ renderer.setAnimationLoop(now => {
     checkHUDInput();
     updateWorldGrab();
 
-    cPosWorldL.setFromMatrixPosition(leftController.matrixWorld);
-    cPosWorldR.setFromMatrixPosition(rightController.matrixWorld);
+    leftController.getWorldPosition(cPosWorldL);
+    rightController.getWorldPosition(cPosWorldR);
+
+    // Transform hand world positions directly into stage-local coordinate frame
     stageGroup.worldToLocal(cPosLocalL.copy(cPosWorldL));
     stageGroup.worldToLocal(cPosLocalR.copy(cPosWorldR));
 
-    // Paint Spray Trigger Handling in VR
+    // VR Swarm Spray Painting (Trigger down, HUD closed)
     const cb = timelineData.colorBlocks.find(x => x.id === selectedColorBlockId);
     if (cb && !vrHUD.visible) {
       const activeIdx = cb.activeSwatchIdx;
-      const brushRadiusSq = (2.2 * stageGroup.scale.x) ** 2;
+      // In stage-local space, brush radius must be normalized by scale
+      const localRadius = 1.6 / Math.max(0.05, stageGroup.scale.x);
+      const brushRadiusSq = localRadius * localRadius;
 
       if (isTriggerDownL) {
         for (let i = 0; i < activeDroneCount; i++) {
           const dx = currentPositions[i * 3] - cPosLocalL.x;
           const dy = currentPositions[i * 3 + 1] - cPosLocalL.y;
           const dz = currentPositions[i * 3 + 2] - cPosLocalL.z;
-          if (dx * dx + dy * dy + dz * dz < brushRadiusSq) droneSwatchIndices[i] = activeIdx;
+          if (dx * dx + dy * dy + dz * dz < brushRadiusSq) {
+            droneSwatchIndices[i] = activeIdx;
+          }
         }
       }
       if (isTriggerDownR) {
@@ -1332,7 +1362,9 @@ renderer.setAnimationLoop(now => {
           const dx = currentPositions[i * 3] - cPosLocalR.x;
           const dy = currentPositions[i * 3 + 1] - cPosLocalR.y;
           const dz = currentPositions[i * 3 + 2] - cPosLocalR.z;
-          if (dx * dx + dy * dy + dz * dz < brushRadiusSq) droneSwatchIndices[i] = activeIdx;
+          if (dx * dx + dy * dy + dz * dz < brushRadiusSq) {
+            droneSwatchIndices[i] = activeIdx;
+          }
         }
       }
     }
@@ -1356,9 +1388,9 @@ renderer.setAnimationLoop(now => {
 
     velocities[idx] = vx; velocities[idx + 1] = vy; velocities[idx + 2] = vz;
 
-    currentColors[idx] += (targetColors[idx] - currentColors[idx]) * 6.0 * dt;
-    currentColors[idx + 1] += (targetColors[idx + 1] - currentColors[idx + 1]) * 6.0 * dt;
-    currentColors[idx + 2] += (targetColors[idx + 2] - currentColors[idx + 2]) * 6.0 * dt;
+    currentColors[idx] += (targetColors[idx] - currentColors[idx]) * 8.0 * dt;
+    currentColors[idx + 1] += (targetColors[idx + 1] - currentColors[idx + 1]) * 8.0 * dt;
+    currentColors[idx + 2] += (targetColors[idx + 2] - currentColors[idx + 2]) * 8.0 * dt;
   }
 
   droneGeometry.attributes.position.needsUpdate = true;
