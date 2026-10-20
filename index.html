@@ -22,7 +22,7 @@ canvas { display: block; }
   z-index: 2;
   left: 16px;
   top: 16px;
-  width: min(540px, calc(100vw - 32px));
+  width: min(560px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   overflow-y: auto;
   padding: 14px;
@@ -32,8 +32,30 @@ canvas { display: block; }
   backdrop-filter: blur(14px);
   box-shadow: 0 12px 40px #0008;
 }
-#title { font-weight: 700; font-size: 16px; margin-bottom: 2px; }
+#top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+#title { font-weight: 700; font-size: 16px; }
 #status { color: #70e6ff; font-size: 12px; margin-bottom: 8px; }
+
+.toolbar-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #111e33;
+  border: 1px solid #375077;
+  color: #c0d1ed;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.toolbar-btn:hover { background: #1c3b6a; border-color: #70e6ff; color: #fff; }
+.toolbar-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .section-label {
   display: flex;
@@ -45,9 +67,32 @@ canvas { display: block; }
   margin: 10px 0 4px;
   letter-spacing: 0.5px;
 }
-.tab-row { display: flex; gap: 4px; margin-bottom: 8px; }
+.ctrl-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+}
+.ctrl-row label { display: flex; align-items: center; gap: 6px; color: #c0d1ed; cursor: pointer; }
+.ctrl-row input[type="range"] { flex: 1; accent-color: #70e6ff; }
+
+/* Contextual Inspector Containers */
+.context-card {
+  background: #0a1424;
+  border: 1px solid #233b5d;
+  border-radius: 8px;
+  padding: 10px;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.context-card.hidden { display: none !important; }
+
+.tab-row { display: flex; gap: 4px; margin-bottom: 4px; }
 .page-btn {
-  flex: 1; padding: 5px 0; font-size: 11px; font-weight: bold;
+  flex: 1; padding: 4px 0; font-size: 10px; font-weight: bold;
   background: #111e33; border: 1px solid #233b5d; color: #9cb5db;
   border-radius: 5px; cursor: pointer;
 }
@@ -55,19 +100,21 @@ canvas { display: block; }
 
 .icon-grid {
   display: grid; grid-template-columns: repeat(4, 1fr);
-  gap: 6px; margin-bottom: 8px;
+  gap: 6px;
 }
 button.symbol-btn {
-  display: flex; align-items: center; justify-content: center; height: 52px;
-  background: #172742; border: 1px solid #375077; border-radius: 8px;
-  padding: 4px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 54px; background: #172742; border: 1px solid #375077; border-radius: 8px;
+  padding: 4px; cursor: grab;
 }
-button.symbol-btn:hover { background: #22385c; }
+button.symbol-btn:hover { background: #22385c; border-color: #70e6ff; }
+button.symbol-btn:active { cursor: grabbing; }
 button.symbol-btn.active { border-color: #70e6ff; background: #1c3b6a; }
-button.symbol-btn svg { width: 28px; height: 28px; stroke: #70e6ff; fill: none; }
+button.symbol-btn svg { width: 26px; height: 26px; stroke: #70e6ff; fill: none; }
+button.symbol-btn span { font-size: 9px; color: #8fa2c3; margin-top: 2px; }
 
 .palette-builder {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px;
   background: #0b1526; padding: 6px 8px; border-radius: 8px; border: 1px solid #233b5d;
 }
 .swatches-list { display: flex; gap: 6px; flex: 1; }
@@ -83,50 +130,93 @@ button.symbol-btn svg { width: 28px; height: 28px; stroke: #70e6ff; fill: none; 
 }
 
 #desktop-spectrum {
-  width: 100%; height: 20px; border-radius: 6px; border: 1px solid #ffffff44;
+  width: 100%; height: 18px; border-radius: 6px; border: 1px solid #ffffff44;
   cursor: crosshair;
   background: linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
-  margin-bottom: 8px;
 }
 
-.fx-controls {
-  background: #091222; border: 1px solid #233b5d; border-radius: 8px;
-  padding: 8px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px;
-}
-.ctrl-row {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 8px; font-size: 11px;
-}
-.ctrl-row label { display: flex; align-items: center; gap: 6px; color: #c0d1ed; cursor: pointer; }
-.ctrl-row input[type="range"] { flex: 1; accent-color: #70e6ff; }
-
+/* Two-Column Multi-Track Timeline */
 .timeline-module {
-  background: #070f1e; border: 1px solid #233b5d; border-radius: 8px;
-  padding: 8px; margin-top: 6px;
+  background: #070f1e;
+  border: 1px solid #233b5d;
+  border-radius: 8px;
+  padding: 10px;
+  margin-top: 10px;
 }
+.timeline-grid {
+  display: flex;
+  gap: 8px;
+  position: relative;
+}
+.timeline-headers-col {
+  width: 90px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.header-cell {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 700;
+  color: #8fa2c3;
+  letter-spacing: 0.5px;
+}
+.header-actions { display: flex; gap: 2px; }
+.track-add-btn, .track-del-btn {
+  width: 18px; height: 18px; padding: 0; font-size: 11px; font-weight: bold;
+  background: #132238; border: 1px solid #2e4a73; color: #9cb5db;
+  border-radius: 3px; cursor: pointer; line-height: 1;
+}
+.track-add-btn:hover { background: #1c3b6a; color: #fff; border-color: #70e6ff; }
+.track-del-btn:hover { background: #4a1924; color: #ff859c; border-color: #ff3b69; }
+
+.timeline-lanes-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+}
+
 .ruler-track {
-  height: 18px; background: #0d1a30; border-radius: 4px;
-  position: relative; cursor: pointer; margin-bottom: 4px; border: 1px solid #ffffff1a;
+  height: 28px;
+  background: #0d1a30;
+  border-radius: 4px;
+  position: relative;
+  cursor: pointer;
+  border: 1px solid #ffffff1a;
 }
 .ruler-marker {
-  position: absolute; top: 2px; font-size: 9px; color: #6a82a9;
+  position: absolute; top: 7px; font-size: 9px; color: #6a82a9;
   transform: translateX(-50%); pointer-events: none;
 }
-.track-row { display: flex; align-items: center; margin-bottom: 5px; gap: 6px; }
-.track-header {
-  width: 72px; font-size: 9px; font-weight: 700;
-  letter-spacing: 0.5px; color: #8fa2c3; text-transform: uppercase;
-}
+
 .track-lane {
-  flex: 1; height: 26px; background: #040913; border: 1px solid #1a2c47;
-  border-radius: 4px; position: relative; display: flex; overflow: hidden;
+  height: 28px;
+  background: #040913;
+  border: 1px solid #1a2c47;
+  border-radius: 4px;
+  position: relative;
+  display: flex;
+  overflow: hidden;
 }
+.track-lane.dragover {
+  outline: 2px dashed #70e6ff;
+  background: #071933;
+}
+
 .block-element {
   position: relative; height: 100%; display: flex; align-items: center;
-  justify-content: center; cursor: pointer; box-sizing: border-box;
+  justify-content: center; cursor: grab; box-sizing: border-box;
   overflow: hidden; font-size: 10px; font-weight: 600; border-right: 1px solid #0004;
 }
+.block-element:active { cursor: grabbing; }
 .block-element.active-block { outline: 2px solid #ffffff; z-index: 2; }
+.block-element.dragging { opacity: 0.4; }
+
 .resize-handle {
   position: absolute; right: 0; top: 0; width: 10px; height: 100%;
   cursor: col-resize; background: rgba(255, 255, 255, 0.25);
@@ -136,11 +226,35 @@ button.symbol-btn svg { width: 28px; height: 28px; stroke: #70e6ff; fill: none; 
 .transition-block {
   background: repeating-linear-gradient(45deg, #162232, #162232 5px, #26384f 5px, #26384f 10px);
 }
-#playhead-line {
-  position: absolute; top: 0; bottom: 0; width: 2px;
-  background: #ff3b69; box-shadow: 0 0 6px #ff3b69; pointer-events: none; z-index: 10;
+
+/* Grabbable Playhead Needle */
+#playhead-needle {
+  position: absolute;
+  top: -4px;
+  bottom: 0;
+  width: 2px;
+  background: #ff3b69;
+  box-shadow: 0 0 8px #ff3b69;
+  z-index: 20;
+  pointer-events: none;
+  transform: translateX(-50%);
 }
-.timeline-bottom-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+#playhead-handle {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 14px;
+  background: #ff3b69;
+  clip-path: polygon(0% 0%, 100% 0%, 100% 60%, 50% 100%, 0% 60%);
+  cursor: ew-resize;
+  pointer-events: auto;
+  box-shadow: 0 0 6px #000;
+}
+#playhead-handle:hover { background: #ff7595; }
+
+.timeline-bottom-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 #hint { color: #8fa2c3; font-size: 11px; margin-top: 8px; line-height: 1.4; }
 #vr-tip {
   position: fixed; z-index: 1; bottom: 14px; left: 50%;
@@ -160,137 +274,133 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
 </head>
 <body>
 <div id="panel">
-  <div id="title">DroneShow Designer XR</div>
-  <div id="status">Tree Mantle Lights · Autonomous Snow Layer Active</div>
-
-  <div class="section-label">
-    <span>Environmental Snow Layer</span>
-    <span id="val-snow-count" style="color:#70e6ff; font-weight:bold;">50 Snow Drones</span>
+  <div id="top-bar">
+    <div id="title">DroneShow Designer XR</div>
+    <div style="display:flex; gap:6px;">
+      <button class="toolbar-btn" id="btn-undo" title="Revert last action (Ctrl+Z)">↶ Undo</button>
+    </div>
   </div>
-  <div class="ctrl-row" style="margin-bottom:8px;">
-    <label><input type="checkbox" id="chk-snow" checked> <b>Active Snow Fall</b></label>
-    <input type="range" id="slider-snow-count" min="20" max="100" step="5" value="50">
-  </div>
+  <div id="status">Scrubbing & Multi-Level Undo Engine Active</div>
 
-  <div class="section-label">
-    <span>Formation Position & Ground Clearance</span>
-    <span id="val-altitude" style="color:#70e6ff; font-weight:bold;">18m Alt</span>
+  <!-- Global Scene Settings -->
+  <div class="ctrl-row" style="margin-top:6px;">
+    <span style="min-width:65px;">Altitude:</span>
+    <input type="range" id="slider-altitude" min="6" max="36" step="1" value="18">
+    <span id="val-altitude" style="color:#70e6ff; font-weight:bold; min-width:55px; text-align:right;">18m</span>
   </div>
   <div class="ctrl-row">
-    <span style="min-width:60px;">Altitude:</span>
-    <input type="range" id="slider-altitude" min="6" max="36" step="1" value="18">
-  </div>
-  <div class="ctrl-row" style="margin-bottom:8px;">
-    <span style="min-width:60px;">Scale:</span>
-    <input type="range" id="slider-formation-scale" min="0.5" max="2.0" step="0.1" value="1.0">
-    <span id="val-formation-scale" style="min-width:32px; text-align:right;">1.0x</span>
-  </div>
-
-  <div class="section-label">
-    <span>Active Drone Fleet Capacity</span>
-    <span id="val-fleet-count" style="color:#70e6ff; font-weight:bold;">400 Drones</span>
-  </div>
-  <div class="ctrl-row" style="margin-bottom:8px;">
+    <span style="min-width:65px;">Fleet Size:</span>
     <input type="range" id="slider-fleet-count" min="100" max="1200" step="10" value="400">
+    <span id="val-fleet-count" style="color:#70e6ff; font-weight:bold; min-width:55px; text-align:right;">400 D</span>
+  </div>
+  <div class="ctrl-row" style="margin-bottom:6px;">
+    <label><input type="checkbox" id="chk-snow" checked> <b>Snow Layer</b></label>
+    <input type="range" id="slider-snow-count" min="20" max="100" step="5" value="50">
+    <span id="val-snow-count" style="min-width:55px; text-align:right;">50 D</span>
   </div>
 
-  <div class="section-label">
-    <span>Shape Library (4 Curated Packs)</span>
+  <!-- Context 1: Shape Inspector (Visible when a Shape block is selected) -->
+  <div class="context-card" id="context-shape">
+    <div class="section-label" style="margin:0;">
+      <span>Shape Library · Drag onto Timeline</span>
+      <span id="inspector-shape-name" style="color:#70e6ff;">Christmas Tree</span>
+    </div>
+    <div class="tab-row" id="page-tabs"></div>
+    <div class="icon-grid" id="desktop-icon-grid"></div>
   </div>
-  <div class="tab-row" id="page-tabs"></div>
-  <div class="icon-grid" id="desktop-icon-grid"></div>
 
-  <div class="section-label">
-    <span>Multi-Color Palette (Selected Color Block)</span>
-    <label style="font-size:10px; cursor:pointer; color:#9cb5db;">
-      <input type="checkbox" id="chk-labels"> Labels
-    </label>
-  </div>
-  <div class="palette-builder">
-    <div class="swatches-list" id="swatches-container"></div>
-    <button class="swatch-ctrl-btn" id="btn-add-color">+ Swatch</button>
-    <button class="swatch-ctrl-btn" id="btn-del-color">− Swatch</button>
-    <button class="swatch-ctrl-btn" id="btn-auto-zone" style="background:#1b3864; border-color:#70e6ff;">Auto-Zone</button>
-  </div>
-  <div id="desktop-spectrum"></div>
-
-  <div class="section-label">
-    <span>Lighting Motion & Chasing Effects</span>
-  </div>
-  <div class="fx-controls">
+  <!-- Context 2: Color Inspector (Visible when a Color block is selected) -->
+  <div class="context-card hidden" id="context-color">
+    <div class="section-label" style="margin:0;">
+      <span>Color Swatches & Lighting FX</span>
+      <label style="font-size:10px; cursor:pointer; color:#9cb5db;">
+        <input type="checkbox" id="chk-labels"> Labels
+      </label>
+    </div>
+    <div class="palette-builder">
+      <div class="swatches-list" id="swatches-container"></div>
+      <button class="swatch-ctrl-btn" id="btn-add-color">+ Swatch</button>
+      <button class="swatch-ctrl-btn" id="btn-del-color">− Swatch</button>
+      <button class="swatch-ctrl-btn" id="btn-auto-zone" style="background:#1b3864; border-color:#70e6ff;">Auto-Zone</button>
+    </div>
+    <div id="desktop-spectrum"></div>
     <div class="ctrl-row">
-      <span style="min-width:90px;">Cycle Speed:</span>
+      <span style="min-width:80px;">Speed:</span>
       <input type="range" id="slider-cycle-speed" min="0" max="4" step="0.1" value="1">
-      <span id="val-cycle-speed" style="min-width:32px; text-align:right;">1.0x</span>
+      <span id="val-cycle-speed" style="min-width:30px; text-align:right;">1x</span>
     </div>
     <div class="ctrl-row">
-      <label><input type="checkbox" id="chk-run"> <b>Run / Chase Wave</b></label>
-      <input type="range" id="slider-run-speed" min="0.5" max="8" step="0.5" value="3">
-      <span id="val-run-speed" style="min-width:32px; text-align:right;">3x</span>
-    </div>
-    <div class="ctrl-row">
-      <label><input type="checkbox" id="chk-blink"> <b>Blink / Strobe</b></label>
-      <input type="range" id="slider-blink-speed" min="1" max="10" step="0.5" value="3">
-      <span id="val-blink-speed" style="min-width:32px; text-align:right;">3 Hz</span>
-    </div>
-    <div class="ctrl-row">
-      <label><input type="checkbox" id="chk-sparkle"> <b>Sparkle Twinkle</b></label>
-      <input type="range" id="slider-sparkle-density" min="0.1" max="0.8" step="0.05" value="0.35">
-      <span id="val-sparkle-density" style="min-width:32px; text-align:right;">35%</span>
+      <label><input type="checkbox" id="chk-run"> <b>Run Wave</b></label>
+      <label><input type="checkbox" id="chk-blink"> <b>Blink</b></label>
+      <label><input type="checkbox" id="chk-sparkle"> <b>Sparkle</b></label>
     </div>
   </div>
 
-  <div class="section-label">
-    <span>3D Formation Kinematic Rotation</span>
-  </div>
-  <div class="fx-controls">
+  <!-- Context 3: Rotation Inspector (Visible when a Rotation block is selected) -->
+  <div class="context-card hidden" id="context-rotation">
+    <div class="section-label" style="margin:0;">
+      <span>Rotation Kinematics</span>
+      <span id="val-rot-y" style="color:#70e6ff;">0→90°/s</span>
+    </div>
     <div class="ctrl-row">
-      <span style="width:75px;">Y Spin:</span>
-      <span style="font-size:10px; color:#8fa2c3;">Start:</span>
+      <span style="width:50px;">Y Spin:</span>
       <input type="range" id="rot-start-y" min="-180" max="180" step="5" value="0">
-      <span style="font-size:10px; color:#8fa2c3;">End:</span>
       <input type="range" id="rot-end-y" min="-180" max="180" step="5" value="90">
-      <span id="val-rot-y" style="min-width:65px; font-size:10px; text-align:right;">0→90°/s</span>
     </div>
   </div>
 
-  <div class="section-label">
-    <span>Synchronized Multi-Track Timeline</span>
-    <div>
-      <button class="swatch-ctrl-btn" id="btn-add-form-block">+ Shape</button>
-      <button class="swatch-ctrl-btn" id="btn-del-form-block">− Shape</button>
-      <button class="swatch-ctrl-btn" id="btn-add-color-block">+ Color</button>
-      <button class="swatch-ctrl-btn" id="btn-del-color-block">− Color</button>
+  <!-- Multi-Track Timeline Module -->
+  <div class="timeline-module">
+    <div class="timeline-grid">
+      <!-- Headers Column -->
+      <div class="timeline-headers-col">
+        <div class="header-cell" style="color:#6a82a9;">TIMECODE</div>
+        <div class="header-cell">
+          <span>SHAPES</span>
+          <div class="header-actions">
+            <button class="track-add-btn" id="btn-add-shape" title="Add shape block">+</button>
+            <button class="track-del-btn" id="btn-del-shape" title="Delete selected shape block">−</button>
+          </div>
+        </div>
+        <div class="header-cell">
+          <span>COLORS</span>
+          <div class="header-actions">
+            <button class="track-add-btn" id="btn-add-color-block" title="Add color block">+</button>
+            <button class="track-del-btn" id="btn-del-color-block" title="Delete selected color block">−</button>
+          </div>
+        </div>
+        <div class="header-cell">
+          <span>ROTATION</span>
+          <div class="header-actions">
+            <button class="track-add-btn" id="btn-add-rot-block" title="Add rotation block">+</button>
+            <button class="track-del-btn" id="btn-del-rot-block" title="Delete selected rotation block">−</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lanes Column (Shared percentage playhead needle) -->
+      <div class="timeline-lanes-col" id="timeline-lanes-area">
+        <div id="playhead-needle" style="left:0%;">
+          <div id="playhead-handle"></div>
+        </div>
+        <div class="ruler-track" id="master-ruler"></div>
+        <div class="track-lane" id="lane-shapes"></div>
+        <div class="track-lane" id="lane-colors"></div>
+        <div class="track-lane" id="lane-rotation"></div>
+      </div>
     </div>
-  </div>
-  <div class="timeline-module" id="timeline-container" style="position:relative;">
-    <div id="playhead-line" style="left:78px;"></div>
-    <div class="track-row" style="margin-bottom:2px;">
-      <div class="track-header">RULER</div>
-      <div class="ruler-track" id="master-ruler"></div>
-    </div>
-    <div class="track-row">
-      <div class="track-header">SHAPES</div>
-      <div class="track-lane" id="lane-shapes"></div>
-    </div>
-    <div class="track-row">
-      <div class="track-header">COLORS</div>
-      <div class="track-lane" id="lane-colors"></div>
-    </div>
-    <div class="track-row">
-      <div class="track-header">ROTATION</div>
-      <div class="track-lane" id="lane-rotation"></div>
-    </div>
+
     <div class="timeline-bottom-row">
       <button id="btn-play" style="padding:4px 14px; font-size:11px; background:#1b3864; border:1px solid #70e6ff; color:#fff; border-radius:4px; cursor:pointer;">Play</button>
-      <span id="time-display" style="font-size:11px; font-variant-numeric:tabular-nums; min-width:80px;">00:00 / 01:00</span>
-      <span style="font-size:10px; color:#8fa2c3; flex:1; text-align:right;">VR: Pull trigger to paint · Desktop: Shift + Drag to paint</span>
+      <span id="time-display" style="font-size:11px; font-variant-numeric:tabular-nums; min-width:85px;">00:00 / 01:00</span>
+      <span style="font-size:10px; color:#8fa2c3; flex:1; text-align:right;">Drag icons to Shapes track · Click blocks to inspect</span>
     </div>
   </div>
 
   <div id="hint">
-    <b>Environmental Snow:</b> 50 drones run autonomous ambient flurries.<br>
-    <b>Christmas Tree:</b> Gold Apex Star, Emerald Foliage, Brown Trunk, Red & Cyan Lights.
+    <b>Scrubbing:</b> Click/drag the red triangle handle or along the ruler.<br>
+    <b>Reordering:</b> Drag any block left/right to swap placement with its neighbor.<br>
+    <b>Painting:</b> Select a swatch, hold <b>Shift</b> + drag in 3D (Desktop) or squeeze trigger in VR.
   </div>
 </div>
 <div id="vr-tip">In VR: Press Left X for HUD · Trigger paints drones with active swatch</div>
@@ -301,6 +411,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { VRButton } from "three/addons/webxr/VRButton.js";
 import { SHAPE_PAGES, findShapeById } from "./shapes.js";
 
+// Top-Level Helper
 function formatTime(s) {
   if (isNaN(s) || s === undefined || s === null) return "00:00";
   const m = Math.floor(s / 60);
@@ -317,7 +428,6 @@ let formationScale = 1.0;
 const BASE_DRONE_SIZE = 0.55;
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 
-// Environmental Snow Layer State
 let isSnowEnabled = true;
 let snowDroneCount = 50;
 
@@ -331,7 +441,6 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-
 renderer.xr.enabled = true;
 renderer.xr.setFoveation(0.0);
 
@@ -404,7 +513,6 @@ const currentColors = new Float32Array(MAX_DRONES * 3);
 const targetColors = new Float32Array(MAX_DRONES * 3);
 const droneSwatchIndices = new Uint8Array(MAX_DRONES);
 
-// Initialize Snow Particle Buffers
 const snowPositions = new Float32Array(MAX_DRONES * 3);
 const snowDriftSeeds = new Float32Array(MAX_DRONES);
 for (let i = 0; i < MAX_DRONES; i++) {
@@ -476,7 +584,7 @@ const timelineData = {
   colorBlocks: [
     {
       id: "c0", dur: 20.0,
-      palette: ["#ffd700", "#00c853", "#8b4513", "#ff1744", "#00e5ff"], // Star, Tree, Trunk, Red Lights, Cyan Lights
+      palette: ["#ffd700", "#00c853", "#8b4513", "#ff1744", "#00e5ff"],
       activeSwatchIdx: 0,
       cycleSpeed: 0.0, run: false, runSpeed: 3.0,
       blink: false, blinkSpeed: 3.0,
@@ -507,9 +615,57 @@ const timelineData = {
 };
 
 let showAccessibilityLabels = false;
+let activeInspectorType = "shape"; // "shape" | "color" | "rotation"
 let selectedFormationBlockId = "f0";
 let selectedColorBlockId = "c0";
 let selectedRotationBlockId = "r0";
+
+// Multi-Level Undo Stack
+const undoStack = [];
+function saveUndoState() {
+  undoStack.push({
+    timeline: JSON.parse(JSON.stringify(timelineData)),
+    swatches: new Uint8Array(droneSwatchIndices),
+    selectedF: selectedFormationBlockId,
+    selectedC: selectedColorBlockId,
+    selectedR: selectedRotationBlockId
+  });
+  if (undoStack.length > 40) undoStack.shift();
+  updateUndoButton();
+}
+
+function updateUndoButton() {
+  const btn = document.getElementById("btn-undo");
+  if (btn) btn.disabled = (undoStack.length === 0);
+}
+
+function performUndo() {
+  if (undoStack.length === 0) return;
+  const state = undoStack.pop();
+  timelineData.formationBlocks = state.timeline.formationBlocks;
+  timelineData.colorBlocks = state.timeline.colorBlocks;
+  timelineData.rotationBlocks = state.timeline.rotationBlocks;
+  droneSwatchIndices.set(state.swatches);
+  selectedFormationBlockId = state.selectedF;
+  selectedColorBlockId = state.selectedC;
+  selectedRotationBlockId = state.selectedR;
+
+  recalculateTimelineDuration();
+  lastShapeA = null;
+  evaluateTimeline(playheadTime);
+  buildDesktopTimeline();
+  updateContextPanels();
+  updateUndoButton();
+  if (vrHUD.visible) renderHUD();
+}
+
+document.getElementById("btn-undo").onclick = performUndo;
+window.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+    e.preventDefault();
+    performUndo();
+  }
+});
 
 function recalculateTimelineDuration() {
   let formTotal = 0;
@@ -530,6 +686,7 @@ let lastShapeB = null;
 const tempColor = new THREE.Color();
 
 function applyAutoZoneColors() {
+  saveUndoState();
   const cb = timelineData.colorBlocks.find(x => x && x.id === selectedColorBlockId);
   if (!cb || cb.palette.length <= 1) return;
 
@@ -561,7 +718,6 @@ function applyLightingFX(block, timeSec) {
     tempColor.set(pal[swatchIdx]);
     r = tempColor.r; g = tempColor.g; b = tempColor.b;
 
-    // Glimmer on light swatches (3 & 4)
     if (swatchIdx === 3 || swatchIdx === 4) {
       const twinkle = Math.sin(timeSec * 6.0 + i * 2.3) * 0.35 + 0.85;
       r = Math.min(1, r * twinkle); g = Math.min(1, g * twinkle); b = Math.min(1, b * twinkle);
@@ -599,7 +755,6 @@ function getRotationAtTime(t) {
     if (t >= bStart && t <= bEnd) {
       const u = (t - bStart) / rb.dur;
       angleY += rb.dur * (v0y * u + 0.5 * (v1y - v0y) * u * u);
-      selectedRotationBlockId = rb.id;
       break;
     } else if (t > bEnd) {
       angleY += rb.dur * (0.5 * (v0y + v1y));
@@ -674,16 +829,13 @@ function evaluateTimeline(t) {
 
   if (lowestY < 1.5) {
     const lift = 1.5 - lowestY;
-    for (let i = 0; i < formationCount; i++) {
-      targetPositions[i * 3 + 1] += lift;
-    }
+    for (let i = 0; i < formationCount; i++) targetPositions[i * 3 + 1] += lift;
   }
 
   let colorT = 0;
   for (let i = 0; i < timelineData.colorBlocks.length; i++) {
     const cb = timelineData.colorBlocks[i];
     if (t >= colorT && t < colorT + cb.dur) {
-      selectedColorBlockId = cb.id;
       applyLightingFX(cb, t);
       break;
     }
@@ -708,12 +860,10 @@ const grabState = {
   anchorMid: new THREE.Vector3(), anchorDist: 1.0, anchorAngle: 0.0,
   anchorStagePos: new THREE.Vector3(), anchorStageScale: 1.0, anchorStageRotY: 0.0
 };
-
 const posL = new THREE.Vector3(), posR = new THREE.Vector3(), midCurr = new THREE.Vector3(), diffVec = new THREE.Vector3();
 
 function onGripChange() {
   const l = grabState.leftGrip, r = grabState.rightGrip;
-
   leftController.getWorldPosition(posL);
   rightController.getWorldPosition(posR);
 
@@ -745,7 +895,6 @@ rightController.addEventListener("squeezeend", () => { grabState.rightGrip = fal
 
 function updateWorldGrab() {
   if (!renderer.xr.isPresenting || grabState.mode === 'none') return;
-
   leftController.getWorldPosition(posL);
   rightController.getWorldPosition(posR);
 
@@ -835,9 +984,7 @@ function renderHUD() {
     ctx.lineWidth = 2;
     ctx.strokeRect(x, 82, 224, 96);
 
-    if (typeof s.drawCanvas === "function") {
-      s.drawCanvas(ctx, x + 112, 130);
-    }
+    if (typeof s.drawCanvas === "function") s.drawCanvas(ctx, x + 112, 130);
   }
 
   const activeColorBlock = timelineData.colorBlocks.find(b => b && b.id === selectedColorBlockId) || timelineData.colorBlocks[0];
@@ -854,7 +1001,6 @@ function renderHUD() {
     ctx.stroke();
   }
 
-  // Auto-Zone Button on HUD
   ctx.fillStyle = "#1b3864"; ctx.fillRect(480, 185, 140, 34);
   ctx.strokeStyle = "#70e6ff"; ctx.strokeRect(480, 185, 140, 34);
   ctx.fillStyle = "#fff"; ctx.font = "bold 13px system-ui"; ctx.textAlign = "center";
@@ -880,9 +1026,7 @@ function renderHUD() {
     ctx.strokeRect(curX, 335, fw, 34);
 
     const s = findShapeById(b.shapeId);
-    if (s && typeof s.drawCanvas === "function") {
-      s.drawCanvas(ctx, curX + fw / 2, 352);
-    }
+    if (s && typeof s.drawCanvas === "function") s.drawCanvas(ctx, curX + fw / 2, 352);
     curX += fw;
 
     if (b.transDur > 0) {
@@ -956,10 +1100,13 @@ function handleVRSelect(controller) {
       if (!s) return;
       const b = timelineData.formationBlocks.find(x => x && x.id === selectedFormationBlockId);
       if (b) {
+        saveUndoState();
         b.shapeId = s.id;
         lastShapeA = null;
         evaluateTimeline(playheadTime);
-        buildDesktopTimeline(); renderHUD();
+        buildDesktopTimeline();
+        updateContextPanels();
+        renderHUD();
       }
       return;
     }
@@ -986,6 +1133,7 @@ function handleVRSelect(controller) {
     const ratio = Math.max(0, Math.min(1, (px - 40) / 944));
     const hColor = new THREE.Color().setHSL(ratio, 1.0, 0.5);
     if (cb && cb.palette.length) {
+      saveUndoState();
       cb.palette[cb.activeSwatchIdx] = "#" + hColor.getHexString();
       syncDesktopPalette(); buildDesktopTimeline(); renderHUD();
     }
@@ -1024,58 +1172,146 @@ function checkHUDInput() {
 leftController.addEventListener("connected", e => leftController.userData.gamepad = e.data.gamepad);
 rightController.addEventListener("connected", e => rightController.userData.gamepad = e.data.gamepad);
 
-// DOM & Defensive Event Binding
+// DOM & Event Binding Helpers
 function $(id) { return document.getElementById(id); }
 function onEvent(id, event, handler) {
   const el = document.getElementById(id);
   if (el) el.addEventListener(event, handler);
 }
 
+// Global Scene Sliders
+onEvent("slider-altitude", "input", (e) => {
+  formationAltitude = parseFloat(e.target.value);
+  const el = $("val-altitude"); if (el) el.textContent = `${formationAltitude}m`;
+  evaluateTimeline(playheadTime);
+});
+onEvent("slider-fleet-count", "input", (e) => {
+  activeDroneCount = parseInt(e.target.value);
+  const el = $("val-fleet-count"); if (el) el.textContent = `${activeDroneCount} D`;
+  droneGeometry.setDrawRange(0, activeDroneCount);
+  lastShapeA = null; lastShapeB = null;
+  evaluateTimeline(playheadTime);
+});
 onEvent("chk-snow", "change", (e) => {
   isSnowEnabled = e.target.checked;
   lastShapeA = null;
   evaluateTimeline(playheadTime);
 });
-
 onEvent("slider-snow-count", "input", (e) => {
   snowDroneCount = parseInt(e.target.value);
-  const el = $("val-snow-count"); if (el) el.textContent = `${snowDroneCount} Snow Drones`;
+  const el = $("val-snow-count"); if (el) el.textContent = `${snowDroneCount} D`;
   lastShapeA = null;
   evaluateTimeline(playheadTime);
 });
 
-onEvent("slider-altitude", "input", (e) => {
-  formationAltitude = parseFloat(e.target.value);
-  const el = $("val-altitude"); if (el) el.textContent = `${formationAltitude}m Alt`;
-  evaluateTimeline(playheadTime);
+// Contextual Inspector Switcher
+function updateContextPanels() {
+  $("context-shape").classList.toggle("hidden", activeInspectorType !== "shape");
+  $("context-color").classList.toggle("hidden", activeInspectorType !== "color");
+  $("context-rotation").classList.toggle("hidden", activeInspectorType !== "rotation");
+
+  if (activeInspectorType === "shape") {
+    const curBlock = timelineData.formationBlocks.find(b => b.id === selectedFormationBlockId);
+    const s = curBlock ? findShapeById(curBlock.shapeId) : null;
+    if (s && $("inspector-shape-name")) $("inspector-shape-name").textContent = s.id;
+    populateDesktopIcons();
+  } else if (activeInspectorType === "color") {
+    syncDesktopPalette();
+  } else if (activeInspectorType === "rotation") {
+    syncDesktopRotation();
+  }
+}
+
+// Track Add / Remove Actions
+onEvent("btn-add-shape", "click", () => {
+  saveUndoState();
+  const id = "f" + Date.now();
+  timelineData.formationBlocks.push({ id, shapeId: "xmasTree", dur: 20.0, transDur: 4.0 });
+  selectedFormationBlockId = id;
+  activeInspectorType = "shape";
+  recalculateTimelineDuration();
+  buildDesktopTimeline();
+  updateContextPanels();
+  renderHUD();
+});
+onEvent("btn-del-shape", "click", () => {
+  if (timelineData.formationBlocks.length > 1) {
+    saveUndoState();
+    const idx = timelineData.formationBlocks.findIndex(b => b.id === selectedFormationBlockId);
+    if (idx !== -1) timelineData.formationBlocks.splice(idx, 1);
+    selectedFormationBlockId = timelineData.formationBlocks[Math.max(0, idx - 1)].id;
+    recalculateTimelineDuration();
+    lastShapeA = null;
+    evaluateTimeline(playheadTime);
+    buildDesktopTimeline();
+    updateContextPanels();
+    renderHUD();
+  }
 });
 
-onEvent("slider-formation-scale", "input", (e) => {
-  formationScale = parseFloat(e.target.value);
-  const el = $("val-formation-scale"); if (el) el.textContent = `${formationScale.toFixed(1)}x`;
-  evaluateTimeline(playheadTime);
+onEvent("btn-add-color-block", "click", () => {
+  saveUndoState();
+  const id = "c" + Date.now();
+  timelineData.colorBlocks.push({
+    id, dur: 20.0,
+    palette: ["#70e6ff", "#ff0055"],
+    activeSwatchIdx: 0,
+    cycleSpeed: 1.0, run: false, runSpeed: 3.0,
+    blink: false, blinkSpeed: 3.0,
+    sparkle: false, sparkleDensity: 0.35
+  });
+  selectedColorBlockId = id;
+  activeInspectorType = "color";
+  recalculateTimelineDuration();
+  buildDesktopTimeline();
+  updateContextPanels();
+  renderHUD();
+});
+onEvent("btn-del-color-block", "click", () => {
+  if (timelineData.colorBlocks.length > 1) {
+    saveUndoState();
+    const idx = timelineData.colorBlocks.findIndex(b => b.id === selectedColorBlockId);
+    if (idx !== -1) timelineData.colorBlocks.splice(idx, 1);
+    selectedColorBlockId = timelineData.colorBlocks[Math.max(0, idx - 1)].id;
+    recalculateTimelineDuration();
+    buildDesktopTimeline();
+    updateContextPanels();
+    renderHUD();
+  }
 });
 
-onEvent("slider-fleet-count", "input", (e) => {
-  activeDroneCount = parseInt(e.target.value);
-  const el = $("val-fleet-count"); if (el) el.textContent = `${activeDroneCount} Drones`;
-  droneGeometry.setDrawRange(0, activeDroneCount);
-  lastShapeA = null; lastShapeB = null;
-  evaluateTimeline(playheadTime);
+onEvent("btn-add-rot-block", "click", () => {
+  saveUndoState();
+  const id = "r" + Date.now();
+  timelineData.rotationBlocks.push({ id, dur: 20.0, startX: 0, endX: 0, startY: 0, endY: 60, startZ: 0, endZ: 0 });
+  selectedRotationBlockId = id;
+  activeInspectorType = "rotation";
+  recalculateTimelineDuration();
+  buildDesktopTimeline();
+  updateContextPanels();
+  renderHUD();
+});
+onEvent("btn-del-rot-block", "click", () => {
+  if (timelineData.rotationBlocks.length > 1) {
+    saveUndoState();
+    const idx = timelineData.rotationBlocks.findIndex(b => b.id === selectedRotationBlockId);
+    if (idx !== -1) timelineData.rotationBlocks.splice(idx, 1);
+    selectedRotationBlockId = timelineData.rotationBlocks[Math.max(0, idx - 1)].id;
+    recalculateTimelineDuration();
+    buildDesktopTimeline();
+    updateContextPanels();
+    renderHUD();
+  }
 });
 
-onEvent("btn-auto-zone", "click", () => {
-  applyAutoZoneColors();
-  evaluateTimeline(playheadTime);
-});
-
+// Shape Library Pagination & Draggable Grid
 const pageTabs = $("page-tabs");
 if (pageTabs) {
   const totalPages = Math.max(1, SHAPE_PAGES.length);
   for (let p = 0; p < totalPages; p++) {
     const b = document.createElement("button");
     b.className = "page-btn" + (p === 0 ? " active" : "");
-    b.textContent = String(p + 1);
+    b.textContent = "Pack " + (p + 1);
     b.onclick = () => {
       document.querySelectorAll(".page-btn").forEach(btn => btn.classList.remove("active"));
       b.classList.add("active");
@@ -1098,21 +1334,81 @@ function populateDesktopIcons() {
     if (!s) continue;
     const btn = document.createElement("button");
     btn.className = "symbol-btn" + (activeFormation?.shapeId === s.id ? " active" : "");
-    btn.innerHTML = `<svg viewBox="0 0 24 24">${s.drawSVG || ""}</svg>`;
+    btn.draggable = true;
+    btn.innerHTML = `<svg viewBox="0 0 24 24">${s.drawSVG || ""}</svg><span>${s.id}</span>`;
+
+    // Click to assign to currently selected block
     btn.onclick = () => {
       if (activeFormation) {
+        saveUndoState();
         activeFormation.shapeId = s.id;
         lastShapeA = null;
         evaluateTimeline(playheadTime);
         buildDesktopTimeline();
-        populateDesktopIcons();
+        updateContextPanels();
         renderHUD();
       }
     };
+
+    // Drag-and-drop to insert into timeline
+    btn.addEventListener("dragstart", (e) => {
+      e.dataTransfer.setData("text/plain", s.id);
+      e.dataTransfer.effectAllowed = "copy";
+    });
+
     container.appendChild(btn);
   }
 }
 
+// Drag & Drop Shape into Lane
+const laneShapesEl = $("lane-shapes");
+laneShapesEl.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  laneShapesEl.classList.add("dragover");
+  e.dataTransfer.dropEffect = "copy";
+});
+laneShapesEl.addEventListener("dragleave", () => {
+  laneShapesEl.classList.remove("dragover");
+});
+laneShapesEl.addEventListener("drop", (e) => {
+  e.preventDefault();
+  laneShapesEl.classList.remove("dragover");
+  const shapeId = e.dataTransfer.getData("text/plain");
+  if (!shapeId) return;
+
+  saveUndoState();
+  const rect = laneShapesEl.getBoundingClientRect();
+  const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  const dropTime = ratio * TOTAL_DURATION;
+
+  // Insert a new 20s block at dropped timeline position
+  const id = "f" + Date.now();
+  let insertIdx = timelineData.formationBlocks.length;
+  let accumT = 0;
+  for (let i = 0; i < timelineData.formationBlocks.length; i++) {
+    const b = timelineData.formationBlocks[i];
+    if (dropTime <= accumT + b.dur / 2) {
+      insertIdx = i;
+      break;
+    }
+    accumT += b.dur + (b.transDur || 0);
+  }
+
+  timelineData.formationBlocks.splice(insertIdx, 0, {
+    id, shapeId, dur: 20.0, transDur: 4.0
+  });
+
+  selectedFormationBlockId = id;
+  activeInspectorType = "shape";
+  recalculateTimelineDuration();
+  lastShapeA = null;
+  evaluateTimeline(playheadTime);
+  buildDesktopTimeline();
+  updateContextPanels();
+  renderHUD();
+});
+
+// Color Palette Sync
 function syncDesktopPalette() {
   const cb = timelineData.colorBlocks.find(x => x && x.id === selectedColorBlockId);
   if (!cb) return;
@@ -1134,33 +1430,65 @@ function syncDesktopPalette() {
   const activeHex = cb.palette[cb.activeSwatchIdx] || "#ffffff";
   paintMeshL.material.color.set(activeHex);
   paintMeshR.material.color.set(activeHex);
+
+  $("slider-cycle-speed").value = cb.cycleSpeed;
+  $("val-cycle-speed").textContent = cb.cycleSpeed.toFixed(1) + "x";
+  $("chk-run").checked = Boolean(cb.run);
+  $("chk-blink").checked = Boolean(cb.blink);
+  $("chk-sparkle").checked = Boolean(cb.sparkle);
 }
 
 onEvent("btn-add-color", "click", () => {
   const cb = timelineData.colorBlocks.find(x => x && x.id === selectedColorBlockId);
   if (cb && cb.palette.length < 5) {
+    saveUndoState();
     cb.palette.push("#ffffff");
     cb.activeSwatchIdx = cb.palette.length - 1;
     syncDesktopPalette(); buildDesktopTimeline(); renderHUD();
   }
 });
-
 onEvent("btn-del-color", "click", () => {
   const cb = timelineData.colorBlocks.find(x => x && x.id === selectedColorBlockId);
   if (cb && cb.palette.length > 1) {
+    saveUndoState();
     cb.palette.splice(cb.activeSwatchIdx, 1);
     cb.activeSwatchIdx = Math.max(0, cb.activeSwatchIdx - 1);
     syncDesktopPalette(); buildDesktopTimeline(); renderHUD();
   }
 });
+onEvent("btn-auto-zone", "click", () => {
+  applyAutoZoneColors();
+  evaluateTimeline(playheadTime);
+});
 
+const specBar = $("desktop-spectrum");
+if (specBar) {
+  function handleSpectrum(e) {
+    const rect = specBar.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const hex = "#" + new THREE.Color().setHSL(ratio, 1.0, 0.5).getHexString();
+    const cb = timelineData.colorBlocks.find(x => x && x.id === selectedColorBlockId);
+    if (cb && cb.palette.length) {
+      cb.palette[cb.activeSwatchIdx] = hex;
+      syncDesktopPalette(); buildDesktopTimeline(); renderHUD();
+    }
+  }
+  specBar.onmousedown = e => {
+    saveUndoState();
+    handleSpectrum(e);
+    window.onmousemove = handleSpectrum;
+    window.onmouseup = () => window.onmousemove = null;
+  };
+}
+
+// Rotation Sync
 function syncDesktopRotation() {
   const rb = timelineData.rotationBlocks.find(r => r && r.id === selectedRotationBlockId);
   if (!rb) return;
-  const sy = $("rot-start-y"), ey = $("rot-end-y"), vy = $("val-rot-y");
-  if (sy && ey && vy) { sy.value = rb.startY; ey.value = rb.endY; vy.textContent = `${rb.startY}→${rb.endY}°/s`; }
+  $("rot-start-y").value = rb.startY;
+  $("rot-end-y").value = rb.endY;
+  $("val-rot-y").textContent = `${rb.startY}→${rb.endY}°/s`;
 }
-
 onEvent("rot-start-y", "input", (e) => {
   const rb = timelineData.rotationBlocks.find(r => r && r.id === selectedRotationBlockId);
   if (rb) { rb.startY = parseInt(e.target.value); syncDesktopRotation(); renderHUD(); }
@@ -1170,10 +1498,12 @@ onEvent("rot-end-y", "input", (e) => {
   if (rb) { rb.endY = parseInt(e.target.value); syncDesktopRotation(); renderHUD(); }
 });
 
+// Block Resizing
 function attachResizeHandle(handleEl, blockObj, getTrackWidth) {
   let isDragging = false, startX = 0, origDur = 0;
   handleEl.onpointerdown = (e) => {
     e.stopPropagation(); e.preventDefault();
+    saveUndoState();
     isDragging = true; startX = e.clientX; origDur = blockObj.dur;
     handleEl.setPointerCapture(e.pointerId);
   };
@@ -1192,117 +1522,207 @@ function attachResizeHandle(handleEl, blockObj, getTrackWidth) {
   };
 }
 
+// Block Reordering via Drag
+function attachBlockReorder(blockEl, list, index) {
+  blockEl.draggable = true;
+  blockEl.addEventListener("dragstart", (e) => {
+    e.stopPropagation();
+    e.dataTransfer.setData("application/json", JSON.stringify({ trackListType: blockEl.dataset.trackType, index }));
+    blockEl.classList.add("dragging");
+  });
+  blockEl.addEventListener("dragend", () => {
+    blockEl.classList.remove("dragging");
+  });
+  blockEl.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  });
+  blockEl.addEventListener("drop", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      const data = JSON.parse(e.dataTransfer.getData("application/json"));
+      if (data.trackListType === blockEl.dataset.trackType && data.index !== index) {
+        saveUndoState();
+        const movedItem = list.splice(data.index, 1)[0];
+        list.splice(index, 0, movedItem);
+        lastShapeA = null;
+        evaluateTimeline(playheadTime);
+        buildDesktopTimeline();
+        updateContextPanels();
+        renderHUD();
+      }
+    } catch (_) {}
+  });
+}
+
+// Timeline Rendering & Grabbable Scrubbing Needle
 function buildDesktopTimeline() {
   const ruler = $("master-ruler");
-  if (ruler) {
-    ruler.innerHTML = "";
-    const step = TOTAL_DURATION <= 60 ? 10 : 20;
-    for (let s = 0; s <= TOTAL_DURATION; s += step) {
-      const m = document.createElement("div");
-      m.className = "ruler-marker";
-      m.style.left = (s / TOTAL_DURATION) * 100 + "%";
-      m.textContent = s + "s";
-      ruler.appendChild(m);
-    }
-    ruler.onpointerdown = (e) => {
-      const rect = ruler.getBoundingClientRect();
-      playheadTime = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * TOTAL_DURATION;
-      evaluateTimeline(playheadTime); syncDesktopTimeline(); renderHUD();
-    };
+  ruler.innerHTML = "";
+  const step = TOTAL_DURATION <= 60 ? 10 : 20;
+  for (let s = 0; s <= TOTAL_DURATION; s += step) {
+    const m = document.createElement("div");
+    m.className = "ruler-marker";
+    m.style.left = (s / TOTAL_DURATION) * 100 + "%";
+    m.textContent = s + "s";
+    ruler.appendChild(m);
   }
 
+  // Shapes Lane
   const laneShapes = $("lane-shapes");
-  if (laneShapes) {
-    laneShapes.innerHTML = "";
-    for (const b of timelineData.formationBlocks) {
-      if (!b) continue;
-      const s = findShapeById(b.shapeId);
-      const fBlock = document.createElement("div");
-      fBlock.className = "block-element" + (selectedFormationBlockId === b.id ? " active-block" : "");
-      fBlock.style.width = (b.dur / TOTAL_DURATION) * 100 + "%";
-      fBlock.style.background = "#1b3353";
-      fBlock.innerHTML = `<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#70e6ff;fill:none;">${s ? (s.drawSVG || "") : ""}</svg>`;
-      fBlock.onclick = () => {
-        selectedFormationBlockId = b.id;
-        buildDesktopTimeline(); populateDesktopIcons(); renderHUD();
-      };
-      const handle = document.createElement("div");
-      handle.className = "resize-handle";
-      attachResizeHandle(handle, b, () => laneShapes.clientWidth);
-      fBlock.appendChild(handle);
-      laneShapes.appendChild(fBlock);
+  laneShapes.innerHTML = "";
+  for (let i = 0; i < timelineData.formationBlocks.length; i++) {
+    const b = timelineData.formationBlocks[i];
+    const s = findShapeById(b.shapeId);
+    const fBlock = document.createElement("div");
+    fBlock.className = "block-element" + (selectedFormationBlockId === b.id ? " active-block" : "");
+    fBlock.dataset.trackType = "formation";
+    fBlock.style.width = (b.dur / TOTAL_DURATION) * 100 + "%";
+    fBlock.style.background = "#1b3353";
+    fBlock.innerHTML = `<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#70e6ff;fill:none;">${s ? (s.drawSVG || "") : ""}</svg>`;
+    
+    fBlock.onclick = (e) => {
+      e.stopPropagation();
+      selectedFormationBlockId = b.id;
+      activeInspectorType = "shape";
+      buildDesktopTimeline();
+      updateContextPanels();
+    };
 
-      if (b.transDur > 0) {
-        const tBlock = document.createElement("div");
-        tBlock.className = "block-element transition-block";
-        tBlock.style.width = (b.transDur / TOTAL_DURATION) * 100 + "%";
-        laneShapes.appendChild(tBlock);
-      }
+    attachBlockReorder(fBlock, timelineData.formationBlocks, i);
+    const handle = document.createElement("div");
+    handle.className = "resize-handle";
+    attachResizeHandle(handle, b, () => laneShapes.clientWidth);
+    fBlock.appendChild(handle);
+    laneShapes.appendChild(fBlock);
+
+    if (b.transDur > 0) {
+      const tBlock = document.createElement("div");
+      tBlock.className = "block-element transition-block";
+      tBlock.style.width = (b.transDur / TOTAL_DURATION) * 100 + "%";
+      laneShapes.appendChild(tBlock);
     }
   }
 
+  // Colors Lane
   const laneColors = $("lane-colors");
-  if (laneColors) {
-    laneColors.innerHTML = "";
-    for (const cb of timelineData.colorBlocks) {
-      if (!cb) continue;
-      const cBlock = document.createElement("div");
-      cBlock.className = "block-element" + (selectedColorBlockId === cb.id ? " active-block" : "");
-      cBlock.style.width = (cb.dur / TOTAL_DURATION) * 100 + "%";
-      if (cb.palette.length > 1) {
-        cBlock.style.background = `linear-gradient(to right, ${cb.palette.join(", ")})`;
-      } else {
-        cBlock.style.background = cb.palette[0] || "#fff";
-      }
-      cBlock.onclick = () => {
-        selectedColorBlockId = cb.id;
-        syncDesktopPalette(); buildDesktopTimeline(); renderHUD();
-      };
-      const handle = document.createElement("div");
-      handle.className = "resize-handle";
-      attachResizeHandle(handle, cb, () => laneColors.clientWidth);
-      cBlock.appendChild(handle);
-      laneColors.appendChild(cBlock);
+  laneColors.innerHTML = "";
+  for (let i = 0; i < timelineData.colorBlocks.length; i++) {
+    const cb = timelineData.colorBlocks[i];
+    const cBlock = document.createElement("div");
+    cBlock.className = "block-element" + (selectedColorBlockId === cb.id ? " active-block" : "");
+    cBlock.dataset.trackType = "color";
+    cBlock.style.width = (cb.dur / TOTAL_DURATION) * 100 + "%";
+    if (cb.palette.length > 1) {
+      cBlock.style.background = `linear-gradient(to right, ${cb.palette.join(", ")})`;
+    } else {
+      cBlock.style.background = cb.palette[0] || "#fff";
     }
+
+    cBlock.onclick = (e) => {
+      e.stopPropagation();
+      selectedColorBlockId = cb.id;
+      activeInspectorType = "color";
+      buildDesktopTimeline();
+      updateContextPanels();
+    };
+
+    attachBlockReorder(cBlock, timelineData.colorBlocks, i);
+    const handle = document.createElement("div");
+    handle.className = "resize-handle";
+    attachResizeHandle(handle, cb, () => laneColors.clientWidth);
+    cBlock.appendChild(handle);
+    laneColors.appendChild(cBlock);
   }
 
+  // Rotation Lane
   const laneRot = $("lane-rotation");
-  if (laneRot) {
-    laneRot.innerHTML = "";
-    for (const rb of timelineData.rotationBlocks) {
-      if (!rb) continue;
-      const rBlock = document.createElement("div");
-      rBlock.className = "block-element" + (selectedRotationBlockId === rb.id ? " active-block" : "");
-      rBlock.style.width = (rb.dur / TOTAL_DURATION) * 100 + "%";
-      rBlock.style.background = "#24173d";
-      rBlock.style.color = "#d8c5ff";
-      rBlock.textContent = `${rb.startY}→${rb.endY}°/s`;
-      rBlock.onclick = () => {
-        selectedRotationBlockId = rb.id;
-        syncDesktopRotation(); buildDesktopTimeline(); renderHUD();
-      };
-      const handle = document.createElement("div");
-      handle.className = "resize-handle";
-      attachResizeHandle(handle, rb, () => laneRot.clientWidth);
-      rBlock.appendChild(handle);
-      laneRot.appendChild(rBlock);
-    }
+  laneRot.innerHTML = "";
+  for (let i = 0; i < timelineData.rotationBlocks.length; i++) {
+    const rb = timelineData.rotationBlocks[i];
+    const rBlock = document.createElement("div");
+    rBlock.className = "block-element" + (selectedRotationBlockId === rb.id ? " active-block" : "");
+    rBlock.dataset.trackType = "rotation";
+    rBlock.style.width = (rb.dur / TOTAL_DURATION) * 100 + "%";
+    rBlock.style.background = "#24173d";
+    rBlock.style.color = "#d8c5ff";
+    rBlock.textContent = `${rb.startY}→${rb.endY}°`;
+
+    rBlock.onclick = (e) => {
+      e.stopPropagation();
+      selectedRotationBlockId = rb.id;
+      activeInspectorType = "rotation";
+      buildDesktopTimeline();
+      updateContextPanels();
+    };
+
+    attachBlockReorder(rBlock, timelineData.rotationBlocks, i);
+    const handle = document.createElement("div");
+    handle.className = "resize-handle";
+    attachResizeHandle(handle, rb, () => laneRot.clientWidth);
+    rBlock.appendChild(handle);
+    laneRot.appendChild(rBlock);
   }
 
   syncDesktopTimeline();
 }
 
 function syncDesktopTimeline() {
-  const playhead = $("playhead-line");
-  const lane = $("master-ruler");
-  if (lane && playhead) {
-    const leftOffset = 78;
-    const xPos = leftOffset + (playheadTime / TOTAL_DURATION) * lane.clientWidth;
-    playhead.style.left = `${xPos}px`;
+  const needle = $("playhead-needle");
+  if (needle) {
+    const percent = THREE.MathUtils.clamp((playheadTime / TOTAL_DURATION) * 100, 0, 100);
+    needle.style.left = `${percent}%`;
   }
   const disp = $("time-display");
   if (disp) disp.textContent = `${formatTime(playheadTime)} / ${formatTime(TOTAL_DURATION)}`;
 }
+
+// Unified Scrubbing Handler across Handle and Ruler
+const lanesArea = $("timeline-lanes-area");
+let isScrubbing = false;
+
+function scrubFromClientX(clientX) {
+  const rect = lanesArea.getBoundingClientRect();
+  const ratio = THREE.MathUtils.clamp((clientX - rect.left) / rect.width, 0, 1);
+  playheadTime = ratio * TOTAL_DURATION;
+  evaluateTimeline(playheadTime);
+  syncDesktopTimeline();
+  if (vrHUD.visible) renderHUD();
+}
+
+const rulerEl = $("master-ruler");
+rulerEl.onpointerdown = (e) => {
+  e.preventDefault();
+  isScrubbing = true;
+  rulerEl.setPointerCapture(e.pointerId);
+  scrubFromClientX(e.clientX);
+};
+rulerEl.onpointermove = (e) => {
+  if (isScrubbing) scrubFromClientX(e.clientX);
+};
+rulerEl.onpointerup = (e) => {
+  if (isScrubbing) {
+    isScrubbing = false;
+    rulerEl.releasePointerCapture(e.pointerId);
+  }
+};
+
+const handleEl = $("playhead-handle");
+handleEl.onpointerdown = (e) => {
+  e.preventDefault(); e.stopPropagation();
+  isScrubbing = true;
+  handleEl.setPointerCapture(e.pointerId);
+};
+handleEl.onpointermove = (e) => {
+  if (isScrubbing) scrubFromClientX(e.clientX);
+};
+handleEl.onpointerup = (e) => {
+  if (isScrubbing) {
+    isScrubbing = false;
+    handleEl.releasePointerCapture(e.pointerId);
+  }
+};
 
 onEvent("btn-play", "click", () => {
   isPlaying = !isPlaying;
@@ -1310,26 +1730,7 @@ onEvent("btn-play", "click", () => {
   renderHUD();
 });
 
-const specBar = $("desktop-spectrum");
-if (specBar) {
-  function handleSpectrum(e) {
-    const rect = specBar.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const hex = "#" + new THREE.Color().setHSL(ratio, 1.0, 0.5).getHexString();
-    const cb = timelineData.colorBlocks.find(x => x && x.id === selectedColorBlockId);
-    if (cb && cb.palette.length) {
-      cb.palette[cb.activeSwatchIdx] = hex;
-      syncDesktopPalette(); buildDesktopTimeline(); renderHUD();
-    }
-  }
-  specBar.onmousedown = e => {
-    handleSpectrum(e);
-    window.onmousemove = handleSpectrum;
-    window.onmouseup = () => window.onmousemove = null;
-  };
-}
-
-// DESKTOP INTERACTIVE PAINT BRUSH (Shift + Click/Drag)
+// Desktop Shift + Drag Painting
 const desktopRaycaster = new THREE.Raycaster();
 desktopRaycaster.params.Points.threshold = 1.4;
 const mouse = new THREE.Vector2();
@@ -1356,36 +1757,33 @@ function paintDroneAtMouse(e) {
 
 window.addEventListener("pointerdown", paintDroneAtMouse);
 window.addEventListener("pointermove", (e) => {
-  if (e.buttons === 1) paintDroneAtMouse(e);
+  if (e.buttons === 1 && e.shiftKey) paintDroneAtMouse(e);
 });
 
+// Initial Boot
 populateDesktopIcons();
-syncDesktopPalette();
-syncDesktopRotation();
+updateContextPanels();
 buildDesktopTimeline();
+updateUndoButton();
 
 // WebXR Session Management
 renderer.xr.addEventListener("sessionstart", () => {
   document.body.classList.add("xr-active");
   renderer.xr.setFoveation(0.0);
-
   xrRig.position.set(0, 0, 38);
   xrRig.rotation.set(0, 0, 0);
-
   vrHUD.visible = false;
   for (const ray of controllerRays) ray.visible = false;
 });
-
 renderer.xr.addEventListener("sessionend", () => {
   document.body.classList.remove("xr-active");
   vrHUD.visible = false;
   for (const ray of controllerRays) ray.visible = false;
 });
 
-// Simulation Loop & Autonomous Snow Flurry Engine
+// Simulation Loop
 const SPRING = 18.0;
 const DAMPING = 5.5;
-
 const cPosWorldL = new THREE.Vector3();
 const cPosWorldR = new THREE.Vector3();
 const cPosLocalL = new THREE.Vector3();
@@ -1411,11 +1809,10 @@ renderer.setAnimationLoop(now => {
 
     leftController.getWorldPosition(cPosWorldL);
     rightController.getWorldPosition(cPosWorldR);
-
     stageGroup.worldToLocal(cPosLocalL.copy(cPosWorldL));
     stageGroup.worldToLocal(cPosLocalR.copy(cPosWorldR));
 
-    // VR Swarm Spray Painting
+    // In-VR Swarm Spray Painting
     const cb = timelineData.colorBlocks.find(x => x && x.id === selectedColorBlockId);
     if (cb && !vrHUD.visible) {
       const activeIdx = cb.activeSwatchIdx;
@@ -1427,9 +1824,7 @@ renderer.setAnimationLoop(now => {
           const dx = currentPositions[i * 3] - cPosLocalL.x;
           const dy = currentPositions[i * 3 + 1] - cPosLocalL.y;
           const dz = currentPositions[i * 3 + 2] - cPosLocalL.z;
-          if (dx * dx + dy * dy + dz * dz < brushRadiusSq) {
-            droneSwatchIndices[i] = activeIdx;
-          }
+          if (dx * dx + dy * dy + dz * dz < brushRadiusSq) droneSwatchIndices[i] = activeIdx;
         }
       }
       if (isTriggerDownR) {
@@ -1437,9 +1832,7 @@ renderer.setAnimationLoop(now => {
           const dx = currentPositions[i * 3] - cPosLocalR.x;
           const dy = currentPositions[i * 3 + 1] - cPosLocalR.y;
           const dz = currentPositions[i * 3 + 2] - cPosLocalR.z;
-          if (dx * dx + dy * dy + dz * dz < brushRadiusSq) {
-            droneSwatchIndices[i] = activeIdx;
-          }
+          if (dx * dx + dy * dy + dz * dz < brushRadiusSq) droneSwatchIndices[i] = activeIdx;
         }
       }
     }
@@ -1449,7 +1842,7 @@ renderer.setAnimationLoop(now => {
 
   const formationCount = isSnowEnabled ? Math.max(50, activeDroneCount - snowDroneCount) : activeDroneCount;
 
-  // 1. Update Primary Formation Drones
+  // 1. Formation Drone Physics
   for (let i = 0; i < formationCount; i++) {
     const idx = i * 3;
     let px = currentPositions[idx], py = currentPositions[idx + 1], pz = currentPositions[idx + 2];
@@ -1471,7 +1864,7 @@ renderer.setAnimationLoop(now => {
     currentColors[idx + 2] += (targetColors[idx + 2] - currentColors[idx + 2]) * 8.0 * dt;
   }
 
-  // 2. Autonomous Snow Particle Simulation (Drones formationCount to activeDroneCount - 1)
+  // 2. Autonomous Snow Flurries
   if (isSnowEnabled) {
     const snowFallSpeed = 2.4;
     const timeSec = now / 1000;
@@ -1480,12 +1873,10 @@ renderer.setAnimationLoop(now => {
       const idx = i * 3;
       const seed = snowDriftSeeds[i];
 
-      // Downward velocity with harmonic drift
       snowPositions[idx + 1] -= snowFallSpeed * dt;
       snowPositions[idx]     += Math.sin(timeSec * 1.5 + seed) * 0.8 * dt;
       snowPositions[idx + 2] += Math.cos(timeSec * 1.2 + seed) * 0.8 * dt;
 
-      // Wrap-around ground plane (1.5m) back to top (32m)
       if (snowPositions[idx + 1] < 1.5) {
         snowPositions[idx + 1] = 32.0;
         snowPositions[idx]     = (Math.random() - 0.5) * 36;
@@ -1496,7 +1887,6 @@ renderer.setAnimationLoop(now => {
       currentPositions[idx + 1] = snowPositions[idx + 1];
       currentPositions[idx + 2] = snowPositions[idx + 2];
 
-      // Pure Ice White with gentle glimmer twinkle
       const glimmer = Math.sin(timeSec * 8.0 + seed * 5.0) > 0.4 ? 1.0 : 0.65;
       currentColors[idx]     = glimmer;
       currentColors[idx + 1] = glimmer;
