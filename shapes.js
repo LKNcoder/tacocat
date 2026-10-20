@@ -70,39 +70,93 @@ export const SHAPE_PAGES = [
   [
     {
       id: "xmasTree",
-      drawSVG: `<polygon points="12,2 15,7 13,7 17,13 14,13 19,19 5,19 10,13 7,13 11,7 9,7" stroke-width="1.5"/><rect x="10.5" y="19" width="3" height="3" stroke-width="1.5"/>`,
+      drawSVG: `<polygon points="12,1 13,3 15,3 13.5,4.5 14,6.5 12,5 10,6.5 10.5,4.5 9,3 11,3" fill="#70e6ff"/><polygon points="12,6 15,10 13.5,10 17,14 15,14 19,19 5,19 9,14 7,14 10.5,10 9,10" stroke-width="1.5"/><rect x="10.5" y="19" width="3" height="4" stroke-width="1.5"/>`,
       drawCanvas: (ctx, cx, cy) => {
         ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2.5; ctx.beginPath();
-        ctx.moveTo(cx, cy - 24); ctx.lineTo(cx + 8, cy - 14); ctx.lineTo(cx + 4, cy - 14);
-        ctx.lineTo(cx + 14, cy - 2); ctx.lineTo(cx + 8, cy - 2);
-        ctx.lineTo(cx + 20, cy + 14); ctx.lineTo(cx - 20, cy + 14);
-        ctx.lineTo(cx - 8, cy - 2); ctx.lineTo(cx - 14, cy - 2);
-        ctx.lineTo(cx - 4, cy - 14); ctx.lineTo(cx - 8, cy - 14); ctx.closePath();
-        ctx.strokeRect(cx - 4, cy + 14, 8, 8); ctx.stroke();
-      },
-      gen: (out, n) => sampleSVGString("M 100 20 L 130 60 L 115 60 L 150 110 L 125 110 L 170 170 L 30 170 L 75 110 L 50 110 L 85 60 L 70 60 Z M 88 170 L 88 200 L 112 200 L 112 170 Z", out, n, 0.22, 14)
-    },
-    {
-      id: "snowflake",
-      drawSVG: `<line x1="12" y1="2" x2="12" y2="22" stroke-width="1.5"/><line x1="2" y1="12" x2="22" y2="12" stroke-width="1.5"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1" stroke-width="1.5"/><line x1="4.9" y1="19.1" x2="19.1" y2="4.9" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2.5;
-        for (let i = 0; i < 6; i++) {
-          const a = (i / 6) * Math.PI * 2;
-          ctx.beginPath();
-          ctx.moveTo(cx, cy);
-          ctx.lineTo(cx + Math.cos(a) * 24, cy + Math.sin(a) * 24);
-          ctx.stroke();
+        // Star on top
+        ctx.fillStyle = "#ffd700";
+        ctx.beginPath();
+        for (let i = 0; i < 5; i++) {
+          const a = (i * Math.PI * 2) / 5 - Math.PI / 2;
+          const aInner = a + Math.PI / 5;
+          const ox = cx + Math.cos(a) * 6, oy = (cy - 24) + Math.sin(a) * 6;
+          const ix = cx + Math.cos(aInner) * 2.5, iy = (cy - 24) + Math.sin(aInner) * 2.5;
+          if (i === 0) ctx.moveTo(ox, oy); else ctx.lineTo(ox, oy);
+          ctx.lineTo(ix, iy);
         }
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+
+        // 3 Tier Cones
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 18); ctx.lineTo(cx + 8, cy - 10); ctx.lineTo(cx + 5, cy - 10);
+        ctx.lineTo(cx + 14, cy - 1); ctx.lineTo(cx + 9, cy - 1);
+        ctx.lineTo(cx + 20, cy + 14); ctx.lineTo(cx - 20, cy + 14);
+        ctx.lineTo(cx - 9, cy - 1); ctx.lineTo(cx - 14, cy - 1);
+        ctx.lineTo(cx - 5, cy - 10); ctx.lineTo(cx - 8, cy - 10); ctx.closePath();
+        ctx.strokeRect(cx - 3.5, cy + 14, 7, 8); ctx.stroke();
       },
-      gen: (out, n) => {
-        for (let i = 0; i < n; i++) {
-          const arm = i % 6;
-          const a = (arm / 6) * Math.PI * 2;
-          const dist = ((Math.floor(i / 6) % 15) / 15) * 14;
-          out[i * 3] = Math.cos(a) * dist;
-          out[i * 3 + 1] = 14 + Math.sin(a) * dist;
-          out[i * 3 + 2] = (i % 2 === 0 ? 1 : -1) * 1.0;
+      gen: (out, n, swatchOut) => {
+        // 1. Drone Allocation: Star ~7%, Trunk ~12%, Foliage Cones ~81%
+        const starCount = Math.max(12, Math.round(n * 0.07));
+        const trunkCount = Math.max(16, Math.round(n * 0.12));
+        const foliageCount = n - starCount - trunkCount;
+
+        let ptr = 0;
+
+        // --- PART 1: 3D Apex Star (Swatch 0: Gold) ---
+        const starCenterY = 24.5;
+        const starR = 2.0;
+        for (let i = 0; i < starCount; i++) {
+          const angle = (i / starCount) * Math.PI * 4;
+          const isTip = i % 2 === 0;
+          const r = isTip ? starR : starR * 0.45;
+          const zDepth = (i % 3 === 0 ? 0.7 : -0.7) * (1 - (r / starR) * 0.5);
+
+          out[ptr * 3]     = Math.cos(angle) * r;
+          out[ptr * 3 + 1] = starCenterY + Math.sin(angle) * r;
+          out[ptr * 3 + 2] = zDepth;
+          if (swatchOut) swatchOut[ptr] = 0; // Gold Star
+          ptr++;
+        }
+
+        // --- PART 2: 3 Volumetric Conical Tiers (Swatch 1: Emerald Foliage) ---
+        const tiers = [
+          { count: Math.round(foliageCount * 0.25), yBase: 17.5, h: 6.5, rBase: 4.2 }, // Top Cone
+          { count: Math.round(foliageCount * 0.35), yBase: 12.0, h: 7.5, rBase: 7.2 }, // Mid Cone
+          { count: foliageCount - Math.round(foliageCount * 0.25) - Math.round(foliageCount * 0.35), yBase: 6.5, h: 8.5, rBase: 10.2 } // Bottom Cone
+        ];
+
+        for (const tier of tiers) {
+          for (let i = 0; i < tier.count; i++) {
+            // Square root distribution for uniform surface area density
+            const v = Math.sqrt((i + 0.5) / tier.count);
+            const y = tier.yBase + v * tier.h;
+            const r = tier.rBase * (1.0 - v * 0.92);
+            const theta = i * GOLDEN;
+
+            out[ptr * 3]     = Math.cos(theta) * r;
+            out[ptr * 3 + 1] = y;
+            out[ptr * 3 + 2] = Math.sin(theta) * r;
+            if (swatchOut) swatchOut[ptr] = 1; // Green Foliage
+            ptr++;
+          }
+        }
+
+        // --- PART 3: 3D Cylindrical Trunk (Swatch 2: Brown Bark) ---
+        const trunkYBase = 2.0;
+        const trunkHeight = 5.0;
+        const trunkRadius = 1.8;
+
+        for (let i = 0; i < trunkCount; i++) {
+          const u = i / trunkCount;
+          const y = trunkYBase + u * trunkHeight;
+          const theta = i * GOLDEN;
+
+          out[ptr * 3]     = Math.cos(theta) * trunkRadius;
+          out[ptr * 3 + 1] = y;
+          out[ptr * 3 + 2] = Math.sin(theta) * trunkRadius;
+          if (swatchOut) swatchOut[ptr] = 2; // Brown Trunk
+          ptr++;
         }
       }
     },
