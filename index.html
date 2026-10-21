@@ -138,7 +138,6 @@ button.symbol-btn span { font-size: 9px; color: #8fa2c3; margin-top: 2px; }
   background: linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
 }
 
-/* Unified Timeline Module */
 .timeline-module {
   background: #070f1e;
   border: 1px solid #233b5d;
@@ -289,7 +288,7 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
       <button class="toolbar-btn" id="btn-undo" title="Revert last action (Ctrl+Z)">↶ Undo</button>
     </div>
   </div>
-  <div id="status">Unified Single-Track Timeline · Synchronized Block Hierarchy</div>
+  <div id="status">Architectural Wireframes · Live Arm Waves & Rising Steam Active</div>
 
   <!-- Global Fleet & Environmental Precipitation -->
   <div class="ctrl-row" style="margin-top:6px;">
@@ -339,7 +338,7 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
   <div class="context-card hidden" id="card-inspector-formation">
     <div class="section-label" style="margin:0;">
       <span id="inspector-block-title">Formation Properties</span>
-      <span id="inspector-shape-name" style="color:#70e6ff;">xmasTree</span>
+      <span id="inspector-shape-name" style="color:#70e6ff;">snowflake</span>
     </div>
 
     <!-- Shape/Text Switcher Tabs -->
@@ -372,7 +371,7 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
       </div>
     </div>
 
-    <!-- Geometry: Altitude & Scale & Rotation -->
+    <!-- Staging & Kinematics -->
     <div class="section-label" style="margin-top:6px;"><span>Staging & Kinematics</span></div>
     <div class="ctrl-row">
       <span style="min-width:50px;">Altitude:</span>
@@ -471,7 +470,7 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
     </div>
   </div>
 
-  <!-- Unified Single-Track Timeline Module -->
+  <!-- Unified Single-Track Timeline -->
   <div class="timeline-module">
     <div class="timeline-grid">
       <div class="timeline-headers-col">
@@ -503,9 +502,8 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
   </div>
 
   <div id="hint">
-    <b>Unified Track:</b> Colors, rotation, scale, and altitude are configured per block.<br>
-    <b>Precipitation:</b> Flurries park on ground pad at launch; LEDs extinguish while recycling.<br>
-    <b>Painting:</b> Select swatch, hold <b>Shift</b> + drag in 3D (Desktop) or squeeze trigger in VR.
+    <b>Act I:</b> Snowflake $\to$ Waving Snowman $\to$ 3D Gift Cube $\to$ Steaming Cocoa Mug.<br>
+    <b>Kinematics:</b> Snowman arm actively waves; hot cocoa steam continuously rises into the sky.
   </div>
 </div>
 <div id="vr-tip">In VR: Press Left X for HUD · Trigger paints drones with active swatch</div>
@@ -530,17 +528,15 @@ let panSensitivity = 5.0;
 const BASE_DRONE_SIZE = 0.55;
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 
-// Gate Configurations
 let takeoffConfig = { dur: 8.0, style: "wave" };
 let landingConfig = { dur: 8.0, style: "uniform" };
 
-// Environmental Precipitation State
 let precipConfig = {
   enabled: true,
   type: "snow",
   count: 50,
-  speed: 2.4, // Negative = rising sparks/bubbles!
-  angle: 0.0, // Degrees wind tilt
+  speed: 2.4,
+  angle: 0.0,
   fx: "glimmer",
   color: "#ffffff"
 };
@@ -633,7 +629,7 @@ const currentColors = new Float32Array(MAX_DRONES * 3);
 const targetColors = new Float32Array(MAX_DRONES * 3);
 const droneSwatchIndices = new Uint8Array(MAX_DRONES);
 
-// Ground Launchpad Coordinates
+// Centered Launchpad Slots
 const groundPositions = new Float32Array(MAX_DRONES * 3);
 function updateGroundPositions(n) {
   const cols = Math.ceil(Math.sqrt(n));
@@ -649,7 +645,6 @@ function updateGroundPositions(n) {
 }
 updateGroundPositions(activeDroneCount);
 
-// Ambient Precipitation Buffers
 const precipPositions = new Float32Array(MAX_DRONES * 3);
 const precipDriftSeeds = new Float32Array(MAX_DRONES);
 function initPrecipPositions() {
@@ -711,27 +706,9 @@ function assignMinimalPaths(currentPos, rawTargets, count) {
   return assigned;
 }
 
-// Unified Timeline Architecture: All Parameters Integrated into Blocks
+// Act I Narrative Master Setup
 const timelineData = {
   formationBlocks: [
-    {
-      id: "f0", shapeId: "xmasTree", isText: false, dur: 18.0, transDur: 4.0,
-      transColorFX: "blend", altitude: 18.0, scale: 1.0, rotStartY: 0, rotEndY: 30,
-      palette: ["#ffd700", "#00c853", "#8b4513", "#ff1744", "#00e5ff"],
-      activeSwatchIdx: 0, cycleSpeed: 0.0, run: false, runSpeed: 3.0, blink: false, blinkSpeed: 3.0, sparkle: true, sparkleDensity: 0.25
-    },
-    {
-      id: "t0", isText: true, text: "HAPPY NEW YEAR", font: "Impact", fx: "scroll", speed: 1.0, dur: 22.0, transDur: 4.0,
-      transColorFX: "sparkle", altitude: 19.0, scale: 1.1, rotStartY: 0, rotEndY: 0,
-      palette: ["#ff0055", "#00ffff"],
-      activeSwatchIdx: 0, cycleSpeed: 1.0, run: true, runSpeed: 4.0, blink: false, blinkSpeed: 3.0, sparkle: false, sparkleDensity: 0.35
-    },
-    {
-      id: "f1", shapeId: "giftBox", isText: false, dur: 18.0, transDur: 0.0,
-      transColorFX: "blend", altitude: 16.0, scale: 1.0, rotStartY: 0, rotEndY: 45,
-      palette: ["#ff0033", "#ffffff", "#ffd700"],
-      activeSwatchIdx: 0, cycleSpeed: 0.5, run: true, runSpeed: 3.5, blink: false, blinkSpeed: 3.0, sparkle: false, sparkleDensity: 0.35
-    },
     {
       id: "f0", shapeId: "snowflake", isText: false, dur: 18.0, transDur: 4.0,
       transColorFX: "sparkle", altitude: 18.0, scale: 1.0, rotStartY: 0, rotEndY: 30,
@@ -741,13 +718,13 @@ const timelineData = {
     {
       id: "f1", shapeId: "wavingSnowman", isText: false, dur: 22.0, transDur: 4.0,
       transColorFX: "blend", altitude: 16.0, scale: 1.05, rotStartY: 0, rotEndY: 0,
-      palette: ["#ffffff", "#1b283a", "#d50000", "#ff6d00", "#8d6e63"], activeSwatchIdx: 0,
+      palette: ["#ffffff", "#1976d2", "#d50000", "#ff6d00", "#8d6e63"], activeSwatchIdx: 0,
       cycleSpeed: 0.0, run: false, runSpeed: 3.0, blink: false, blinkSpeed: 3.0, sparkle: false, sparkleDensity: 0.25
     },
     {
       id: "f2", shapeId: "giftBox3D", isText: false, dur: 18.0, transDur: 4.0,
       transColorFX: "sparkle", altitude: 17.0, scale: 1.0, rotStartY: 0, rotEndY: 45,
-      palette: ["#6200ea", "#ffd700"], activeSwatchIdx: 0,
+      palette: ["#7b1fa2", "#ffd700"], activeSwatchIdx: 0,
       cycleSpeed: 0.5, run: true, runSpeed: 3.5, blink: false, blinkSpeed: 3.0, sparkle: false, sparkleDensity: 0.3
     },
     {
@@ -759,7 +736,6 @@ const timelineData = {
   ]
 };
 
-// Selection State: "takeoff" | "formation" | "transition" | "landing"
 let selectedInspectorType = "formation";
 let selectedFormationBlockId = "f0";
 let selectedTransitionBlockId = null;
@@ -913,42 +889,6 @@ function applyLightingFX(block, timeSec) {
   }
 }
 
-// Procedural Motion FX
-function applyTextProceduralFX(block, tOffset, count, inOutVecArray) {
-  if (!block || !block.isText || !block.fx || block.fx === "none") return;
-  const speed = block.speed || 1.0;
-  const time = tOffset * speed;
-
-  if (block.fx === "scroll") {
-    const scrollSpan = 38.0;
-    const xShift = (time * 8.5) % scrollSpan;
-    for (let i = 0; i < count; i++) {
-      let x = inOutVecArray[i * 3] - xShift;
-      if (x < -scrollSpan * 0.5) x += scrollSpan;
-      inOutVecArray[i * 3] = x;
-    }
-  } else if (block.fx === "wave") {
-    for (let i = 0; i < count; i++) {
-      const x = inOutVecArray[i * 3];
-      inOutVecArray[i * 3 + 1] += Math.sin(time * 3.5 + x * 0.28) * 2.2;
-    }
-  } else if (block.fx === "dissolve") {
-    const scatterCycle = Math.sin(time * 2.0);
-    const envelope = Math.max(0, scatterCycle * scatterCycle - 0.25) * 4.5;
-    for (let i = 0; i < count; i++) {
-      inOutVecArray[i * 3]     += Math.sin(i * 12.3 + time * 4.0) * envelope;
-      inOutVecArray[i * 3 + 1] += Math.cos(i * 7.1 + time * 3.0) * envelope;
-      inOutVecArray[i * 3 + 2] += Math.sin(i * 19.5 + time * 5.0) * envelope;
-    }
-  } else if (block.fx === "pulse") {
-    const s = 1.0 + Math.sin(time * 3.0) * 0.16;
-    for (let i = 0; i < count; i++) {
-      inOutVecArray[i * 3]     *= s;
-      inOutVecArray[i * 3 + 1] = 14 + (inOutVecArray[i * 3 + 1] - 14) * s;
-    }
-  }
-}
-
 const rotEuler = new THREE.Euler(0, 0, 0, "YXZ");
 const rotMatrix = new THREE.Matrix4();
 const centerPt = new THREE.Vector3(0, 18, 0);
@@ -1017,7 +957,7 @@ function evaluateTimeline(t) {
     }
   }
 
-  // 2. ACTIVE SHOW FORMATIONS
+  // 2. ACTIVE SHOW
   else if (t > takeoffConfig.dur && t < showBodyEnd) {
     const showT = t - takeoffConfig.dur;
     let curT = 0;
@@ -1034,20 +974,19 @@ function evaluateTimeline(t) {
       const v1y = THREE.MathUtils.degToRad(b.rotEndY || 0);
 
       if (showT >= formStart && showT < formEnd) {
-        // Hold Window
         const uBlock = (showT - formStart) / b.dur;
         const curRotY = v0y + (v1y - v0y) * uBlock;
 
         localScratchPoints.set(currTargets.subarray(0, formationCount * 3));
-// Articulated Right-Arm Wave Kinematic for the Snowman
+
+        // Live Waving Kinematics for Snowman Right Arm & Mitten Hand
         if (b.shapeId === "wavingSnowman") {
           const waveAngle = Math.sin((showT - formStart) * 5.5) * 0.38; // ~22° oscillation
           const cosW = Math.cos(waveAngle), sinW = Math.sin(waveAngle);
-          const shoulderX = 3.8, shoulderY = 14.5; // Joint pivot
+          const shoulderX = 4.2, shoulderY = 15.0;
 
           for (let j = 0; j < formationCount; j++) {
-            // Check right stick arm drones (X > 3.8 and Wood Brown swatch)
-            if (currSwatches && currSwatches[j] === 4 && currTargets[j * 3] > 3.8) {
+            if (currTargets[j * 3] > 4.2) {
               const dx = currTargets[j * 3] - shoulderX;
               const dy = currTargets[j * 3 + 1] - shoulderY;
               localScratchPoints[j * 3]     = shoulderX + (dx * cosW - dy * sinW);
@@ -1055,8 +994,21 @@ function evaluateTimeline(t) {
             }
           }
         }
-        
-        if (b.isText) applyTextProceduralFX(b, showT - formStart, formationCount, localScratchPoints);
+
+        // Live Rising Particles for Cocoa Steam
+        if (b.shapeId === "hotCocoaMug") {
+          const steamTime = (showT - formStart) * 3.5;
+          for (let j = 0; j < formationCount; j++) {
+            if (currSwatches && currSwatches[j] === 3) {
+              const seed = j * 0.42;
+              const loopT = (steamTime + seed * 4.0) % 12.0;
+              const driftX = Math.sin(loopT * 0.8 + seed) * 1.8;
+              localScratchPoints[j * 3]     = currTargets[j * 3] * 0.3 + driftX;
+              localScratchPoints[j * 3 + 1] = 16.0 + loopT; // Rise continuously from rim
+              localScratchPoints[j * 3 + 2] = currTargets[j * 3 + 2] * 0.3 + Math.cos(loopT * 0.8 + seed) * 1.8;
+            }
+          }
+        }
 
         for (let j = 0; j < formationCount; j++) {
           transformToSky(localScratchPoints[j * 3], localScratchPoints[j * 3 + 1], localScratchPoints[j * 3 + 2], alt, scl, curRotY, skyPosA);
@@ -1069,7 +1021,6 @@ function evaluateTimeline(t) {
         applyLightingFX(b, t);
         break;
       } else if (showT >= formEnd && showT < transEnd) {
-        // Transition Period
         const nextIdx = (i + 1 < timelineData.formationBlocks.length) ? i + 1 : 0;
         const nextB = timelineData.formationBlocks[nextIdx];
         const nextTargets = formationTrajectories[nextIdx];
@@ -1078,7 +1029,6 @@ function evaluateTimeline(t) {
         const progress = (showT - formEnd) / b.transDur;
         const ease = progress * progress * (3 - 2 * progress);
 
-        // Smooth Altitude & Scale Interpolation between formations
         const nextAlt = nextB.altitude || 18.0;
         const nextScl = nextB.scale || 1.0;
         const interpAlt = alt + (nextAlt - alt) * ease;
@@ -1088,7 +1038,6 @@ function evaluateTimeline(t) {
         const curRotY = v1y + (nextV0y - v1y) * ease;
 
         localScratchPoints.set(currTargets.subarray(0, formationCount * 3));
-        if (b.isText) applyTextProceduralFX(b, showT - formStart, formationCount, localScratchPoints);
 
         for (let j = 0; j < formationCount; j++) {
           transformToSky(localScratchPoints[j * 3], localScratchPoints[j * 3 + 1], localScratchPoints[j * 3 + 2], interpAlt, interpScl, curRotY, skyPosA);
@@ -1102,7 +1051,6 @@ function evaluateTimeline(t) {
           else if (currSwatches) droneSwatchIndices[j] = currSwatches[j];
         }
 
-        // Transition Lighting FX
         const transFX = b.transColorFX || "blend";
         if (transFX === "sparkle") {
           for (let j = 0; j < formationCount; j++) {
@@ -1163,7 +1111,7 @@ function evaluateTimeline(t) {
     }
   }
 
-  // 4. PRECIPITATION DRONES: Ground Parked at Launch, Zero Upward Glitch
+  // 4. PRECIPITATION DRONES
   if (precipConfig.enabled) {
     const precipHex = new THREE.Color(precipConfig.color);
 
@@ -1176,7 +1124,6 @@ function evaluateTimeline(t) {
       const pz = precipPositions[i * 3 + 2];
 
       if (t <= takeoffConfig.dur) {
-        // Parked on ground, rises with launch
         const u = Math.max(0, t / takeoffConfig.dur);
         const ease = u * u * (3 - 2 * u);
         targetPositions[i * 3]     = gx + (px - gx) * ease;
@@ -1186,7 +1133,6 @@ function evaluateTimeline(t) {
         targetColors[i * 3 + 1] = precipHex.g * 0.4 * ease;
         targetColors[i * 3 + 2] = precipHex.b * 0.4 * ease;
       } else if (t > takeoffConfig.dur && t < showBodyEnd) {
-        // Airborne active particle
         targetPositions[i * 3]     = px;
         targetPositions[i * 3 + 1] = py;
         targetPositions[i * 3 + 2] = pz;
@@ -1206,7 +1152,6 @@ function evaluateTimeline(t) {
         targetColors[i * 3 + 1] = precipHex.g * brightness;
         targetColors[i * 3 + 2] = precipHex.b * brightness;
       } else {
-        // Lands smoothly to ground launchpad
         const u = THREE.MathUtils.clamp((t - showBodyEnd) / landingConfig.dur, 0, 1);
         const ease = u * u * (3 - 2 * u);
         targetPositions[i * 3]     = px + (gx - px) * ease;
@@ -1221,7 +1166,7 @@ function evaluateTimeline(t) {
   }
 }
 
-// World-Space Locomotion
+// Locomotion
 const grabState = {
   leftGrip: false, rightGrip: false, mode: 'none',
   anchorHandL: new THREE.Vector3(), anchorHandR: new THREE.Vector3(),
@@ -1338,13 +1283,6 @@ function renderHUD() {
   ctx.fillText(`PAGE ${currentSymbolPage + 1} / ${totalPages}`, 260, 52);
 
   const activeBlock = timelineData.formationBlocks.find(b => b.id === selectedFormationBlockId);
-  if (activeBlock && activeBlock.isText) {
-    ctx.fillStyle = "#df52ff"; ctx.fillRect(520, 20, 200, 48);
-    ctx.strokeStyle = "#ffffff"; ctx.strokeRect(520, 20, 200, 48);
-    ctx.fillStyle = "#fff"; ctx.font = "bold 15px system-ui"; ctx.textAlign = "center";
-    ctx.fillText("⌨ EDIT TEXT", 620, 50);
-  }
-
   const shapes = (SHAPE_PAGES && SHAPE_PAGES[currentSymbolPage]) ? SHAPE_PAGES[currentSymbolPage] : [];
   for (let i = 0; i < 4; i++) {
     const s = shapes[i];
@@ -1353,7 +1291,7 @@ function renderHUD() {
     ctx.fillRect(x, 82, 224, 96);
     if (!s) continue;
 
-    const activeShapeId = timelineData.formationBlocks.find(b => b && b.id === selectedFormationBlockId)?.shapeId;
+    const activeShapeId = activeBlock?.shapeId;
     ctx.strokeStyle = (activeShapeId === s.id && !activeBlock?.isText) ? "#70e6ff" : "#375077";
     ctx.lineWidth = 2;
     ctx.strokeRect(x, 82, 224, 96);
@@ -1361,7 +1299,6 @@ function renderHUD() {
     if (typeof s.drawCanvas === "function") s.drawCanvas(ctx, x + 112, 130);
   }
 
-  // Active Block Swatches
   const pal = activeBlock?.palette || ["#ffffff"];
   ctx.fillStyle = "#8fa2c3"; ctx.font = "bold 13px system-ui"; ctx.textAlign = "left";
   ctx.fillText("BLOCK PALETTE:", 40, 208);
@@ -1388,11 +1325,9 @@ function renderHUD() {
   ctx.fillStyle = specGrad; ctx.fillRect(40, 234, 944, 34);
   ctx.strokeStyle = "#ffffff44"; ctx.strokeRect(40, 234, 944, 34);
 
-  // Unified Single-Track Timeline in VR
   const availW = 944;
   let curX = 40;
 
-  // Takeoff in VR
   const toW = (takeoffConfig.dur / TOTAL_DURATION) * availW;
   ctx.fillStyle = "#13382c"; ctx.fillRect(curX, 335, toW, 34);
   ctx.strokeStyle = "#70ffb0"; ctx.strokeRect(curX, 335, toW, 34);
@@ -1428,7 +1363,6 @@ function renderHUD() {
     }
   }
 
-  // Landing in VR
   const landW = (landingConfig.dur / TOTAL_DURATION) * availW;
   ctx.fillStyle = "#13382c"; ctx.fillRect(curX, 335, landW, 34);
   ctx.strokeStyle = "#ff859c"; ctx.strokeRect(curX, 335, landW, 34);
@@ -1463,23 +1397,6 @@ function toggleHUD() {
 const raycaster = new THREE.Raycaster();
 const quat = new THREE.Quaternion();
 
-function promptVRSystemKeyboard() {
-  const activeBlock = timelineData.formationBlocks.find(b => b.id === selectedFormationBlockId);
-  if (!activeBlock || !activeBlock.isText) return;
-
-  const currentVal = activeBlock.text || "HAPPY NEW YEAR";
-  const result = window.prompt("Enter Drone Formation Text:", currentVal);
-  if (result !== null && result.trim() !== "") {
-    saveUndoState();
-    activeBlock.text = result.trim().toUpperCase();
-    $("input-text-msg").value = activeBlock.text;
-    buildShowTrajectoryData();
-    evaluateTimeline(playheadTime);
-    buildDesktopTimeline();
-    renderHUD();
-  }
-}
-
 function handleVRSelect(controller) {
   if (!vrHUD.visible) return;
   const origin = new THREE.Vector3();
@@ -1495,11 +1412,6 @@ function handleVRSelect(controller) {
   const inRect = (x, y, w, h) => px >= x && px <= x + w && py >= y && py <= y + h;
   const activeBlock = timelineData.formationBlocks.find(b => b.id === selectedFormationBlockId);
   const totalPages = Math.max(1, SHAPE_PAGES.length);
-
-  if (inRect(520, 20, 200, 48)) {
-    promptVRSystemKeyboard();
-    return;
-  }
 
   if (inRect(40, 20, 60, 48)) {
     currentSymbolPage = (currentSymbolPage + totalPages - 1) % totalPages;
@@ -1593,7 +1505,7 @@ function onEvent(id, event, handler) {
   if (el) el.addEventListener(event, handler);
 }
 
-// Precipitation Panel Handlers
+// Precipitation Handlers
 onEvent("chk-precip", "change", (e) => {
   saveUndoState();
   precipConfig.enabled = e.target.checked;
@@ -1627,7 +1539,7 @@ onEvent("picker-precip-color", "input", (e) => {
   precipConfig.color = e.target.value;
 });
 
-// Takeoff & Landing Inspectors
+// Takeoff & Landing Handlers
 onEvent("sel-takeoff-style", "change", (e) => {
   saveUndoState();
   takeoffConfig.style = e.target.value;
@@ -1655,7 +1567,7 @@ onEvent("slider-landing-dur", "input", (e) => {
   evaluateTimeline(playheadTime);
 });
 
-// Transition Inspector Handlers
+// Transition Handlers
 onEvent("slider-trans-dur", "input", (e) => {
   const b = timelineData.formationBlocks.find(x => x.id === selectedTransitionBlockId);
   if (b) {
@@ -1672,7 +1584,7 @@ onEvent("sel-trans-fx", "change", (e) => {
   if (b) b.transColorFX = e.target.value;
 });
 
-// Formation Inspector Handlers
+// Formation Block Handlers
 onEvent("slider-block-alt", "input", (e) => {
   const b = timelineData.formationBlocks.find(x => x.id === selectedFormationBlockId);
   if (b) {
@@ -1715,7 +1627,6 @@ onEvent("slider-fleet-count", "input", (e) => {
   evaluateTimeline(playheadTime);
 });
 
-// Contextual Inspector Switcher
 function updateContextPanels() {
   $("card-inspector-takeoff").classList.toggle("hidden", selectedInspectorType !== "takeoff");
   $("card-inspector-formation").classList.toggle("hidden", selectedInspectorType !== "formation");
@@ -1759,44 +1670,14 @@ function updateContextPanels() {
   }
 }
 
-// Text Inputs
-onEvent("input-text-msg", "input", (e) => {
-  const b = timelineData.formationBlocks.find(x => x.id === selectedFormationBlockId);
-  if (b && b.isText) {
-    b.text = e.target.value.toUpperCase();
-    buildShowTrajectoryData();
-    evaluateTimeline(playheadTime);
-    buildDesktopTimeline();
-  }
-});
-onEvent("sel-text-font", "change", (e) => {
-  saveUndoState();
-  const b = timelineData.formationBlocks.find(x => x.id === selectedFormationBlockId);
-  if (b && b.isText) {
-    b.font = e.target.value;
-    buildShowTrajectoryData();
-    evaluateTimeline(playheadTime);
-    buildDesktopTimeline();
-  }
-});
-onEvent("sel-text-fx", "change", (e) => {
-  saveUndoState();
-  const b = timelineData.formationBlocks.find(x => x.id === selectedFormationBlockId);
-  if (b && b.isText) {
-    b.fx = e.target.value;
-    evaluateTimeline(playheadTime);
-  }
-});
-onEvent("btn-vr-keyboard", "click", () => promptVRSystemKeyboard());
-
 // Track Add / Delete
 onEvent("btn-add-shape", "click", () => {
   saveUndoState();
   const id = "f" + Date.now();
   timelineData.formationBlocks.push({
-    id, shapeId: "xmasTree", isText: false, dur: 20.0, transDur: 4.0,
+    id, shapeId: "snowflake", isText: false, dur: 20.0, transDur: 4.0,
     transColorFX: "blend", altitude: 18.0, scale: 1.0, rotStartY: 0, rotEndY: 30,
-    palette: ["#ffd700", "#00c853", "#8b4513"], activeSwatchIdx: 0,
+    palette: ["#ffffff", "#00e5ff"], activeSwatchIdx: 0,
     cycleSpeed: 0.0, run: false, runSpeed: 3.0, blink: false, blinkSpeed: 3.0, sparkle: false, sparkleDensity: 0.35
   });
   selectedFormationBlockId = id;
@@ -1812,9 +1693,9 @@ onEvent("btn-add-text", "click", () => {
   saveUndoState();
   const id = "t" + Date.now();
   timelineData.formationBlocks.push({
-    id, isText: true, text: "HELLO XR", font: "Impact", fx: "scroll", speed: 1.0,
+    id, isText: true, text: "HAPPY HOLIDAYS", font: "Impact", fx: "scroll", speed: 1.0,
     dur: 20.0, transDur: 4.0, transColorFX: "sparkle", altitude: 19.0, scale: 1.0, rotStartY: 0, rotEndY: 0,
-    palette: ["#70e6ff", "#df52ff"], activeSwatchIdx: 0,
+    palette: ["#ffd700", "#ffffff"], activeSwatchIdx: 0,
     cycleSpeed: 1.0, run: false, runSpeed: 3.0, blink: false, blinkSpeed: 3.0, sparkle: false, sparkleDensity: 0.35
   });
   selectedFormationBlockId = id;
@@ -1842,7 +1723,6 @@ onEvent("btn-del-shape", "click", () => {
   }
 });
 
-// Pagination
 const pageTabs = $("page-tabs");
 if (pageTabs) {
   const totalPages = Math.max(1, SHAPE_PAGES.length);
@@ -1896,7 +1776,6 @@ function populateDesktopIcons() {
   }
 }
 
-// Drag & Drop Shape into Lane
 const laneUnifiedEl = $("lane-unified");
 laneUnifiedEl.addEventListener("dragover", (e) => {
   e.preventDefault();
@@ -1932,7 +1811,7 @@ laneUnifiedEl.addEventListener("drop", (e) => {
   timelineData.formationBlocks.splice(insertIdx, 0, {
     id, shapeId, isText: false, dur: 20.0, transDur: 4.0, transColorFX: "blend",
     altitude: 18.0, scale: 1.0, rotStartY: 0, rotEndY: 30,
-    palette: ["#ffd700", "#00c853", "#8b4513"], activeSwatchIdx: 0,
+    palette: ["#ffffff", "#00e5ff"], activeSwatchIdx: 0,
     cycleSpeed: 0.0, run: false, runSpeed: 3.0, blink: false, blinkSpeed: 3.0, sparkle: false, sparkleDensity: 0.35
   });
 
@@ -1946,7 +1825,6 @@ laneUnifiedEl.addEventListener("drop", (e) => {
   renderHUD();
 });
 
-// Color Sync for Block Palette
 function syncDesktopPalette() {
   const b = timelineData.formationBlocks.find(x => x && x.id === selectedFormationBlockId);
   if (!b || !b.palette) return;
@@ -2036,7 +1914,6 @@ onEvent("chk-sparkle", "change", (e) => {
   if (b) b.sparkle = e.target.checked;
 });
 
-// Block Resizing
 function attachResizeHandle(handleEl, blockObj, getTrackWidth) {
   let isDragging = false, startX = 0, origDur = 0;
   handleEl.onpointerdown = (e) => {
@@ -2060,7 +1937,6 @@ function attachResizeHandle(handleEl, blockObj, getTrackWidth) {
   };
 }
 
-// Single-Track Block Reorder
 function attachBlockReorder(blockEl, list, index) {
   blockEl.draggable = true;
   blockEl.addEventListener("dragstart", (e) => {
@@ -2088,7 +1964,6 @@ function attachBlockReorder(blockEl, list, index) {
   });
 }
 
-// Build Unified Single-Track Timeline
 function buildDesktopTimeline() {
   const ruler = $("master-ruler");
   ruler.innerHTML = "";
@@ -2104,7 +1979,6 @@ function buildDesktopTimeline() {
   const lane = $("lane-unified");
   lane.innerHTML = "";
 
-  // 1. Takeoff Gate
   const takeoffBlock = document.createElement("div");
   takeoffBlock.className = "block-element flight-gate" + (selectedInspectorType === "takeoff" ? " active-block" : "");
   takeoffBlock.style.width = (takeoffConfig.dur / TOTAL_DURATION) * 100 + "%";
@@ -2117,7 +1991,6 @@ function buildDesktopTimeline() {
   };
   lane.appendChild(takeoffBlock);
 
-  // 2. Formation Blocks & Embedded Transitions
   for (let i = 0; i < timelineData.formationBlocks.length; i++) {
     const b = timelineData.formationBlocks[i];
     const fBlock = document.createElement("div");
@@ -2149,7 +2022,6 @@ function buildDesktopTimeline() {
     fBlock.appendChild(handle);
     lane.appendChild(fBlock);
 
-    // Embedded Transition Block
     if (b.transDur > 0) {
       const tBlock = document.createElement("div");
       const isTransSelected = (selectedInspectorType === "transition" && selectedTransitionBlockId === b.id);
@@ -2167,7 +2039,6 @@ function buildDesktopTimeline() {
     }
   }
 
-  // 3. Landing Gate
   const landingBlock = document.createElement("div");
   landingBlock.className = "block-element flight-gate" + (selectedInspectorType === "landing" ? " active-block" : "");
   landingBlock.style.width = (landingConfig.dur / TOTAL_DURATION) * 100 + "%";
@@ -2193,7 +2064,6 @@ function syncDesktopTimeline() {
   if (disp) disp.textContent = `${formatTime(playheadTime)} / ${formatTime(TOTAL_DURATION)}`;
 }
 
-// Timeline Scrubbing
 const lanesArea = $("timeline-lanes-area");
 let isScrubbing = false;
 
@@ -2269,14 +2139,13 @@ window.addEventListener("pointermove", (e) => {
   if (e.buttons === 1 && e.shiftKey) paintDroneAtMouse(e);
 });
 
-// Boot
+// Initial Boot
 populateDesktopIcons();
 updateContextPanels();
 buildDesktopTimeline();
 updateUndoButton();
 evaluateTimeline(0);
 
-// WebXR Session Management
 renderer.xr.addEventListener("sessionstart", () => {
   document.body.classList.add("xr-active");
   renderer.xr.setFoveation(0.0);
@@ -2291,7 +2160,6 @@ renderer.xr.addEventListener("sessionend", () => {
   for (const ray of controllerRays) ray.visible = false;
 });
 
-// Simulation Loop with Zero-Upward Glitch Particle Engine
 const SPRING = 7.5;
 const DAMPING = 4.0;
 const MAX_DRONE_SPEED = 8.5;
@@ -2329,7 +2197,6 @@ renderer.setAnimationLoop(now => {
     stageGroup.worldToLocal(cPosLocalL.copy(cPosWorldL));
     stageGroup.worldToLocal(cPosLocalR.copy(cPosWorldR));
 
-    // VR Swarm Spray Painting
     const b = timelineData.formationBlocks.find(x => x && x.id === selectedFormationBlockId);
     if (b && b.palette && !vrHUD.visible) {
       const activeIdx = b.activeSwatchIdx;
@@ -2357,7 +2224,7 @@ renderer.setAnimationLoop(now => {
 
   dronePoints.material.size = Math.max(0.02, BASE_DRONE_SIZE * stageGroup.scale.x);
 
-  // 1. Formation Physics Integration
+  // 1. Formation Physics
   for (let i = 0; i < activeDroneCount; i++) {
     const idx = i * 3;
     let px = currentPositions[idx], py = currentPositions[idx + 1], pz = currentPositions[idx + 2];
@@ -2389,10 +2256,10 @@ renderer.setAnimationLoop(now => {
     currentColors[idx + 2] += (targetColors[idx + 2] - currentColors[idx + 2]) * 7.0 * dt;
   }
 
-  // 2. Autonomous Precipitation Simulation (Zero-Glitch Recycle)
+  // 2. Autonomous Precipitation Simulation
   const showBodyEnd = TOTAL_DURATION - landingConfig.dur;
   if (precipConfig.enabled && playheadTime > takeoffConfig.dur && playheadTime < showBodyEnd) {
-    const fallSpeed = precipConfig.speed; // Supports negative!
+    const fallSpeed = precipConfig.speed;
     const windRad = THREE.MathUtils.degToRad(precipConfig.angle);
     const windXShift = Math.sin(windRad) * Math.abs(fallSpeed);
     const formationCount = Math.max(50, activeDroneCount - precipConfig.count);
@@ -2401,7 +2268,6 @@ renderer.setAnimationLoop(now => {
       const idx = i * 3;
       const seed = precipDriftSeeds[i];
 
-      // Vertical translation + Wind tilt
       precipPositions[idx + 1] -= fallSpeed * dt;
       precipPositions[idx]     += windXShift * dt;
 
@@ -2410,9 +2276,7 @@ renderer.setAnimationLoop(now => {
         precipPositions[idx + 2] += Math.cos(now * 0.0012 + seed) * 0.6 * dt;
       }
 
-      // Zero-Glitch Instant Recycle: Snap physically without spring drag
       if (fallSpeed >= 0) {
-        // Falling mode: hits ground -> teleport to ceiling
         if (precipPositions[idx + 1] < 1.5) {
           precipPositions[idx + 1] = 31.5;
           precipPositions[idx]     = (Math.random() - 0.5) * 36;
@@ -2422,7 +2286,6 @@ renderer.setAnimationLoop(now => {
           currentPositions[idx + 2] = precipPositions[idx + 2];
         }
       } else {
-        // Rising mode: hits ceiling -> teleport to ground
         if (precipPositions[idx + 1] > 31.5) {
           precipPositions[idx + 1] = 1.6;
           precipPositions[idx]     = (Math.random() - 0.5) * 36;
