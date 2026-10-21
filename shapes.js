@@ -3,7 +3,7 @@ import { MeshSurfaceSampler } from "three/addons/math/MeshSurfaceSampler.js";
 
 const GOLDEN = Math.PI * (3 - Math.sqrt(5));
 
-// Balanced Row Partitioning
+// Balanced Row Partitioning for planar grids
 export function generateBalancedGrid(out, count, width = 32, height = 20, altitude = 14) {
   const aspect = width / height;
   const R = Math.max(2, Math.round(Math.sqrt(count / aspect)));
@@ -47,21 +47,6 @@ export function sampleSVGString(svgD, out, count, scale = 0.24, altitude = 14) {
     out[i * 3]     = (pt.x - cx) * scale;
     out[i * 3 + 1] = altitude - (pt.y - cy) * scale;
     out[i * 3 + 2] = (i % 2 === 0 ? 1 : -1) * 1.2;
-  }
-}
-
-// 3D Procedural Mesh Sampler
-export function sampleProcedural3DMesh(geometry, out, count, scale = 1.0, altitude = 14) {
-  geometry.computeBoundingBox();
-  geometry.center();
-  const mesh = new THREE.Mesh(geometry);
-  const sampler = new MeshSurfaceSampler(mesh).build();
-  const tempV = new THREE.Vector3();
-  for (let i = 0; i < count; i++) {
-    sampler.sample(tempV);
-    out[i * 3]     = tempV.x * scale;
-    out[i * 3 + 1] = altitude + tempV.y * scale;
-    out[i * 3 + 2] = tempV.z * scale;
   }
 }
 
@@ -109,8 +94,415 @@ export function generateTextDrones(out, text, count, font = "Impact", scale = 0.
 }
 
 export const SHAPE_PAGES = [
-  // Page 1: Christmas & Winter Festival (Pack 1)
+  // Page 1: Act I — Winter Warmth
   [
+    // 1. Intricate 6-Fold Crystalline Snowflake
+    {
+      id: "snowflake",
+      drawSVG: `<line x1="12" y1="2" x2="12" y2="22" stroke-width="1.5"/><line x1="2" y1="12" x2="22" y2="12" stroke-width="1.5"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1" stroke-width="1.5"/><line x1="4.9" y1="19.1" x2="19.1" y2="4.9" stroke-width="1.5"/><circle cx="12" cy="12" r="3" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2.5;
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * Math.PI * 2;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + Math.cos(a) * 26, cy + Math.sin(a) * 26);
+          // Secondary chevrons
+          const mx = cx + Math.cos(a) * 16, my = cy + Math.sin(a) * 16;
+          const a1 = a + Math.PI / 3, a2 = a - Math.PI / 3;
+          ctx.moveTo(mx, my); ctx.lineTo(mx + Math.cos(a1) * 8, my + Math.sin(a1) * 8);
+          ctx.moveTo(mx, my); ctx.lineTo(mx + Math.cos(a2) * 8, my + Math.sin(a2) * 8);
+          ctx.stroke();
+        }
+        ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2); ctx.stroke();
+      },
+      gen: (out, n, swatchOut) => {
+        const coreCount = Math.max(18, Math.round(n * 0.14));
+        const spineCount = Math.round(n * 0.44);
+        const chevronCount = Math.round(n * 0.32);
+        const tipCount = n - coreCount - spineCount - chevronCount;
+        let ptr = 0;
+
+        // Central Hexagonal Core (Swatch 0: Ice White)
+        for (let i = 0; i < coreCount; i++) {
+          const a = (i / coreCount) * Math.PI * 2;
+          const r = 2.4 + (i % 2 === 0 ? 0.8 : 0.0);
+          out[ptr * 3]     = Math.cos(a) * r;
+          out[ptr * 3 + 1] = 14 + Math.sin(a) * r;
+          out[ptr * 3 + 2] = (i % 2 === 0 ? 0.35 : -0.35);
+          if (swatchOut) swatchOut[ptr] = 0;
+          ptr++;
+        }
+
+        // 6 Radial Spines (Swatch 0: Ice White)
+        for (let i = 0; i < spineCount; i++) {
+          const arm = i % 6;
+          const a = (arm / 6) * Math.PI * 2;
+          const dist = 3.2 + (Math.floor(i / 6) / (spineCount / 6)) * 12.0;
+          out[ptr * 3]     = Math.cos(a) * dist;
+          out[ptr * 3 + 1] = 14 + Math.sin(a) * dist;
+          out[ptr * 3 + 2] = (i % 3 === 0 ? 0.5 : -0.5);
+          if (swatchOut) swatchOut[ptr] = 0;
+          ptr++;
+        }
+
+        // Branching Chevron Needles (Swatch 1: Glacier Cyan)
+        for (let i = 0; i < chevronCount; i++) {
+          const arm = i % 6;
+          const aSpine = (arm / 6) * Math.PI * 2;
+          const tier = Math.floor(i / 12) % 2; // 2 chevron tiers along each spine
+          const distBase = tier === 0 ? 6.5 : 10.5;
+          const side = i % 2 === 0 ? 1 : -1;
+          const aBranch = aSpine + side * (Math.PI / 3);
+          const len = 1.0 + ((i % 4) / 4) * 3.5;
+
+          const baseX = Math.cos(aSpine) * distBase;
+          const baseY = Math.sin(aSpine) * distBase;
+          out[ptr * 3]     = baseX + Math.cos(aBranch) * len;
+          out[ptr * 3 + 1] = 14 + (baseY + Math.sin(aBranch) * len);
+          out[ptr * 3 + 2] = side * 0.4;
+          if (swatchOut) swatchOut[ptr] = 1;
+          ptr++;
+        }
+
+        // Outer Twinkle Diamond Tips (Swatch 1: Glacier Cyan)
+        for (let i = 0; i < tipCount; i++) {
+          const arm = i % 6;
+          const a = (arm / 6) * Math.PI * 2;
+          const spread = ((i % 3) - 1) * 0.18;
+          const r = 15.0 + Math.abs(spread) * 2.0;
+          out[ptr * 3]     = Math.cos(a + spread) * r;
+          out[ptr * 3 + 1] = 14 + Math.sin(a + spread) * r;
+          out[ptr * 3 + 2] = (i % 2 === 0 ? 0.6 : -0.6);
+          if (swatchOut) swatchOut[ptr] = 1;
+          ptr++;
+        }
+      }
+    },
+
+    // 2. 3D Waving Snowman with Hat, Scarf, Carrot & Articulated Stick Arm
+    {
+      id: "wavingSnowman",
+      drawSVG: `<circle cx="12" cy="17" r="5" stroke-width="1.5"/><circle cx="12" cy="10" r="3.5" stroke-width="1.5"/><circle cx="12" cy="5" r="2.2" stroke-width="1.5"/><rect x="9.5" y="1.5" width="5" height="2" stroke-width="1.5"/><line x1="8.5" y1="10" x2="5" y2="12" stroke-width="1.5"/><line x1="15.5" y1="10" x2="19" y2="7" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2.5; ctx.beginPath();
+        // Base, Body, Head
+        ctx.arc(cx, cy + 14, 14, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy + 1, 10, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy - 11, 7, 0, Math.PI * 2); ctx.stroke();
+        // Top hat
+        ctx.fillStyle = "#1b283a";
+        ctx.fillRect(cx - 10, cy - 19, 20, 3);
+        ctx.fillRect(cx - 6, cy - 28, 12, 9);
+        ctx.strokeRect(cx - 10, cy - 19, 20, 3);
+        ctx.strokeRect(cx - 6, cy - 28, 12, 9);
+        // Waving Right Arm
+        ctx.beginPath(); ctx.moveTo(cx + 9, cy); ctx.lineTo(cx + 20, cy - 12); ctx.stroke();
+        // Static Left Arm
+        ctx.beginPath(); ctx.moveTo(cx - 9, cy); ctx.lineTo(cx - 18, cy + 4); ctx.stroke();
+      },
+      gen: (out, n, swatchOut) => {
+        const baseCount = Math.round(n * 0.28);
+        const midCount = Math.round(n * 0.22);
+        const headCount = Math.round(n * 0.16);
+        const hatCount = Math.round(n * 0.12);
+        const scarfCount = Math.round(n * 0.08);
+        const carrotCount = Math.round(n * 0.04);
+        const armCount = n - baseCount - midCount - headCount - hatCount - scarfCount - carrotCount;
+        let ptr = 0;
+
+        // Base Sphere (Swatch 0: Snow White)
+        for (let i = 0; i < baseCount; i++) {
+          const y = 1 - (i / (baseCount - 1)) * 2;
+          const r = Math.sqrt(1 - y * y) * 5.8;
+          const t = i * GOLDEN;
+          out[ptr * 3]     = r * Math.cos(t);
+          out[ptr * 3 + 1] = 6.2 + y * 5.8;
+          out[ptr * 3 + 2] = r * Math.sin(t);
+          if (swatchOut) swatchOut[ptr] = 0;
+          ptr++;
+        }
+
+        // Middle Sphere (Swatch 0: Snow White)
+        for (let i = 0; i < midCount; i++) {
+          const y = 1 - (i / (midCount - 1)) * 2;
+          const r = Math.sqrt(1 - y * y) * 4.2;
+          const t = i * GOLDEN;
+          out[ptr * 3]     = r * Math.cos(t);
+          out[ptr * 3 + 1] = 13.8 + y * 4.2;
+          out[ptr * 3 + 2] = r * Math.sin(t);
+          if (swatchOut) swatchOut[ptr] = 0;
+          ptr++;
+        }
+
+        // Head Sphere (Swatch 0: Snow White)
+        for (let i = 0; i < headCount; i++) {
+          const y = 1 - (i / (headCount - 1)) * 2;
+          const r = Math.sqrt(1 - y * y) * 2.8;
+          const t = i * GOLDEN;
+          out[ptr * 3]     = r * Math.cos(t);
+          out[ptr * 3 + 1] = 19.8 + y * 2.8;
+          out[ptr * 3 + 2] = r * Math.sin(t);
+          if (swatchOut) swatchOut[ptr] = 0;
+          ptr++;
+        }
+
+        // Top Hat: Brim + Cylinder Crown (Swatch 1: Charcoal Black)
+        for (let i = 0; i < hatCount; i++) {
+          const u = i / hatCount;
+          if (u < 0.4) {
+            // Flat wide brim disk
+            const angle = (u / 0.4) * Math.PI * 2;
+            const r = 1.0 + Math.sqrt(u / 0.4) * 3.0;
+            out[ptr * 3]     = Math.cos(angle) * r;
+            out[ptr * 3 + 1] = 22.4;
+            out[ptr * 3 + 2] = Math.sin(angle) * r;
+          } else {
+            // Cylindrical vertical crown
+            const cu = (u - 0.4) / 0.6;
+            const angle = cu * Math.PI * 8;
+            const h = cu * 3.8;
+            out[ptr * 3]     = Math.cos(angle) * 2.2;
+            out[ptr * 3 + 1] = 22.4 + h;
+            out[ptr * 3 + 2] = Math.sin(angle) * 2.2;
+          }
+          if (swatchOut) swatchOut[ptr] = 1;
+          ptr++;
+        }
+
+        // Scarf: Torus ring with trailing tail (Swatch 2: Festive Red)
+        for (let i = 0; i < scarfCount; i++) {
+          const u = i / scarfCount;
+          if (u < 0.7) {
+            const a = (u / 0.7) * Math.PI * 2;
+            out[ptr * 3]     = Math.cos(a) * 3.4;
+            out[ptr * 3 + 1] = 17.4 + Math.sin(a * 2) * 0.4;
+            out[ptr * 3 + 2] = Math.sin(a) * 3.4;
+          } else {
+            // Trailing scarf tail hanging down chest
+            const tu = (u - 0.7) / 0.3;
+            out[ptr * 3]     = 1.4 + tu * 0.6;
+            out[ptr * 3 + 1] = 17.2 - tu * 4.5;
+            out[ptr * 3 + 2] = 3.6 - tu * 0.8;
+          }
+          if (swatchOut) swatchOut[ptr] = 2;
+          ptr++;
+        }
+
+        // Carrot Nose (Swatch 3: Orange Carrot)
+        for (let i = 0; i < carrotCount; i++) {
+          const u = i / carrotCount;
+          out[ptr * 3]     = (Math.random() - 0.5) * (1 - u) * 0.5;
+          out[ptr * 3 + 1] = 19.8 + (Math.random() - 0.5) * (1 - u) * 0.5;
+          out[ptr * 3 + 2] = 2.8 + u * 2.6; // Protrudes forward in +Z
+          if (swatchOut) swatchOut[ptr] = 3;
+          ptr++;
+        }
+
+        // Arms: Left Static Stick + Right Waving Arm (Swatch 4: Timber Brown)
+        const halfArm = Math.floor(armCount / 2);
+        // Left Arm (Static resting stick)
+        for (let i = 0; i < halfArm; i++) {
+          const u = i / halfArm;
+          out[ptr * 3]     = -3.8 - u * 5.0;
+          out[ptr * 3 + 1] = 14.5 + u * 1.5;
+          out[ptr * 3 + 2] = (Math.random() - 0.5) * 0.6;
+          if (swatchOut) swatchOut[ptr] = 4;
+          ptr++;
+        }
+        // Right Arm (Articulated Waving Arm: Starts at X=+3.8, tagged for live animation)
+        for (let i = halfArm; i < armCount; i++) {
+          const u = (i - halfArm) / (armCount - halfArm);
+          out[ptr * 3]     = 3.8 + u * 6.2;
+          out[ptr * 3 + 1] = 14.5 + u * 5.8;
+          out[ptr * 3 + 2] = (Math.random() - 0.5) * 0.6;
+          if (swatchOut) swatchOut[ptr] = 4;
+          ptr++;
+        }
+      }
+    },
+
+    // 3. Upgraded 3D Isometric Gift Box with Interlocking Ribbon & Top Bow
+    {
+      id: "giftBox3D",
+      drawSVG: `<polygon points="12,2 22,7 12,12 2,7" stroke-width="1.5"/><polygon points="2,7 12,12 12,22 2,17" stroke-width="1.5"/><polygon points="22,7 12,12 12,22 22,17" stroke-width="1.5"/><line x1="12" y1="2" x2="12" y2="12" stroke-width="2"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2.5; ctx.beginPath();
+        // Isometric Cube Wireframe
+        ctx.moveTo(cx, cy - 18); ctx.lineTo(cx + 20, cy - 7); ctx.lineTo(cx, cy + 4); ctx.lineTo(cx - 20, cy - 7); ctx.closePath();
+        ctx.moveTo(cx - 20, cy - 7); ctx.lineTo(cx - 20, cy + 15); ctx.lineTo(cx, cy + 26); ctx.lineTo(cx, cy + 4);
+        ctx.moveTo(cx + 20, cy - 7); ctx.lineTo(cx + 20, cy + 15); ctx.lineTo(cx, cy + 26); ctx.stroke();
+        // Ribbon Cross
+        ctx.strokeStyle = "#ffd700"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(cx, cy - 18); ctx.lineTo(cx, cy + 26); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx - 5, cy - 22, 6, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx + 5, cy - 22, 6, 0, Math.PI * 2); ctx.stroke();
+      },
+      gen: (out, n, swatchOut) => {
+        const boxCount = Math.round(n * 0.62);
+        const ribbonCount = Math.round(n * 0.24);
+        const bowCount = n - boxCount - ribbonCount;
+        let ptr = 0;
+
+        const half = 6.2;
+        const boxCenterY = 13.5;
+
+        // 3D Cube Surfaces & Edges (Swatch 0: Royal Velvet Crimson)
+        for (let i = 0; i < boxCount; i++) {
+          const face = i % 6;
+          const u = (Math.random() - 0.5) * 2 * half;
+          const v = (Math.random() - 0.5) * 2 * half;
+
+          let x = 0, y = 0, z = 0;
+          if (face === 0) { x = half; y = boxCenterY + u; z = v; }
+          else if (face === 1) { x = -half; y = boxCenterY + u; z = v; }
+          else if (face === 2) { x = u; y = boxCenterY + half; z = v; } // Top
+          else if (face === 3) { x = u; y = boxCenterY - half; z = v; } // Bottom
+          else if (face === 4) { x = u; y = boxCenterY + v; z = half; }
+          else { x = u; y = boxCenterY + v; z = -half; }
+
+          out[ptr * 3]     = x;
+          out[ptr * 3 + 1] = y;
+          out[ptr * 3 + 2] = z;
+          if (swatchOut) swatchOut[ptr] = 0;
+          ptr++;
+        }
+
+        // Interlocking Orthogonal Ribbon Bands (Swatch 1: Metallic Gold)
+        for (let i = 0; i < ribbonCount; i++) {
+          const isVert = i % 2 === 0;
+          const theta = (i / ribbonCount) * Math.PI * 4;
+          if (isVert) {
+            // Vertical band wrapping Z-Y perimeter
+            const y = boxCenterY + Math.sin(theta) * (half + 0.3);
+            const z = Math.cos(theta) * (half + 0.3);
+            out[ptr * 3]     = (Math.random() - 0.5) * 1.8;
+            out[ptr * 3 + 1] = y;
+            out[ptr * 3 + 2] = z;
+          } else {
+            // Horizontal band wrapping X-Z perimeter
+            const x = Math.cos(theta) * (half + 0.3);
+            const z = Math.sin(theta) * (half + 0.3);
+            out[ptr * 3]     = x;
+            out[ptr * 3 + 1] = boxCenterY + (Math.random() - 0.5) * 1.8;
+            out[ptr * 3 + 2] = z;
+          }
+          if (swatchOut) swatchOut[ptr] = 1;
+          ptr++;
+        }
+
+        // Flared Top 3D Bow Loops (Swatch 1: Metallic Gold)
+        for (let i = 0; i < bowCount; i++) {
+          const side = i % 2 === 0 ? 1 : -1;
+          const u = (i / bowCount) * Math.PI * 2;
+          const r = 2.8 * Math.sin(u);
+          const bowX = side * (Math.abs(Math.cos(u)) * 3.8 + 0.8);
+          const bowY = (boxCenterY + half + 0.4) + Math.abs(r);
+          const bowZ = Math.sin(u * 2) * 1.6;
+
+          out[ptr * 3]     = bowX;
+          out[ptr * 3 + 1] = bowY;
+          out[ptr * 3 + 2] = bowZ;
+          if (swatchOut) swatchOut[ptr] = 1;
+          ptr++;
+        }
+      }
+    },
+
+    // 4. Steaming Hot Cocoa Mug with Peppermint Stirrer & Vapor Trails
+    {
+      id: "hotCocoaMug",
+      drawSVG: `<path d="M5 6 L5 18 A 3 3 0 0 0 8 21 L14 21 A 3 3 0 0 0 17 18 L17 6 Z M17 9 H20 A 2 2 0 0 1 22 11 L22 15 A 2 2 0 0 1 20 17 H17" stroke-width="1.5"/><path d="M8 2 C8 4, 9 4, 9 6 M12 1 C12 3, 13 3, 13 5 M15 2 C15 4, 16 4, 16 6" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2.5; ctx.beginPath();
+        // Mug Body & Base
+        ctx.strokeRect(cx - 16, cy - 8, 32, 26);
+        // Handle
+        ctx.arc(cx - 16, cy + 5, 8, Math.PI * 0.5, Math.PI * 1.5, false); ctx.stroke();
+        // Steam Plumes
+        ctx.beginPath();
+        ctx.moveTo(cx - 8, cy - 12); ctx.bezierCurveTo(cx - 12, cy - 20, cx - 4, cy - 24, cx - 8, cy - 30);
+        ctx.moveTo(cx, cy - 12); ctx.bezierCurveTo(cx - 4, cy - 20, cx + 4, cy - 24, cx, cy - 30);
+        ctx.moveTo(cx + 8, cy - 12); ctx.bezierCurveTo(cx + 4, cy - 20, cx + 12, cy - 24, cx + 8, cy - 30);
+        ctx.stroke();
+      },
+      gen: (out, n, swatchOut) => {
+        const bodyCount = Math.round(n * 0.45);
+        const handleCount = Math.round(n * 0.12);
+        const marshmallowCount = Math.round(n * 0.15);
+        const stirrerCount = Math.round(n * 0.10);
+        const steamCount = n - bodyCount - handleCount - marshmallowCount - stirrerCount;
+        let ptr = 0;
+
+        const mugBaseY = 5.0;
+        const mugHeight = 11.5;
+        const mugRadius = 6.2;
+
+        // Cylindrical Ceramic Mug Body (Swatch 0: Ceramic Crimson)
+        for (let i = 0; i < bodyCount; i++) {
+          const u = i / bodyCount;
+          const theta = u * Math.PI * 18;
+          const y = mugBaseY + u * mugHeight;
+          out[ptr * 3]     = Math.cos(theta) * mugRadius;
+          out[ptr * 3 + 1] = y;
+          out[ptr * 3 + 2] = Math.sin(theta) * mugRadius;
+          if (swatchOut) swatchOut[ptr] = 0;
+          ptr++;
+        }
+
+        // Curved Mug Handle (Swatch 0: Ceramic Crimson)
+        for (let i = 0; i < handleCount; i++) {
+          const angle = (i / handleCount) * Math.PI - Math.PI / 2;
+          const hRadius = 4.2;
+          out[ptr * 3]     = -mugRadius - Math.cos(angle) * hRadius;
+          out[ptr * 3 + 1] = (mugBaseY + mugHeight * 0.5) + Math.sin(angle) * hRadius * 1.3;
+          out[ptr * 3 + 2] = (Math.random() - 0.5) * 1.2;
+          if (swatchOut) swatchOut[ptr] = 0;
+          ptr++;
+        }
+
+        // Marshmallow Foam Surface (Swatch 1: Cream White)
+        for (let i = 0; i < marshmallowCount; i++) {
+          const r = Math.sqrt(Math.random()) * (mugRadius - 0.8);
+          const theta = Math.random() * Math.PI * 2;
+          out[ptr * 3]     = Math.cos(theta) * r;
+          out[ptr * 3 + 1] = (mugBaseY + mugHeight - 0.4) + Math.sin(i * 1.5) * 0.6;
+          out[ptr * 3 + 2] = Math.sin(theta) * r;
+          if (swatchOut) swatchOut[ptr] = 1;
+          ptr++;
+        }
+
+        // Diagonal Peppermint Candy Cane Stirrer (Swatch 2: Peppermint Red)
+        for (let i = 0; i < stirrerCount; i++) {
+          const u = i / stirrerCount;
+          out[ptr * 3]     = 1.5 + u * 5.5;
+          out[ptr * 3 + 1] = (mugBaseY + mugHeight - 1.0) + u * 7.5;
+          out[ptr * 3 + 2] = 1.0 + u * 2.0;
+          if (swatchOut) swatchOut[ptr] = 2;
+          ptr++;
+        }
+
+        // Rising Steam Trails (Swatch 3: Steam Cyan/White)
+        for (let i = 0; i < steamCount; i++) {
+          const plume = i % 3;
+          const u = Math.floor(i / 3) / (steamCount / 3);
+          const xOffset = (plume - 1) * 3.5;
+          const y = (mugBaseY + mugHeight + 1.2) + u * 12.0;
+          const wave = Math.sin(u * Math.PI * 3 + plume) * 1.6;
+
+          out[ptr * 3]     = xOffset + wave;
+          out[ptr * 3 + 1] = y;
+          out[ptr * 3 + 2] = (Math.random() - 0.5) * 2.2;
+          if (swatchOut) swatchOut[ptr] = 3;
+          ptr++;
+        }
+      }
+    }
+  ],
+
+  // Page 2: Christmas Tree Showcase & Classic Emblems
+  [
+    // Christmas Tree with Cones and Star
     {
       id: "xmasTree",
       drawSVG: `<polygon points="12,1 13,3 15,3 13.5,4.5 14,6.5 12,5 10,6.5 10.5,4.5 9,3 11,3" fill="#70e6ff"/><polygon points="12,6 15,10 13.5,10 17,14 15,14 19,19 5,19 9,14 7,14 10.5,10 9,10" stroke-width="1.5"/><rect x="10.5" y="19" width="3" height="4" stroke-width="1.5"/>`,
@@ -140,10 +532,8 @@ export const SHAPE_PAGES = [
         const starCount = Math.max(12, Math.round(n * 0.07));
         const trunkCount = Math.max(16, Math.round(n * 0.12));
         const foliageCount = n - starCount - trunkCount;
-
         let ptr = 0;
 
-        // 1. Apex Star (Swatch 0: Gold)
         const starCenterY = 24.5;
         const starR = 2.2;
         for (let i = 0; i < starCount; i++) {
@@ -159,7 +549,6 @@ export const SHAPE_PAGES = [
           ptr++;
         }
 
-        // 2. 3 Foliage Tiers with Mantle Lights (Swatches 1, 3, 4)
         const tiers = [
           { count: Math.round(foliageCount * 0.25), yBase: 17.5, h: 6.5, rBase: 4.2 },
           { count: Math.round(foliageCount * 0.35), yBase: 12.0, h: 7.5, rBase: 7.2 },
@@ -188,7 +577,6 @@ export const SHAPE_PAGES = [
           }
         }
 
-        // 3. Cylindrical Trunk (Swatch 2: Brown Bark)
         const trunkYBase = 2.0;
         const trunkHeight = 5.0;
         const trunkRadius = 1.8;
@@ -206,60 +594,6 @@ export const SHAPE_PAGES = [
         }
       }
     },
-    {
-      id: "snowflake",
-      drawSVG: `<line x1="12" y1="2" x2="12" y2="22" stroke-width="1.5"/><line x1="2" y1="12" x2="22" y2="12" stroke-width="1.5"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1" stroke-width="1.5"/><line x1="4.9" y1="19.1" x2="19.1" y2="4.9" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2.5;
-        for (let i = 0; i < 6; i++) {
-          const a = (i / 6) * Math.PI * 2;
-          ctx.beginPath();
-          ctx.moveTo(cx, cy);
-          ctx.lineTo(cx + Math.cos(a) * 24, cy + Math.sin(a) * 24);
-          ctx.stroke();
-        }
-      },
-      gen: (out, n) => {
-        for (let i = 0; i < n; i++) {
-          const arm = i % 6;
-          const a = (arm / 6) * Math.PI * 2;
-          const dist = ((Math.floor(i / 6) % 15) / 15) * 14;
-          out[i * 3]     = Math.cos(a) * dist;
-          out[i * 3 + 1] = 14 + Math.sin(a) * dist;
-          out[i * 3 + 2] = (i % 2 === 0 ? 1 : -1) * 1.0;
-        }
-      }
-    },
-    {
-      id: "giftBox",
-      drawSVG: `<rect x="3" y="8" width="18" height="13" rx="2" stroke-width="1.5"/><line x1="12" y1="8" x2="12" y2="21" stroke-width="1.5"/><path d="M12 8 C9 3, 4 4, 7 8 C10 8, 12 8, 12 8" stroke-width="1.5"/><path d="M12 8 C15 3, 20 4, 17 8 C14 8, 12 8, 12 8" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2.5;
-        ctx.strokeRect(cx - 18, cy - 6, 36, 26);
-        ctx.beginPath(); ctx.moveTo(cx, cy - 6); ctx.lineTo(cx, cy + 20); ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx, cy - 6); ctx.bezierCurveTo(cx - 16, cy - 24, cx - 24, cy - 6, cx, cy - 6);
-        ctx.bezierCurveTo(cx + 24, cy - 6, cx + 16, cy - 24, cx, cy - 6);
-        ctx.stroke();
-      },
-      gen: (out, n) => sampleSVGString("M 30 70 L 170 70 L 170 180 L 30 180 Z M 100 70 L 100 180 M 100 70 C 60 20, 20 40, 60 70 C 80 70, 100 70, 100 70 C 100 70, 120 70, 140 70 C 180 40, 140 20, 100 70", out, n, 0.22, 14)
-    },
-    {
-      id: "candyCane",
-      drawSVG: `<path d="M7 21 L7 9 A 5 5 0 0 1 17 9 L17 11" stroke-width="1.5"/><line x1="7" y1="18" x2="10" y2="16" stroke-width="1.5"/><line x1="7" y1="13" x2="11" y2="10" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
-        ctx.moveTo(cx - 8, cy + 22); ctx.lineTo(cx - 8, cy - 6);
-        ctx.arc(cx + 4, cy - 6, 12, Math.PI, 0, false);
-        ctx.lineTo(cx + 16, cy + 2);
-        ctx.stroke();
-      },
-      gen: (out, n) => sampleSVGString("M 60 190 L 60 80 A 40 40 0 0 1 140 80 L 140 105", out, n, 0.22, 14)
-    }
-  ],
-
-  // Page 2: New Year's Eve & Milestones (Pack 2)
-  [
     {
       id: "champagneFlutes",
       drawSVG: `<path d="M6 3 L10 11 L10 17 M8 17 L12 17 M10 6 L6 6 M18 3 L14 11 L14 17 M12 17 L16 17 M14 6 L18 6" stroke-width="1.5"/>`,
@@ -306,20 +640,8 @@ export const SHAPE_PAGES = [
       }
     },
     {
-      id: "partyPopper",
-      drawSVG: `<polygon points="2,22 10,20 4,14" stroke-width="1.5"/><path d="M10 14 C12 10, 16 11, 18 8 M14 18 C17 17, 18 13, 21 12 M18 19 L20 22 M8 6 L11 4 M14 4 A 2 2 0 1 1 16 6" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2.5; ctx.beginPath();
-        ctx.moveTo(cx - 20, cy + 18); ctx.lineTo(cx - 4, cy + 14); ctx.lineTo(cx - 14, cy + 4); ctx.closePath();
-        ctx.moveTo(cx, cy); ctx.bezierCurveTo(cx + 12, cy - 10, cx + 18, cy + 4, cx + 24, cy - 8);
-        ctx.moveTo(cx - 2, cy - 6); ctx.lineTo(cx + 8, cy - 18);
-        ctx.stroke();
-      },
-      gen: (out, n) => sampleSVGString("M 20 180 L 80 160 L 40 120 Z M 80 120 C 100 80, 140 90, 160 60 M 120 150 C 150 140, 160 110, 190 100 M 150 160 L 170 190 M 70 50 L 100 30", out, n, 0.22, 14)
-    },
-    {
       id: "fireworkBurst",
-      drawSVG: `<circle cx="12" cy="12" r="2" fill="#70e6ff"/><line x1="12" y1="3" x2="12" y2="7" stroke-width="1.5"/><line x1="12" y1="17" x2="12" y2="21" stroke-width="1.5"/><line x1="3" y1="12" x2="7" y2="12" stroke-width="1.5"/><line x1="17" y1="12" x2="21" y2="12" stroke-width="1.5"/><line x1="5.6" y1="5.6" x2="8.5" y2="8.5" stroke-width="1.5"/><line x1="15.5" y1="15.5" x2="18.4" y2="18.4" stroke-width="1.5"/>`,
+      drawSVG: `<circle cx="12" cy="12" r="2" fill="#70e6ff"/><line x1="12" y1="3" x2="12" y2="7" stroke-width="1.5"/><line x1="12" y1="17" x2="12" y2="21" stroke-width="1.5"/><line x1="3" y1="12" x2="7" y2="12" stroke-width="1.5"/><line x1="17" y1="12" x2="21" y2="12" stroke-width="1.5"/>`,
       drawCanvas: (ctx, cx, cy) => {
         ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2;
         for (let i = 0; i < 12; i++) {
@@ -340,151 +662,6 @@ export const SHAPE_PAGES = [
           out[i * 3 + 2] = (Math.random() - 0.5) * 4.0;
         }
       }
-    }
-  ],
-
-  // Page 3: Major League Baseball & Stadium Sports (Pack 3)
-  [
-    {
-      id: "crossedBats",
-      drawSVG: `<line x1="4" y1="4" x2="20" y2="20" stroke-width="2"/><line x1="4" y1="20" x2="20" y2="4" stroke-width="2"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
-        ctx.moveTo(cx - 20, cy - 20); ctx.lineTo(cx + 20, cy + 20);
-        ctx.moveTo(cx - 20, cy + 20); ctx.lineTo(cx + 20, cy - 20);
-        ctx.stroke();
-      },
-      gen: (out, n) => {
-        const half = Math.floor(n / 2);
-        for (let i = 0; i < half; i++) {
-          const u = (i / half) * 28 - 14;
-          out[i * 3]     = u;
-          out[i * 3 + 1] = 14 + u;
-          out[i * 3 + 2] = 0.5;
-        }
-        for (let i = half; i < n; i++) {
-          const u = ((i - half) / (n - half)) * 28 - 14;
-          out[i * 3]     = u;
-          out[i * 3 + 1] = 14 - u;
-          out[i * 3 + 2] = -0.5;
-        }
-      }
-    },
-    {
-      id: "baseballBall",
-      drawSVG: `<circle cx="12" cy="12" r="9" stroke-width="1.5"/><path d="M7 5 C9 9, 9 15, 7 19 M17 5 C15 9, 15 15, 17 19" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2.5; ctx.beginPath();
-        ctx.arc(cx, cy, 22, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(cx - 14, cy, 18, -Math.PI * 0.35, Math.PI * 0.35);
-        ctx.arc(cx + 14, cy, 18, Math.PI * 0.65, Math.PI * 1.35);
-        ctx.stroke();
-      },
-      gen: (out, n) => {
-        const sphereCount = Math.floor(n * 0.6);
-        for (let i = 0; i < sphereCount; i++) {
-          const y = 1 - (i / (sphereCount - 1)) * 2;
-          const r = Math.sqrt(1 - y * y) * 11;
-          const t = i * GOLDEN;
-          out[i * 3]     = r * Math.cos(t);
-          out[i * 3 + 1] = 14 + y * 11;
-          out[i * 3 + 2] = r * Math.sin(t);
-        }
-        for (let i = sphereCount; i < n; i++) {
-          const side = i % 2 === 0 ? 1 : -1;
-          const prog = (i - sphereCount) / (n - sphereCount);
-          const a = prog * Math.PI * 2;
-          out[i * 3]     = Math.cos(a) * 11.2 * side;
-          out[i * 3 + 1] = 14 + Math.sin(a) * 11.2;
-          out[i * 3 + 2] = Math.sin(a * 2) * 5.0;
-        }
-      }
-    },
-    {
-      id: "baseballCap",
-      drawSVG: `<path d="M4 14 C4 8, 16 8, 16 14 Z M16 14 L22 15" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2.5; ctx.beginPath();
-        ctx.arc(cx - 4, cy + 4, 18, Math.PI, 0, false);
-        ctx.lineTo(cx + 24, cy + 8);
-        ctx.stroke();
-      },
-      gen: (out, n) => sampleSVGString("M 30 140 C 30 60, 150 60, 150 140 Z M 150 140 L 210 150", out, n, 0.22, 14)
-    },
-    {
-      id: "stadiumMug",
-      drawSVG: `<path d="M6 5 L6 19 A 2 2 0 0 0 8 21 L14 21 A 2 2 0 0 0 16 19 L16 5 Z M16 8 H19 A 2 2 0 0 1 21 10 L21 14 A 2 2 0 0 1 19 16 H16" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2.5; ctx.beginPath();
-        ctx.strokeRect(cx - 14, cy - 16, 24, 34);
-        ctx.arc(cx + 10, cy, 10, -Math.PI * 0.5, Math.PI * 0.5);
-        ctx.stroke();
-      },
-      gen: (out, n) => sampleSVGString("M 50 40 L 50 180 L 130 180 L 130 40 Z M 130 70 L 160 70 A 25 25 0 0 1 185 95 L 185 125 A 25 25 0 0 1 160 150 L 130 150", out, n, 0.22, 14)
-    }
-  ],
-
-  // Page 4: Patriotic & American Symbols (Pack 4)
-  [
-    {
-      id: "wavingFlag",
-      drawSVG: `<path d="M4 3v18 M4 4c4-2 8 2 12 0s4-2 4-2v10c-4 2-8-2-12 0s-4 2-4 2" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
-        ctx.moveTo(cx - 24, cy - 24); ctx.lineTo(cx - 24, cy + 26);
-        ctx.moveTo(cx - 24, cy - 20);
-        ctx.bezierCurveTo(cx - 8, cy - 30, cx + 8, cy - 10, cx + 24, cy - 20);
-        ctx.lineTo(cx + 24, cy);
-        ctx.bezierCurveTo(cx + 8, cy + 10, cx - 8, cy - 10, cx - 24, cy); ctx.stroke();
-      },
-      gen: (out, n) => generateBalancedGrid(out, n, 32, 20, 14)
-    },
-    {
-      id: "eagleSoar",
-      drawSVG: `<path d="M2 10 C 6 4, 10 12, 12 9 C 14 12, 18 4, 22 10 C 17 14, 13 18, 12 21 C 11 18, 7 14, 2 10 Z" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 3; ctx.beginPath();
-        ctx.moveTo(cx - 36, cy + 2); ctx.bezierCurveTo(cx - 20, cy - 24, cx - 8, cy + 6, cx, cy - 6);
-        ctx.bezierCurveTo(cx + 8, cy + 6, cx + 20, cy - 24, cx + 36, cy + 2);
-        ctx.bezierCurveTo(cx + 18, cy + 18, cx + 8, cy + 26, cx, cy + 30);
-        ctx.bezierCurveTo(cx - 8, cy + 26, cx - 18, cy + 18, cx - 36, cy + 2); ctx.stroke();
-      },
-      gen: (out, n) => {
-        for (let i = 0; i < n; i++) {
-          const u = (i / n) * 2 - 1;
-          out[i * 3]     = u * 20;
-          out[i * 3 + 1] = 14 + Math.cos(u * Math.PI * 0.9) * 4.2;
-          out[i * 3 + 2] = -Math.abs(u) * 6;
-        }
-      }
-    },
-    {
-      id: "libertyBell",
-      drawSVG: `<path d="M7 17 L8 8 A 4 4 0 0 1 16 8 L17 17 Z M5 17 H19 M10 20 H14" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2.5; ctx.beginPath();
-        ctx.arc(cx, cy - 8, 14, Math.PI, 0, false);
-        ctx.lineTo(cx + 18, cy + 14); ctx.lineTo(cx - 18, cy + 14); ctx.closePath();
-        ctx.moveTo(cx - 22, cy + 14); ctx.lineTo(cx + 22, cy + 14);
-        ctx.stroke();
-      },
-      gen: (out, n) => sampleSVGString("M 60 160 L 70 80 A 30 30 0 0 1 130 80 L 140 160 Z M 40 160 L 160 160 M 85 180 L 115 180", out, n, 0.22, 14)
-    },
-    {
-      id: "torchFlame",
-      drawSVG: `<path d="M12 2 C10 6, 8 8, 12 13 C10 11, 9 9, 10 7 M9 15 L15 15 L14 22 L10 22 Z" stroke-width="1.5"/>`,
-      drawCanvas: (ctx, cx, cy) => {
-        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2.5; ctx.beginPath();
-        ctx.moveTo(cx, cy - 24);
-        ctx.bezierCurveTo(cx - 14, cy - 8, cx - 10, cy, cx, cy + 6);
-        ctx.bezierCurveTo(cx + 10, cy, cx + 14, cy - 8, cx, cy - 24);
-        ctx.moveTo(cx - 8, cy + 6); ctx.lineTo(cx + 8, cy + 6);
-        ctx.lineTo(cx + 4, cy + 24); ctx.lineTo(cx - 4, cy + 24); ctx.closePath();
-        ctx.stroke();
-      },
-      gen: (out, n) => sampleSVGString("M 100 20 C 60 70, 70 110, 100 130 C 130 110, 140 70, 100 20 Z M 75 130 L 125 130 L 115 200 L 85 200 Z", out, n, 0.22, 14)
     }
   ]
 ];
