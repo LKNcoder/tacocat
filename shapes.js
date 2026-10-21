@@ -3,7 +3,7 @@ import { MeshSurfaceSampler } from "three/addons/math/MeshSurfaceSampler.js";
 
 const GOLDEN = Math.PI * (3 - Math.sqrt(5));
 
-// Balanced Row Partitioning: Fills edge-to-edge for any arbitrary fleet count
+// Balanced Row Partitioning
 export function generateBalancedGrid(out, count, width = 32, height = 20, altitude = 14) {
   const aspect = width / height;
   const R = Math.max(2, Math.round(Math.sqrt(count / aspect)));
@@ -17,7 +17,7 @@ export function generateBalancedGrid(out, count, width = 32, height = 20, altitu
 
     for (let c = 0; c < numInRow; c++) {
       const x = numInRow > 1 ? (c / (numInRow - 1) - 0.5) * width : 0;
-      out[droneIdx * 3] = x;
+      out[droneIdx * 3]     = x;
       out[droneIdx * 3 + 1] = y;
       out[droneIdx * 3 + 2] = 0;
       droneIdx++;
@@ -44,7 +44,7 @@ export function sampleSVGString(svgD, out, count, scale = 0.24, altitude = 14) {
   const cy = (minY + maxY) / 2;
   for (let i = 0; i < count; i++) {
     const pt = rawPts[i];
-    out[i * 3] = (pt.x - cx) * scale;
+    out[i * 3]     = (pt.x - cx) * scale;
     out[i * 3 + 1] = altitude - (pt.y - cy) * scale;
     out[i * 3 + 2] = (i % 2 === 0 ? 1 : -1) * 1.2;
   }
@@ -59,9 +59,52 @@ export function sampleProcedural3DMesh(geometry, out, count, scale = 1.0, altitu
   const tempV = new THREE.Vector3();
   for (let i = 0; i < count; i++) {
     sampler.sample(tempV);
-    out[i * 3] = tempV.x * scale;
+    out[i * 3]     = tempV.x * scale;
     out[i * 3 + 1] = altitude + tempV.y * scale;
     out[i * 3 + 2] = tempV.z * scale;
+  }
+}
+
+// Typography & Text Formation Rasterizer
+export function generateTextDrones(out, text, count, font = "Impact", scale = 0.28, altitude = 14) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 128;
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(0, 0, 512, 128);
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `bold 64px ${font}, sans-serif`;
+  ctx.fillText(text.trim() || "DRONE", 256, 64);
+
+  const imgData = ctx.getImageData(0, 0, 512, 128).data;
+  const validPixels = [];
+  for (let y = 0; y < 128; y += 2) {
+    for (let x = 0; x < 512; x += 2) {
+      if (imgData[(y * 512 + x) * 4] > 110) {
+        validPixels.push({ x: x - 256, y: 64 - y });
+      }
+    }
+  }
+
+  if (validPixels.length === 0) {
+    for (let i = 0; i < count; i++) {
+      out[i * 3]     = (Math.random() - 0.5) * 24;
+      out[i * 3 + 1] = altitude;
+      out[i * 3 + 2] = 0;
+    }
+    return;
+  }
+
+  const step = validPixels.length / count;
+  for (let i = 0; i < count; i++) {
+    const pt = validPixels[Math.floor(i * step) % validPixels.length];
+    out[i * 3]     = pt.x * scale;
+    out[i * 3 + 1] = altitude + pt.y * scale;
+    out[i * 3 + 2] = (i % 2 === 0 ? 0.35 : -0.35); // Subtle 3D volumetric relief
   }
 }
 
@@ -96,16 +139,15 @@ export const SHAPE_PAGES = [
         ctx.strokeRect(cx - 3.5, cy + 14, 7, 8); ctx.stroke();
       },
       gen: (out, n, swatchOut) => {
-        // 1. Drone Allocation: Star ~7%, Trunk ~12%, Foliage Cones ~81%
         const starCount = Math.max(12, Math.round(n * 0.07));
         const trunkCount = Math.max(16, Math.round(n * 0.12));
         const foliageCount = n - starCount - trunkCount;
 
         let ptr = 0;
 
-        // --- PART 1: 3D Apex Star (Swatch 0: Gold) ---
+        // 1. Apex Star (Swatch 0: Gold)
         const starCenterY = 24.5;
-        const starR = 2.0;
+        const starR = 2.2;
         for (let i = 0; i < starCount; i++) {
           const angle = (i / starCount) * Math.PI * 4;
           const isTip = i % 2 === 0;
@@ -115,34 +157,40 @@ export const SHAPE_PAGES = [
           out[ptr * 3]     = Math.cos(angle) * r;
           out[ptr * 3 + 1] = starCenterY + Math.sin(angle) * r;
           out[ptr * 3 + 2] = zDepth;
-          if (swatchOut) swatchOut[ptr] = 0; // Gold Star
+          if (swatchOut) swatchOut[ptr] = 0;
           ptr++;
         }
 
-        // --- PART 2: 3 Volumetric Conical Tiers (Swatch 1: Emerald Foliage) ---
+        // 2. 3 Foliage Tiers with Mantle Lights (Swatches 1, 3, 4)
         const tiers = [
-          { count: Math.round(foliageCount * 0.25), yBase: 17.5, h: 6.5, rBase: 4.2 }, // Top Cone
-          { count: Math.round(foliageCount * 0.35), yBase: 12.0, h: 7.5, rBase: 7.2 }, // Mid Cone
-          { count: foliageCount - Math.round(foliageCount * 0.25) - Math.round(foliageCount * 0.35), yBase: 6.5, h: 8.5, rBase: 10.2 } // Bottom Cone
+          { count: Math.round(foliageCount * 0.25), yBase: 17.5, h: 6.5, rBase: 4.2 },
+          { count: Math.round(foliageCount * 0.35), yBase: 12.0, h: 7.5, rBase: 7.2 },
+          { count: foliageCount - Math.round(foliageCount * 0.25) - Math.round(foliageCount * 0.35), yBase: 6.5, h: 8.5, rBase: 10.2 }
         ];
 
         for (const tier of tiers) {
           for (let i = 0; i < tier.count; i++) {
-            // Square root distribution for uniform surface area density
             const v = Math.sqrt((i + 0.5) / tier.count);
             const y = tier.yBase + v * tier.h;
-            const r = tier.rBase * (1.0 - v * 0.92);
+            let r = tier.rBase * (1.0 - v * 0.92);
             const theta = i * GOLDEN;
+
+            const isLight = (i % 9 === 2 || i % 9 === 7);
+            if (isLight) {
+              r *= 1.06;
+              if (swatchOut) swatchOut[ptr] = (i % 2 === 0) ? 3 : 4;
+            } else {
+              if (swatchOut) swatchOut[ptr] = 1;
+            }
 
             out[ptr * 3]     = Math.cos(theta) * r;
             out[ptr * 3 + 1] = y;
             out[ptr * 3 + 2] = Math.sin(theta) * r;
-            if (swatchOut) swatchOut[ptr] = 1; // Green Foliage
             ptr++;
           }
         }
 
-        // --- PART 3: 3D Cylindrical Trunk (Swatch 2: Brown Bark) ---
+        // 3. Cylindrical Trunk (Swatch 2: Brown Bark)
         const trunkYBase = 2.0;
         const trunkHeight = 5.0;
         const trunkRadius = 1.8;
@@ -155,8 +203,32 @@ export const SHAPE_PAGES = [
           out[ptr * 3]     = Math.cos(theta) * trunkRadius;
           out[ptr * 3 + 1] = y;
           out[ptr * 3 + 2] = Math.sin(theta) * trunkRadius;
-          if (swatchOut) swatchOut[ptr] = 2; // Brown Trunk
+          if (swatchOut) swatchOut[ptr] = 2;
           ptr++;
+        }
+      }
+    },
+    {
+      id: "snowflake",
+      drawSVG: `<line x1="12" y1="2" x2="12" y2="22" stroke-width="1.5"/><line x1="2" y1="12" x2="22" y2="12" stroke-width="1.5"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1" stroke-width="1.5"/><line x1="4.9" y1="19.1" x2="19.1" y2="4.9" stroke-width="1.5"/>`,
+      drawCanvas: (ctx, cx, cy) => {
+        ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2.5;
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * Math.PI * 2;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + Math.cos(a) * 24, cy + Math.sin(a) * 24);
+          ctx.stroke();
+        }
+      },
+      gen: (out, n) => {
+        for (let i = 0; i < n; i++) {
+          const arm = i % 6;
+          const a = (arm / 6) * Math.PI * 2;
+          const dist = ((Math.floor(i / 6) % 15) / 15) * 14;
+          out[i * 3]     = Math.cos(a) * dist;
+          out[i * 3 + 1] = 14 + Math.sin(a) * dist;
+          out[i * 3 + 2] = (i % 2 === 0 ? 1 : -1) * 1.0;
         }
       }
     },
@@ -195,10 +267,8 @@ export const SHAPE_PAGES = [
       drawSVG: `<path d="M6 3 L10 11 L10 17 M8 17 L12 17 M10 6 L6 6 M18 3 L14 11 L14 17 M12 17 L16 17 M14 6 L18 6" stroke-width="1.5"/>`,
       drawCanvas: (ctx, cx, cy) => {
         ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2.5; ctx.beginPath();
-        // Left Flute
         ctx.moveTo(cx - 14, cy - 20); ctx.lineTo(cx - 6, cy - 4); ctx.lineTo(cx - 6, cy + 14);
         ctx.moveTo(cx - 12, cy + 14); ctx.lineTo(cx, cy + 14);
-        // Right Flute
         ctx.moveTo(cx + 14, cy - 20); ctx.lineTo(cx + 6, cy - 4); ctx.lineTo(cx + 6, cy + 14);
         ctx.moveTo(cx, cy + 14); ctx.lineTo(cx + 12, cy + 14);
         ctx.stroke();
@@ -218,19 +288,19 @@ export const SHAPE_PAGES = [
         const rimCount = Math.floor(n * 0.7);
         for (let i = 0; i < rimCount; i++) {
           const a = (i / rimCount) * Math.PI * 2;
-          out[i * 3] = Math.cos(a) * 12;
+          out[i * 3]     = Math.cos(a) * 12;
           out[i * 3 + 1] = 14 + Math.sin(a) * 12;
           out[i * 3 + 2] = 0;
         }
         for (let i = rimCount; i < n; i++) {
           const u = (i - rimCount) / (n - rimCount);
           if (u < 0.6) {
-            out[i * 3] = 0;
+            out[i * 3]     = 0;
             out[i * 3 + 1] = 14 + (u / 0.6) * 8;
             out[i * 3 + 2] = 0;
           } else {
             const handU = (u - 0.6) / 0.4;
-            out[i * 3] = handU * 6;
+            out[i * 3]     = handU * 6;
             out[i * 3 + 1] = 14 + handU * 4;
             out[i * 3 + 2] = 0;
           }
@@ -242,9 +312,7 @@ export const SHAPE_PAGES = [
       drawSVG: `<polygon points="2,22 10,20 4,14" stroke-width="1.5"/><path d="M10 14 C12 10, 16 11, 18 8 M14 18 C17 17, 18 13, 21 12 M18 19 L20 22 M8 6 L11 4 M14 4 A 2 2 0 1 1 16 6" stroke-width="1.5"/>`,
       drawCanvas: (ctx, cx, cy) => {
         ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2.5; ctx.beginPath();
-        // Cone
         ctx.moveTo(cx - 20, cy + 18); ctx.lineTo(cx - 4, cy + 14); ctx.lineTo(cx - 14, cy + 4); ctx.closePath();
-        // Streamers
         ctx.moveTo(cx, cy); ctx.bezierCurveTo(cx + 12, cy - 10, cx + 18, cy + 4, cx + 24, cy - 8);
         ctx.moveTo(cx - 2, cy - 6); ctx.lineTo(cx + 8, cy - 18);
         ctx.stroke();
@@ -269,7 +337,7 @@ export const SHAPE_PAGES = [
           const u = i / n;
           const a = i * GOLDEN;
           const r = Math.sqrt(u) * 14;
-          out[i * 3] = Math.cos(a) * r;
+          out[i * 3]     = Math.cos(a) * r;
           out[i * 3 + 1] = 14 + Math.sin(a) * r;
           out[i * 3 + 2] = (Math.random() - 0.5) * 4.0;
         }
@@ -292,11 +360,15 @@ export const SHAPE_PAGES = [
         const half = Math.floor(n / 2);
         for (let i = 0; i < half; i++) {
           const u = (i / half) * 28 - 14;
-          out[i * 3] = u; out[i * 3 + 1] = 14 + u; out[i * 3 + 2] = 0.5;
+          out[i * 3]     = u;
+          out[i * 3 + 1] = 14 + u;
+          out[i * 3 + 2] = 0.5;
         }
         for (let i = half; i < n; i++) {
           const u = ((i - half) / (n - half)) * 28 - 14;
-          out[i * 3] = u; out[i * 3 + 1] = 14 - u; out[i * 3 + 2] = -0.5;
+          out[i * 3]     = u;
+          out[i * 3 + 1] = 14 - u;
+          out[i * 3 + 2] = -0.5;
         }
       }
     },
@@ -318,14 +390,15 @@ export const SHAPE_PAGES = [
           const y = 1 - (i / (sphereCount - 1)) * 2;
           const r = Math.sqrt(1 - y * y) * 11;
           const t = i * GOLDEN;
-          out[i * 3] = r * Math.cos(t); out[i * 3 + 1] = 14 + y * 11; out[i * 3 + 2] = r * Math.sin(t);
+          out[i * 3]     = r * Math.cos(t);
+          out[i * 3 + 1] = 14 + y * 11;
+          out[i * 3 + 2] = r * Math.sin(t);
         }
-        // Red curved stitching
         for (let i = sphereCount; i < n; i++) {
           const side = i % 2 === 0 ? 1 : -1;
           const prog = (i - sphereCount) / (n - sphereCount);
           const a = prog * Math.PI * 2;
-          out[i * 3] = Math.cos(a) * 11.2 * side;
+          out[i * 3]     = Math.cos(a) * 11.2 * side;
           out[i * 3 + 1] = 14 + Math.sin(a) * 11.2;
           out[i * 3 + 2] = Math.sin(a * 2) * 5.0;
         }
@@ -355,7 +428,7 @@ export const SHAPE_PAGES = [
     }
   ],
 
-  // Page 4: Patriotic & American Flags (Pack 4)
+  // Page 4: Patriotic & American Symbols (Pack 4)
   [
     {
       id: "wavingFlag",
@@ -383,7 +456,7 @@ export const SHAPE_PAGES = [
       gen: (out, n) => {
         for (let i = 0; i < n; i++) {
           const u = (i / n) * 2 - 1;
-          out[i * 3] = u * 20;
+          out[i * 3]     = u * 20;
           out[i * 3 + 1] = 14 + Math.cos(u * Math.PI * 0.9) * 4.2;
           out[i * 3 + 2] = -Math.abs(u) * 6;
         }
@@ -406,11 +479,9 @@ export const SHAPE_PAGES = [
       drawSVG: `<path d="M12 2 C10 6, 8 8, 12 13 C10 11, 9 9, 10 7 M9 15 L15 15 L14 22 L10 22 Z" stroke-width="1.5"/>`,
       drawCanvas: (ctx, cx, cy) => {
         ctx.strokeStyle = "#70e6ff"; ctx.lineWidth = 2.5; ctx.beginPath();
-        // Flame
         ctx.moveTo(cx, cy - 24);
         ctx.bezierCurveTo(cx - 14, cy - 8, cx - 10, cy, cx, cy + 6);
         ctx.bezierCurveTo(cx + 10, cy, cx + 14, cy - 8, cx, cy - 24);
-        // Handle
         ctx.moveTo(cx - 8, cy + 6); ctx.lineTo(cx + 8, cy + 6);
         ctx.lineTo(cx + 4, cy + 24); ctx.lineTo(cx - 4, cy + 24); ctx.closePath();
         ctx.stroke();
