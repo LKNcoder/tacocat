@@ -731,6 +731,30 @@ const timelineData = {
       transColorFX: "blend", altitude: 16.0, scale: 1.0, rotStartY: 0, rotEndY: 45,
       palette: ["#ff0033", "#ffffff", "#ffd700"],
       activeSwatchIdx: 0, cycleSpeed: 0.5, run: true, runSpeed: 3.5, blink: false, blinkSpeed: 3.0, sparkle: false, sparkleDensity: 0.35
+    },
+    {
+      id: "f0", shapeId: "snowflake", isText: false, dur: 18.0, transDur: 4.0,
+      transColorFX: "sparkle", altitude: 18.0, scale: 1.0, rotStartY: 0, rotEndY: 30,
+      palette: ["#ffffff", "#00e5ff"], activeSwatchIdx: 0,
+      cycleSpeed: 1.0, run: false, runSpeed: 3.0, blink: false, blinkSpeed: 3.0, sparkle: true, sparkleDensity: 0.35
+    },
+    {
+      id: "f1", shapeId: "wavingSnowman", isText: false, dur: 22.0, transDur: 4.0,
+      transColorFX: "blend", altitude: 16.0, scale: 1.05, rotStartY: 0, rotEndY: 0,
+      palette: ["#ffffff", "#1b283a", "#d50000", "#ff6d00", "#8d6e63"], activeSwatchIdx: 0,
+      cycleSpeed: 0.0, run: false, runSpeed: 3.0, blink: false, blinkSpeed: 3.0, sparkle: false, sparkleDensity: 0.25
+    },
+    {
+      id: "f2", shapeId: "giftBox3D", isText: false, dur: 18.0, transDur: 4.0,
+      transColorFX: "sparkle", altitude: 17.0, scale: 1.0, rotStartY: 0, rotEndY: 45,
+      palette: ["#6200ea", "#ffd700"], activeSwatchIdx: 0,
+      cycleSpeed: 0.5, run: true, runSpeed: 3.5, blink: false, blinkSpeed: 3.0, sparkle: false, sparkleDensity: 0.3
+    },
+    {
+      id: "f3", shapeId: "hotCocoaMug", isText: false, dur: 20.0, transDur: 0.0,
+      transColorFX: "blend", altitude: 15.0, scale: 1.0, rotStartY: 0, rotEndY: 20,
+      palette: ["#d50000", "#ffffff", "#ff1744", "#e0f7fa"], activeSwatchIdx: 0,
+      cycleSpeed: 0.0, run: false, runSpeed: 3.0, blink: false, blinkSpeed: 3.0, sparkle: true, sparkleDensity: 0.2
     }
   ]
 };
@@ -1015,6 +1039,23 @@ function evaluateTimeline(t) {
         const curRotY = v0y + (v1y - v0y) * uBlock;
 
         localScratchPoints.set(currTargets.subarray(0, formationCount * 3));
+// Articulated Right-Arm Wave Kinematic for the Snowman
+        if (b.shapeId === "wavingSnowman") {
+          const waveAngle = Math.sin((showT - formStart) * 5.5) * 0.38; // ~22° oscillation
+          const cosW = Math.cos(waveAngle), sinW = Math.sin(waveAngle);
+          const shoulderX = 3.8, shoulderY = 14.5; // Joint pivot
+
+          for (let j = 0; j < formationCount; j++) {
+            // Check right stick arm drones (X > 3.8 and Wood Brown swatch)
+            if (currSwatches && currSwatches[j] === 4 && currTargets[j * 3] > 3.8) {
+              const dx = currTargets[j * 3] - shoulderX;
+              const dy = currTargets[j * 3 + 1] - shoulderY;
+              localScratchPoints[j * 3]     = shoulderX + (dx * cosW - dy * sinW);
+              localScratchPoints[j * 3 + 1] = shoulderY + (dx * sinW + dy * cosW);
+            }
+          }
+        }
+        
         if (b.isText) applyTextProceduralFX(b, showT - formStart, formationCount, localScratchPoints);
 
         for (let j = 0; j < formationCount; j++) {
