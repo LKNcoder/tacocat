@@ -56,6 +56,7 @@ canvas { display: block; }
 }
 .toolbar-btn:hover { background: #1c3b6a; border-color: #70e6ff; color: #fff; }
 .toolbar-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.toolbar-btn.active { background: #1b3864; border-color: #70e6ff; color: #fff; }
 
 .section-label {
   display: flex;
@@ -205,10 +206,6 @@ button.symbol-btn span { font-size: 9px; color: #8fa2c3; margin-top: 2px; }
   display: flex;
   overflow: hidden;
 }
-.track-lane.dragover {
-  outline: 2px dashed #70e6ff;
-  background: #071933;
-}
 
 .block-element {
   position: relative; height: 100%; display: flex; align-items: center;
@@ -216,7 +213,6 @@ button.symbol-btn span { font-size: 9px; color: #8fa2c3; margin-top: 2px; }
   overflow: hidden; font-size: 10px; font-weight: 600; border-right: 1px solid #0004;
 }
 .block-element.active-block { outline: 2px solid #ffffff; z-index: 2; }
-.block-element.dragging { opacity: 0.4; }
 .block-element.flight-gate { background: #13382c !important; color: #70ffb0; }
 .block-element.text-block { background: #3b2054; color: #e4c2ff; border-left: 3px solid #df52ff; }
 
@@ -229,36 +225,21 @@ button.symbol-btn span { font-size: 9px; color: #8fa2c3; margin-top: 2px; }
 
 .transition-block {
   background: repeating-linear-gradient(45deg, #1b283a, #1b283a 6px, #26384f 6px, #26384f 12px);
-  cursor: pointer;
-  font-size: 9px;
-  color: #8fa2c3;
+  cursor: pointer; font-size: 9px; color: #8fa2c3;
 }
 .transition-block:hover { background: #22385c; color: #70e6ff; }
 .transition-block.active-block { outline: 2px solid #70e6ff; z-index: 3; }
 
 #playhead-needle {
-  position: absolute;
-  top: -4px;
-  bottom: 0;
-  width: 2px;
-  background: #ff3b69;
-  box-shadow: 0 0 8px #ff3b69;
-  z-index: 20;
-  pointer-events: none;
-  transform: translateX(-50%);
+  position: absolute; top: -4px; bottom: 0; width: 2px;
+  background: #ff3b69; box-shadow: 0 0 8px #ff3b69; z-index: 20;
+  pointer-events: none; transform: translateX(-50%);
 }
 #playhead-handle {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 14px;
-  height: 14px;
-  background: #ff3b69;
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 14px; height: 14px; background: #ff3b69;
   clip-path: polygon(0% 0%, 100% 0%, 100% 60%, 50% 100%, 0% 60%);
-  cursor: ew-resize;
-  pointer-events: auto;
-  box-shadow: 0 0 6px #000;
+  cursor: ew-resize; pointer-events: auto; box-shadow: 0 0 6px #000;
 }
 #playhead-handle:hover { background: #ff7595; }
 
@@ -270,6 +251,14 @@ button.symbol-btn span { font-size: 9px; color: #8fa2c3; margin-top: 2px; }
   padding: 7px 11px; border-radius: 8px; font-size: 12px; pointer-events: none;
 }
 body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { display: none !important; }
+
+/* Primitive Stager List */
+.primitive-item {
+  display: flex; align-items: center; justify-content: space-between;
+  background: #111e33; padding: 4px 8px; border-radius: 5px;
+  border: 1px solid #233b5d; font-size: 11px;
+}
+.primitive-item.selected { border-color: #70e6ff; background: #1b3864; }
 </style>
 <script type="importmap">
 {
@@ -285,12 +274,38 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
   <div id="top-bar">
     <div id="title">DroneShow Designer XR</div>
     <div style="display:flex; gap:6px;">
+      <button class="toolbar-btn" id="btn-toggle-composer">★ 3D Composer</button>
       <button class="toolbar-btn" id="btn-undo" title="Revert last action (Ctrl+Z)">↶ Undo</button>
     </div>
   </div>
-  <div id="status">Architectural Wireframes · Live Arm Waves & Rising Steam Active</div>
+  <div id="status">Interactive 3D Primitive Stager & Geodesic Lattices Active</div>
 
-  <!-- Global Fleet & Environmental Precipitation -->
+  <!-- 3D Primitive Composer Card -->
+  <div class="context-card hidden" id="card-primitive-composer" style="border-color:#70e6ff;">
+    <div class="section-label" style="margin:0;">
+      <span style="color:#70e6ff;">3D Primitive Composer</span>
+      <div style="display:flex; gap:4px;">
+        <button class="toolbar-btn active" id="btn-gizmo-trans">Pos (W)</button>
+        <button class="toolbar-btn" id="btn-gizmo-rot">Rot (E)</button>
+        <button class="toolbar-btn" id="btn-gizmo-scale">Scale (R)</button>
+      </div>
+    </div>
+    <div style="display:flex; gap:4px; margin-top:2px;">
+      <button class="toolbar-btn" id="btn-spawn-box">+ Box</button>
+      <button class="toolbar-btn" id="btn-spawn-cylinder">+ Cylinder</button>
+      <button class="toolbar-btn" id="btn-spawn-sphere">+ Sphere</button>
+      <button class="toolbar-btn" id="btn-spawn-cone">+ Cone</button>
+    </div>
+    <div id="staged-primitives-list" style="display:flex; flex-direction:column; gap:4px; max-height:100px; overflow-y:auto; margin-top:4px;"></div>
+    <div style="display:flex; gap:6px; margin-top:4px;">
+      <button class="toolbar-btn" id="btn-bake-primitives" style="flex:1; background:#1b3864; border-color:#70e6ff; color:#fff; padding:6px 0;">
+        ★ Convert Staged Mesh to Drone Formation
+      </button>
+      <button class="toolbar-btn" id="btn-clear-primitives" style="border-color:#ff3b69; color:#ff859c;">Clear</button>
+    </div>
+  </div>
+
+  <!-- Global Scene Settings -->
   <div class="ctrl-row" style="margin-top:6px;">
     <span style="min-width:65px;">Active Fleet:</span>
     <input type="range" id="slider-fleet-count" min="100" max="1200" step="10" value="400">
@@ -318,11 +333,6 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
       <span id="val-precip-speed" style="min-width:55px; text-align:right;">2.4 m/s</span>
     </div>
     <div class="ctrl-row">
-      <span style="min-width:60px;">Wind Angle:</span>
-      <input type="range" id="slider-precip-angle" min="-45" max="45" step="1" value="0">
-      <span id="val-precip-angle" style="min-width:55px; text-align:right;">0°</span>
-    </div>
-    <div class="ctrl-row">
       <span style="min-width:60px;">Lighting FX:</span>
       <select id="sel-precip-fx">
         <option value="glimmer" selected>Soft Glimmer</option>
@@ -341,7 +351,6 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
       <span id="inspector-shape-name" style="color:#70e6ff;">snowflake</span>
     </div>
 
-    <!-- Shape/Text Switcher Tabs -->
     <div id="formation-sub-shape">
       <div class="tab-row" id="page-tabs"></div>
       <div class="icon-grid" id="desktop-icon-grid"></div>
@@ -470,7 +479,7 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
     </div>
   </div>
 
-  <!-- Unified Single-Track Timeline -->
+  <!-- Unified Timeline Module -->
   <div class="timeline-module">
     <div class="timeline-grid">
       <div class="timeline-headers-col">
@@ -497,13 +506,13 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
     <div class="timeline-bottom-row">
       <button id="btn-play" style="padding:4px 14px; font-size:11px; background:#1b3864; border:1px solid #70e6ff; color:#fff; border-radius:4px; cursor:pointer;">Play</button>
       <span id="time-display" style="font-size:11px; font-variant-numeric:tabular-nums; min-width:85px;">00:00 / 01:00</span>
-      <span style="font-size:10px; color:#8fa2c3; flex:1; text-align:right;">Click any block or transition to inspect</span>
+      <span style="font-size:10px; color:#8fa2c3; flex:1; text-align:right;">Click block to inspect · Click '★ 3D Composer' to stage mesh primitives</span>
     </div>
   </div>
 
   <div id="hint">
-    <b>Act I:</b> Snowflake $\to$ Waving Snowman $\to$ 3D Gift Cube $\to$ Steaming Cocoa Mug.<br>
-    <b>Kinematics:</b> Snowman arm actively waves; hot cocoa steam continuously rises into the sky.
+    <b>3D Composer:</b> Add boxes, cylinders, and spheres, position them with gizmos, and click <b>Bake</b> to turn them into drones.<br>
+    <b>Snowman & Box:</b> Snowman spheres use triangular geodesic packing; Gift Box is Red with 3-axis Green ribbon crosses.
   </div>
 </div>
 <div id="vr-tip">In VR: Press Left X for HUD · Trigger paints drones with active swatch</div>
@@ -511,8 +520,9 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
 <script type="module">
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { TransformControls } from "three/addons/controls/TransformControls.js";
 import { VRButton } from "three/addons/webxr/VRButton.js";
-import { SHAPE_PAGES, findShapeById, generateTextDrones } from "./shapes.js";
+import { SHAPE_PAGES, findShapeById, generateTextDrones, sampleCompositePrimitives } from "./shapes.js";
 
 function formatTime(s) {
   if (isNaN(s) || s === undefined || s === null) return "00:00";
@@ -567,6 +577,22 @@ orbit.update();
 
 const stageGroup = new THREE.Group();
 scene.add(stageGroup);
+
+// TransformControls for 3D Primitive Composer
+const transformGizmo = new TransformControls(camera, renderer.domElement);
+transformGizmo.size = 0.75;
+transformGizmo.addEventListener('dragging-changed', (event) => {
+  orbit.enabled = !event.value;
+});
+scene.add(transformGizmo);
+
+// 3D Primitive Composer Stager Group
+const stagerGroup = new THREE.Group();
+stageGroup.add(stagerGroup);
+stagerGroup.visible = false;
+
+const stagedPrimitives = [];
+let selectedPrimitiveMesh = null;
 
 const leftController = renderer.xr.getController(0);
 const rightController = renderer.xr.getController(1);
@@ -706,7 +732,7 @@ function assignMinimalPaths(currentPos, rawTargets, count) {
   return assigned;
 }
 
-// Act I Narrative Master Setup
+// Act I Narrative Master Setup with Direct Palette Links
 const timelineData = {
   formationBlocks: [
     {
@@ -724,7 +750,7 @@ const timelineData = {
     {
       id: "f2", shapeId: "giftBox3D", isText: false, dur: 18.0, transDur: 4.0,
       transColorFX: "sparkle", altitude: 17.0, scale: 1.0, rotStartY: 0, rotEndY: 45,
-      palette: ["#7b1fa2", "#ffd700"], activeSwatchIdx: 0,
+      palette: ["#d50000", "#00e676"], activeSwatchIdx: 0,
       cycleSpeed: 0.5, run: true, runSpeed: 3.5, blink: false, blinkSpeed: 3.0, sparkle: false, sparkleDensity: 0.3
     },
     {
@@ -755,7 +781,11 @@ function buildShowTrajectoryData() {
     const raw = new Float32Array(formationCount * 3);
     const swatches = new Uint8Array(formationCount);
 
-    if (b.isText) {
+    if (b.customPoints) {
+      // Use custom points baked from the 3D Primitive Composer
+      raw.set(b.customPoints.subarray(0, formationCount * 3));
+      if (b.customSwatches) swatches.set(b.customSwatches.subarray(0, formationCount));
+    } else if (b.isText) {
       generateTextDrones(raw, b.text || "DRONE", formationCount, b.font || "Impact", 0.28, 14);
       for (let s = 0; s < formationCount; s++) swatches[s] = s % (b.palette?.length || 2);
     } else {
@@ -889,6 +919,41 @@ function applyLightingFX(block, timeSec) {
   }
 }
 
+function applyTextProceduralFX(block, tOffset, count, inOutVecArray) {
+  if (!block || !block.isText || !block.fx || block.fx === "none") return;
+  const speed = block.speed || 1.0;
+  const time = tOffset * speed;
+
+  if (block.fx === "scroll") {
+    const scrollSpan = 38.0;
+    const xShift = (time * 8.5) % scrollSpan;
+    for (let i = 0; i < count; i++) {
+      let x = inOutVecArray[i * 3] - xShift;
+      if (x < -scrollSpan * 0.5) x += scrollSpan;
+      inOutVecArray[i * 3] = x;
+    }
+  } else if (block.fx === "wave") {
+    for (let i = 0; i < count; i++) {
+      const x = inOutVecArray[i * 3];
+      inOutVecArray[i * 3 + 1] += Math.sin(time * 3.5 + x * 0.28) * 2.2;
+    }
+  } else if (block.fx === "dissolve") {
+    const scatterCycle = Math.sin(time * 2.0);
+    const envelope = Math.max(0, scatterCycle * scatterCycle - 0.25) * 4.5;
+    for (let i = 0; i < count; i++) {
+      inOutVecArray[i * 3]     += Math.sin(i * 12.3 + time * 4.0) * envelope;
+      inOutVecArray[i * 3 + 1] += Math.cos(i * 7.1 + time * 3.0) * envelope;
+      inOutVecArray[i * 3 + 2] += Math.sin(i * 19.5 + time * 5.0) * envelope;
+    }
+  } else if (block.fx === "pulse") {
+    const s = 1.0 + Math.sin(time * 3.0) * 0.16;
+    for (let i = 0; i < count; i++) {
+      inOutVecArray[i * 3]     *= s;
+      inOutVecArray[i * 3 + 1] = 14 + (inOutVecArray[i * 3 + 1] - 14) * s;
+    }
+  }
+}
+
 const rotEuler = new THREE.Euler(0, 0, 0, "YXZ");
 const rotMatrix = new THREE.Matrix4();
 const centerPt = new THREE.Vector3(0, 18, 0);
@@ -979,11 +1044,11 @@ function evaluateTimeline(t) {
 
         localScratchPoints.set(currTargets.subarray(0, formationCount * 3));
 
-        // Live Waving Kinematics for Snowman Right Arm & Mitten Hand
+        // Snowman Arm Wave Kinematic
         if (b.shapeId === "wavingSnowman") {
-          const waveAngle = Math.sin((showT - formStart) * 5.5) * 0.38; // ~22° oscillation
+          const waveAngle = Math.sin((showT - formStart) * 5.5) * 0.38;
           const cosW = Math.cos(waveAngle), sinW = Math.sin(waveAngle);
-          const shoulderX = 4.2, shoulderY = 15.0;
+          const shoulderX = 4.2, shoulderY = 14.8;
 
           for (let j = 0; j < formationCount; j++) {
             if (currTargets[j * 3] > 4.2) {
@@ -995,7 +1060,7 @@ function evaluateTimeline(t) {
           }
         }
 
-        // Live Rising Particles for Cocoa Steam
+        // Cocoa Steam Particle Convection
         if (b.shapeId === "hotCocoaMug") {
           const steamTime = (showT - formStart) * 3.5;
           for (let j = 0; j < formationCount; j++) {
@@ -1004,7 +1069,7 @@ function evaluateTimeline(t) {
               const loopT = (steamTime + seed * 4.0) % 12.0;
               const driftX = Math.sin(loopT * 0.8 + seed) * 1.8;
               localScratchPoints[j * 3]     = currTargets[j * 3] * 0.3 + driftX;
-              localScratchPoints[j * 3 + 1] = 16.0 + loopT; // Rise continuously from rim
+              localScratchPoints[j * 3 + 1] = 16.0 + loopT;
               localScratchPoints[j * 3 + 2] = currTargets[j * 3 + 2] * 0.3 + Math.cos(loopT * 0.8 + seed) * 1.8;
             }
           }
@@ -1325,6 +1390,7 @@ function renderHUD() {
   ctx.fillStyle = specGrad; ctx.fillRect(40, 234, 944, 34);
   ctx.strokeStyle = "#ffffff44"; ctx.strokeRect(40, 234, 944, 34);
 
+  // Unified Single-Track Timeline in VR
   const availW = 944;
   let curX = 40;
 
@@ -1431,6 +1497,7 @@ function handleVRSelect(controller) {
       if (activeBlock) {
         saveUndoState();
         activeBlock.isText = false;
+        activeBlock.customPoints = null;
         activeBlock.shapeId = s.id;
         buildShowTrajectoryData();
         evaluateTimeline(playheadTime);
@@ -1505,6 +1572,167 @@ function onEvent(id, event, handler) {
   if (el) el.addEventListener(event, handler);
 }
 
+// 3D Primitive Composer Handlers
+onEvent("btn-toggle-composer", "click", () => {
+  const card = $("card-primitive-composer");
+  const isOpening = card.classList.contains("hidden");
+  card.classList.toggle("hidden", !isOpening);
+  $("btn-toggle-composer").classList.toggle("active", isOpening);
+  stagerGroup.visible = isOpening;
+
+  if (isOpening) {
+    dronePoints.visible = false;
+    if (stagedPrimitives.length === 0) spawnPrimitiveMesh("box");
+  } else {
+    dronePoints.visible = true;
+    transformGizmo.detach();
+  }
+});
+
+function spawnPrimitiveMesh(type) {
+  let geom;
+  if (type === "box") geom = new THREE.BoxGeometry(10, 10, 10);
+  else if (type === "cylinder") geom = new THREE.CylinderGeometry(5, 5, 12, 16);
+  else if (type === "sphere") geom = new THREE.IcosahedronGeometry(6, 2);
+  else if (type === "cone") geom = new THREE.ConeGeometry(6, 12, 16);
+
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x70e6ff, wireframe: true, transparent: true, opacity: 0.75
+  });
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.position.set(0, 14, 0);
+  stagerGroup.add(mesh);
+
+  const pData = {
+    id: "p_" + Date.now(),
+    type, mesh, swatchIdx: stagedPrimitives.length % 3
+  };
+  stagedPrimitives.push(pData);
+  selectPrimitiveForTransform(pData);
+  updateStagedPrimitivesUI();
+}
+
+onEvent("btn-spawn-box", "click", () => spawnPrimitiveMesh("box"));
+onEvent("btn-spawn-cylinder", "click", () => spawnPrimitiveMesh("cylinder"));
+onEvent("btn-spawn-sphere", "click", () => spawnPrimitiveMesh("sphere"));
+onEvent("btn-spawn-cone", "click", () => spawnPrimitiveMesh("cone"));
+
+function selectPrimitiveForTransform(pData) {
+  selectedPrimitiveMesh = pData;
+  transformGizmo.attach(pData.mesh);
+  updateStagedPrimitivesUI();
+}
+
+onEvent("btn-gizmo-trans", "click", () => {
+  transformGizmo.setMode("translate");
+  setActiveGizmoBtn("btn-gizmo-trans");
+});
+onEvent("btn-gizmo-rot", "click", () => {
+  transformGizmo.setMode("rotate");
+  setActiveGizmoBtn("btn-gizmo-rot");
+});
+onEvent("btn-gizmo-scale", "click", () => {
+  transformGizmo.setMode("scale");
+  setActiveGizmoBtn("btn-gizmo-scale");
+});
+
+function setActiveGizmoBtn(activeId) {
+  ["btn-gizmo-trans", "btn-gizmo-rot", "btn-gizmo-scale"].forEach(id => {
+    $(id).classList.toggle("active", id === activeId);
+  });
+}
+
+function updateStagedPrimitivesUI() {
+  const container = $("staged-primitives-list");
+  if (!container) return;
+  container.innerHTML = "";
+
+  for (let i = 0; i < stagedPrimitives.length; i++) {
+    const p = stagedPrimitives[i];
+    const item = document.createElement("div");
+    item.className = "primitive-item" + (selectedPrimitiveMesh === p ? " selected" : "");
+    item.innerHTML = `
+      <span><b>#${i + 1}</b> ${p.type.toUpperCase()}</span>
+      <div style="display:flex; gap:4px; align-items:center;">
+        <span style="font-size:9px; color:#8fa2c3;">Swatch:</span>
+        <select style="font-size:9px; padding:1px 4px;" data-idx="${i}">
+          <option value="0" ${p.swatchIdx === 0 ? "selected" : ""}>0</option>
+          <option value="1" ${p.swatchIdx === 1 ? "selected" : ""}>1</option>
+          <option value="2" ${p.swatchIdx === 2 ? "selected" : ""}>2</option>
+          <option value="3" ${p.swatchIdx === 3 ? "selected" : ""}>3</option>
+        </select>
+        <button class="track-del-btn" data-del="${i}" style="width:16px; height:16px;">×</button>
+      </div>
+    `;
+
+    item.onclick = (e) => {
+      if (e.target.tagName !== "SELECT" && e.target.tagName !== "BUTTON") {
+        selectPrimitiveForTransform(p);
+      }
+    };
+
+    const sel = item.querySelector("select");
+    sel.onchange = (e) => {
+      p.swatchIdx = parseInt(e.target.value);
+    };
+
+    const delBtn = item.querySelector("button");
+    delBtn.onclick = (e) => {
+      e.stopPropagation();
+      stagerGroup.remove(p.mesh);
+      stagedPrimitives.splice(i, 1);
+      if (selectedPrimitiveMesh === p) {
+        transformGizmo.detach();
+        selectedPrimitiveMesh = null;
+      }
+      updateStagedPrimitivesUI();
+    };
+
+    container.appendChild(item);
+  }
+}
+
+// Convert/Bake Staged Primitives into Drone Target Buffer
+onEvent("btn-bake-primitives", "click", () => {
+  if (stagedPrimitives.length === 0) return;
+  saveUndoState();
+
+  const b = timelineData.formationBlocks.find(x => x.id === selectedFormationBlockId);
+  if (!b) return;
+
+  const formationCount = precipConfig.enabled ? Math.max(50, activeDroneCount - precipConfig.count) : activeDroneCount;
+  const customPts = new Float32Array(formationCount * 3);
+  const customSwatches = new Uint8Array(formationCount);
+
+  sampleCompositePrimitives(stagedPrimitives, formationCount, customPts, customSwatches, b.altitude || 18);
+
+  b.customPoints = customPts;
+  b.customSwatches = customSwatches;
+  b.isText = false;
+  b.shapeId = "custom_staged";
+
+  // Hide stager, show drones
+  $("card-primitive-composer").classList.add("hidden");
+  $("btn-toggle-composer").classList.remove("active");
+  stagerGroup.visible = false;
+  transformGizmo.detach();
+  dronePoints.visible = true;
+
+  buildShowTrajectoryData();
+  evaluateTimeline(playheadTime);
+  buildDesktopTimeline();
+  updateContextPanels();
+  renderHUD();
+});
+
+onEvent("btn-clear-primitives", "click", () => {
+  for (const p of stagedPrimitives) stagerGroup.remove(p.mesh);
+  stagedPrimitives.length = 0;
+  transformGizmo.detach();
+  selectedPrimitiveMesh = null;
+  updateStagedPrimitivesUI();
+});
+
 // Precipitation Handlers
 onEvent("chk-precip", "change", (e) => {
   saveUndoState();
@@ -1526,10 +1754,6 @@ onEvent("slider-precip-count", "input", (e) => {
 onEvent("slider-precip-speed", "input", (e) => {
   precipConfig.speed = parseFloat(e.target.value);
   $("val-precip-speed").textContent = `${precipConfig.speed.toFixed(1)} m/s`;
-});
-onEvent("slider-precip-angle", "input", (e) => {
-  precipConfig.angle = parseFloat(e.target.value);
-  $("val-precip-angle").textContent = `${precipConfig.angle}°`;
 });
 onEvent("sel-precip-fx", "change", (e) => {
   saveUndoState();
@@ -1670,7 +1894,7 @@ function updateContextPanels() {
   }
 }
 
-// Track Add / Delete
+// Track Actions
 onEvent("btn-add-shape", "click", () => {
   saveUndoState();
   const id = "f" + Date.now();
@@ -1751,7 +1975,7 @@ function populateDesktopIcons() {
   for (const s of shapes) {
     if (!s) continue;
     const btn = document.createElement("button");
-    btn.className = "symbol-btn" + (activeFormation?.shapeId === s.id && !activeFormation?.isText ? " active" : "");
+    btn.className = "symbol-btn" + (activeFormation?.shapeId === s.id && !activeFormation?.isText && !activeFormation?.customPoints ? " active" : "");
     btn.draggable = true;
     btn.innerHTML = `<svg viewBox="0 0 24 24">${s.drawSVG || ""}</svg><span>${s.id}</span>`;
 
@@ -1759,6 +1983,7 @@ function populateDesktopIcons() {
       if (activeFormation) {
         saveUndoState();
         activeFormation.isText = false;
+        activeFormation.customPoints = null;
         activeFormation.shapeId = s.id;
         buildShowTrajectoryData();
         evaluateTimeline(playheadTime);
@@ -1768,62 +1993,9 @@ function populateDesktopIcons() {
       }
     };
 
-    btn.addEventListener("dragstart", (e) => {
-      e.dataTransfer.setData("text/plain", s.id);
-      e.dataTransfer.effectAllowed = "copy";
-    });
     container.appendChild(btn);
   }
 }
-
-const laneUnifiedEl = $("lane-unified");
-laneUnifiedEl.addEventListener("dragover", (e) => {
-  e.preventDefault();
-  laneUnifiedEl.classList.add("dragover");
-  e.dataTransfer.dropEffect = "copy";
-});
-laneUnifiedEl.addEventListener("dragleave", () => {
-  laneUnifiedEl.classList.remove("dragover");
-});
-laneUnifiedEl.addEventListener("drop", (e) => {
-  e.preventDefault();
-  laneUnifiedEl.classList.remove("dragover");
-  const shapeId = e.dataTransfer.getData("text/plain");
-  if (!shapeId) return;
-
-  saveUndoState();
-  const rect = laneUnifiedEl.getBoundingClientRect();
-  const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-  const dropTime = ratio * TOTAL_DURATION;
-
-  const id = "f" + Date.now();
-  let insertIdx = timelineData.formationBlocks.length;
-  let accumT = takeoffConfig.dur;
-  for (let i = 0; i < timelineData.formationBlocks.length; i++) {
-    const b = timelineData.formationBlocks[i];
-    if (dropTime <= accumT + b.dur / 2) {
-      insertIdx = i;
-      break;
-    }
-    accumT += b.dur + (b.transDur || 0);
-  }
-
-  timelineData.formationBlocks.splice(insertIdx, 0, {
-    id, shapeId, isText: false, dur: 20.0, transDur: 4.0, transColorFX: "blend",
-    altitude: 18.0, scale: 1.0, rotStartY: 0, rotEndY: 30,
-    palette: ["#ffffff", "#00e5ff"], activeSwatchIdx: 0,
-    cycleSpeed: 0.0, run: false, runSpeed: 3.0, blink: false, blinkSpeed: 3.0, sparkle: false, sparkleDensity: 0.35
-  });
-
-  selectedFormationBlockId = id;
-  selectedInspectorType = "formation";
-  recalculateTimelineDuration();
-  buildShowTrajectoryData();
-  evaluateTimeline(playheadTime);
-  buildDesktopTimeline();
-  updateContextPanels();
-  renderHUD();
-});
 
 function syncDesktopPalette() {
   const b = timelineData.formationBlocks.find(x => x && x.id === selectedFormationBlockId);
@@ -1897,46 +2069,7 @@ if (specBar) {
   };
 }
 
-onEvent("slider-cycle-speed", "input", (e) => {
-  const b = timelineData.formationBlocks.find(x => x && x.id === selectedFormationBlockId);
-  if (b) { b.cycleSpeed = parseFloat(e.target.value); $("val-cycle-speed").textContent = b.cycleSpeed.toFixed(1) + "x"; }
-});
-onEvent("chk-run", "change", (e) => {
-  const b = timelineData.formationBlocks.find(x => x && x.id === selectedFormationBlockId);
-  if (b) b.run = e.target.checked;
-});
-onEvent("chk-blink", "change", (e) => {
-  const b = timelineData.formationBlocks.find(x => x && x.id === selectedFormationBlockId);
-  if (b) b.blink = e.target.checked;
-});
-onEvent("chk-sparkle", "change", (e) => {
-  const b = timelineData.formationBlocks.find(x => x && x.id === selectedFormationBlockId);
-  if (b) b.sparkle = e.target.checked;
-});
-
-function attachResizeHandle(handleEl, blockObj, getTrackWidth) {
-  let isDragging = false, startX = 0, origDur = 0;
-  handleEl.onpointerdown = (e) => {
-    e.stopPropagation(); e.preventDefault();
-    saveUndoState();
-    isDragging = true; startX = e.clientX; origDur = blockObj.dur;
-    handleEl.setPointerCapture(e.pointerId);
-  };
-  handleEl.onpointermove = (e) => {
-    if (!isDragging) return;
-    const deltaSec = ((e.clientX - startX) / getTrackWidth()) * TOTAL_DURATION;
-    blockObj.dur = Math.max(2.0, origDur + deltaSec);
-    recalculateTimelineDuration();
-    syncDesktopTimeline();
-  };
-  handleEl.onpointerup = (e) => {
-    if (!isDragging) return;
-    isDragging = false;
-    handleEl.releasePointerCapture(e.pointerId);
-    buildDesktopTimeline(); renderHUD();
-  };
-}
-
+// Single-Track Block Reorder
 function attachBlockReorder(blockEl, list, index) {
   blockEl.draggable = true;
   blockEl.addEventListener("dragstart", (e) => {
@@ -1962,6 +2095,29 @@ function attachBlockReorder(blockEl, list, index) {
       }
     } catch (_) {}
   });
+}
+
+function attachResizeHandle(handleEl, blockObj, getTrackWidth) {
+  let isDragging = false, startX = 0, origDur = 0;
+  handleEl.onpointerdown = (e) => {
+    e.stopPropagation(); e.preventDefault();
+    saveUndoState();
+    isDragging = true; startX = e.clientX; origDur = blockObj.dur;
+    handleEl.setPointerCapture(e.pointerId);
+  };
+  handleEl.onpointermove = (e) => {
+    if (!isDragging) return;
+    const deltaSec = ((e.clientX - startX) / getTrackWidth()) * TOTAL_DURATION;
+    blockObj.dur = Math.max(2.0, origDur + deltaSec);
+    recalculateTimelineDuration();
+    syncDesktopTimeline();
+  };
+  handleEl.onpointerup = (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    handleEl.releasePointerCapture(e.pointerId);
+    buildDesktopTimeline(); renderHUD();
+  };
 }
 
 function buildDesktopTimeline() {
@@ -2001,6 +2157,9 @@ function buildDesktopTimeline() {
 
     if (b.isText) {
       fBlock.innerHTML = `<span>T: ${b.text || "TEXT"}</span>`;
+    } else if (b.customPoints) {
+      fBlock.style.background = "#0d3326";
+      fBlock.innerHTML = `<span>★ STAGED MESH</span>`;
     } else {
       fBlock.style.background = "#1b3353";
       const s = findShapeById(b.shapeId);
@@ -2064,6 +2223,7 @@ function syncDesktopTimeline() {
   if (disp) disp.textContent = `${formatTime(playheadTime)} / ${formatTime(TOTAL_DURATION)}`;
 }
 
+// Timeline Scrubbing
 const lanesArea = $("timeline-lanes-area");
 let isScrubbing = false;
 
@@ -2100,9 +2260,7 @@ handleEl.onpointerup = (e) => {
 };
 
 onEvent("btn-play", "click", () => {
-  if (playheadTime >= TOTAL_DURATION - 0.1) {
-    playheadTime = 0.0;
-  }
+  if (playheadTime >= TOTAL_DURATION - 0.1) playheadTime = 0.0;
   isPlaying = !isPlaying;
   const btn = $("btn-play");
   if (btn) btn.textContent = isPlaying ? "Pause" : "Play";
@@ -2139,7 +2297,7 @@ window.addEventListener("pointermove", (e) => {
   if (e.buttons === 1 && e.shiftKey) paintDroneAtMouse(e);
 });
 
-// Initial Boot
+// Boot
 populateDesktopIcons();
 updateContextPanels();
 buildDesktopTimeline();
@@ -2224,7 +2382,7 @@ renderer.setAnimationLoop(now => {
 
   dronePoints.material.size = Math.max(0.02, BASE_DRONE_SIZE * stageGroup.scale.x);
 
-  // 1. Formation Physics
+  // Formation Physics Integration
   for (let i = 0; i < activeDroneCount; i++) {
     const idx = i * 3;
     let px = currentPositions[idx], py = currentPositions[idx + 1], pz = currentPositions[idx + 2];
@@ -2256,7 +2414,7 @@ renderer.setAnimationLoop(now => {
     currentColors[idx + 2] += (targetColors[idx + 2] - currentColors[idx + 2]) * 7.0 * dt;
   }
 
-  // 2. Autonomous Precipitation Simulation
+  // Precipitation Simulation
   const showBodyEnd = TOTAL_DURATION - landingConfig.dur;
   if (precipConfig.enabled && playheadTime > takeoffConfig.dur && playheadTime < showBodyEnd) {
     const fallSpeed = precipConfig.speed;
