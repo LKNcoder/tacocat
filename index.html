@@ -252,7 +252,6 @@ button.symbol-btn span { font-size: 9px; color: #8fa2c3; margin-top: 2px; }
 }
 body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { display: none !important; }
 
-/* Primitive Stager List */
 .primitive-item {
   display: flex; align-items: center; justify-content: space-between;
   background: #111e33; padding: 4px 8px; border-radius: 5px;
@@ -274,11 +273,34 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
   <div id="top-bar">
     <div id="title">DroneShow Designer XR</div>
     <div style="display:flex; gap:6px;">
+      <button class="toolbar-btn" id="btn-toggle-pen">✎ Pen Mode</button>
       <button class="toolbar-btn" id="btn-toggle-composer">★ 3D Composer</button>
       <button class="toolbar-btn" id="btn-undo" title="Revert last action (Ctrl+Z)">↶ Undo</button>
     </div>
   </div>
-  <div id="status">Interactive 3D Primitive Stager & Geodesic Lattices Active</div>
+  <div id="status">3D Pen Sculptor & Guideline Sketching Active</div>
+
+  <!-- 3D Pen Drawing & Sculpt Mode Card -->
+  <div class="context-card hidden" id="card-pen-mode" style="border-color:#df52ff;">
+    <div class="section-label" style="margin:0;">
+      <span style="color:#df52ff;">3D Guideline Pen & Drone Sculptor</span>
+      <span id="pen-drone-count" style="color:#70e6ff;">Active: 400 D</span>
+    </div>
+    <div class="ctrl-row">
+      <span>Depth Plane:</span>
+      <input type="range" id="slider-pen-depth" min="-20" max="20" step="1" value="0">
+      <span id="val-pen-depth" style="min-width:35px; text-align:right;">0m</span>
+    </div>
+    <div style="font-size:10px; color:#c0d1ed; line-height:1.4;">
+      • <b>Drag in Viewport:</b> Sketch glowing 3D guideline curves in the air.<br>
+      • <b>Click Empty Space:</b> Add a drone with active swatch color.<br>
+      • <b>Click Drone:</b> Delete existing drone.
+    </div>
+    <div style="display:flex; gap:6px; margin-top:2px;">
+      <button class="toolbar-btn" id="btn-clear-guidelines" style="flex:1;">Clear Guidelines</button>
+      <button class="toolbar-btn" id="btn-bake-pen-drones" style="background:#4a1b6d; border-color:#df52ff; color:#fff;">Save to Block</button>
+    </div>
+  </div>
 
   <!-- 3D Primitive Composer Card -->
   <div class="context-card hidden" id="card-primitive-composer" style="border-color:#70e6ff;">
@@ -305,7 +327,7 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
     </div>
   </div>
 
-  <!-- Global Scene Settings -->
+  <!-- Global Fleet & Precipitation -->
   <div class="ctrl-row" style="margin-top:6px;">
     <span style="min-width:65px;">Active Fleet:</span>
     <input type="range" id="slider-fleet-count" min="100" max="1200" step="10" value="400">
@@ -479,7 +501,7 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
     </div>
   </div>
 
-  <!-- Unified Timeline Module -->
+  <!-- Unified Single-Track Timeline -->
   <div class="timeline-module">
     <div class="timeline-grid">
       <div class="timeline-headers-col">
@@ -506,13 +528,13 @@ body.xr-active #panel, body.xr-active #vr-tip, body.xr-active #VRButton { displa
     <div class="timeline-bottom-row">
       <button id="btn-play" style="padding:4px 14px; font-size:11px; background:#1b3864; border:1px solid #70e6ff; color:#fff; border-radius:4px; cursor:pointer;">Play</button>
       <span id="time-display" style="font-size:11px; font-variant-numeric:tabular-nums; min-width:85px;">00:00 / 01:00</span>
-      <span style="font-size:10px; color:#8fa2c3; flex:1; text-align:right;">Click block to inspect · Click '★ 3D Composer' to stage mesh primitives</span>
+      <span style="font-size:10px; color:#8fa2c3; flex:1; text-align:right;">Click block to inspect · Click '✎ Pen Mode' to sculpt in 3D</span>
     </div>
   </div>
 
   <div id="hint">
-    <b>3D Composer:</b> Add boxes, cylinders, and spheres, position them with gizmos, and click <b>Bake</b> to turn them into drones.<br>
-    <b>Snowman & Box:</b> Snowman spheres use triangular geodesic packing; Gift Box is Red with 3-axis Green ribbon crosses.
+    <b>Pen Mode:</b> Sketch 3D curve guidelines. Click empty space to add a drone; click an existing drone to delete it.<br>
+    <b>Act I:</b> Snowflake $\to$ Waving Snowman $\to$ Red/Yellow 3-Axis Gift Box $\to$ Steaming Cocoa Mug.
   </div>
 </div>
 <div id="vr-tip">In VR: Press Left X for HUD · Trigger paints drones with active swatch</div>
@@ -578,13 +600,19 @@ orbit.update();
 const stageGroup = new THREE.Group();
 scene.add(stageGroup);
 
-// TransformControls for 3D Primitive Composer
+// TransformControls Instance with version-safe helper attachment
 const transformGizmo = new TransformControls(camera, renderer.domElement);
 transformGizmo.size = 0.75;
 transformGizmo.addEventListener('dragging-changed', (event) => {
   orbit.enabled = !event.value;
 });
-scene.add(transformGizmo);
+
+// Fixed Object3D inheritance crash
+if (typeof transformGizmo.getHelper === "function") {
+  scene.add(transformGizmo.getHelper());
+} else if (transformGizmo instanceof THREE.Object3D) {
+  scene.add(transformGizmo);
+}
 
 // 3D Primitive Composer Stager Group
 const stagerGroup = new THREE.Group();
@@ -593,6 +621,16 @@ stagerGroup.visible = false;
 
 const stagedPrimitives = [];
 let selectedPrimitiveMesh = null;
+
+// 3D Pen Drawing Guidelines & Sculpting System
+const guidelineGroup = new THREE.Group();
+stageGroup.add(guidelineGroup);
+
+let isPenModeActive = false;
+let penPlaneZ = 0.0;
+let isDrawingStroke = false;
+let currentStrokeLine = null;
+let currentStrokePoints = [];
 
 const leftController = renderer.xr.getController(0);
 const rightController = renderer.xr.getController(1);
@@ -732,7 +770,7 @@ function assignMinimalPaths(currentPos, rawTargets, count) {
   return assigned;
 }
 
-// Act I Narrative Master Setup with Direct Palette Links
+// Act I Narrative Master Setup with Vibrant Yellow/Red Gift & Geodesic Snowman
 const timelineData = {
   formationBlocks: [
     {
@@ -750,7 +788,7 @@ const timelineData = {
     {
       id: "f2", shapeId: "giftBox3D", isText: false, dur: 18.0, transDur: 4.0,
       transColorFX: "sparkle", altitude: 17.0, scale: 1.0, rotStartY: 0, rotEndY: 45,
-      palette: ["#d50000", "#00e676"], activeSwatchIdx: 0,
+      palette: ["#d50000", "#ffe600"], activeSwatchIdx: 0,
       cycleSpeed: 0.5, run: true, runSpeed: 3.5, blink: false, blinkSpeed: 3.0, sparkle: false, sparkleDensity: 0.3
     },
     {
@@ -782,7 +820,6 @@ function buildShowTrajectoryData() {
     const swatches = new Uint8Array(formationCount);
 
     if (b.customPoints) {
-      // Use custom points baked from the 3D Primitive Composer
       raw.set(b.customPoints.subarray(0, formationCount * 3));
       if (b.customSwatches) swatches.set(b.customSwatches.subarray(0, formationCount));
     } else if (b.isText) {
@@ -817,6 +854,7 @@ function saveUndoState() {
     selectedType: selectedInspectorType,
     selectedF: selectedFormationBlockId,
     selectedT: selectedTransitionBlockId,
+    activeDroneCount,
     takeoffConfig: { ...takeoffConfig },
     landingConfig: { ...landingConfig },
     precipConfig: { ...precipConfig }
@@ -838,9 +876,13 @@ function performUndo() {
   selectedInspectorType = state.selectedType;
   selectedFormationBlockId = state.selectedF;
   selectedTransitionBlockId = state.selectedT;
+  activeDroneCount = state.activeDroneCount || 400;
   takeoffConfig = state.takeoffConfig;
   landingConfig = state.landingConfig;
   precipConfig = state.precipConfig;
+
+  droneGeometry.setDrawRange(0, activeDroneCount);
+  updateGroundPositions(activeDroneCount);
 
   recalculateTimelineDuration();
   buildShowTrajectoryData();
@@ -1357,7 +1399,7 @@ function renderHUD() {
     if (!s) continue;
 
     const activeShapeId = activeBlock?.shapeId;
-    ctx.strokeStyle = (activeShapeId === s.id && !activeBlock?.isText) ? "#70e6ff" : "#375077";
+    ctx.strokeStyle = (activeShapeId === s.id && !activeBlock?.isText && !activeBlock?.customPoints) ? "#70e6ff" : "#375077";
     ctx.lineWidth = 2;
     ctx.strokeRect(x, 82, 224, 96);
 
@@ -1390,7 +1432,6 @@ function renderHUD() {
   ctx.fillStyle = specGrad; ctx.fillRect(40, 234, 944, 34);
   ctx.strokeStyle = "#ffffff44"; ctx.strokeRect(40, 234, 944, 34);
 
-  // Unified Single-Track Timeline in VR
   const availW = 944;
   let curX = 40;
 
@@ -1413,6 +1454,9 @@ function renderHUD() {
     if (b.isText) {
       ctx.fillStyle = "#ffffff"; ctx.font = "bold 10px system-ui"; ctx.textAlign = "center";
       ctx.fillText(b.text || "TEXT", curX + fw / 2, 356);
+    } else if (b.customPoints) {
+      ctx.fillStyle = "#70ffb0"; ctx.font = "bold 9px system-ui"; ctx.textAlign = "center";
+      ctx.fillText("★ CUSTOM", curX + fw / 2, 356);
     } else {
       const s = findShapeById(b.shapeId);
       if (s && typeof s.drawCanvas === "function") s.drawCanvas(ctx, curX + fw / 2, 352);
@@ -1572,6 +1616,168 @@ function onEvent(id, event, handler) {
   if (el) el.addEventListener(event, handler);
 }
 
+// 3D Pen Drawing & Sculpt Mode Handlers
+onEvent("btn-toggle-pen", "click", () => {
+  isPenModeActive = !isPenModeActive;
+  $("card-pen-mode").classList.toggle("hidden", !isPenModeActive);
+  $("btn-toggle-pen").classList.toggle("active", isPenModeActive);
+
+  if (isPenModeActive) {
+    orbit.enabled = false;
+    $("card-primitive-composer").classList.add("hidden");
+    $("btn-toggle-composer").classList.remove("active");
+    stagerGroup.visible = false;
+    transformGizmo.detach();
+  } else {
+    orbit.enabled = true;
+  }
+});
+
+onEvent("slider-pen-depth", "input", (e) => {
+  penPlaneZ = parseFloat(e.target.value);
+  $("val-pen-depth").textContent = `${penPlaneZ}m`;
+});
+
+onEvent("btn-clear-guidelines", "click", () => {
+  while (guidelineGroup.children.length > 0) {
+    const obj = guidelineGroup.children[0];
+    guidelineGroup.remove(obj);
+    if (obj.geometry) obj.geometry.dispose();
+  }
+});
+
+// Pen Drawing Raycast Logic (Desktop)
+const penPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+const penIntersection = new THREE.Vector3();
+const mouseVec = new THREE.Vector2();
+const penRaycaster = new THREE.Raycaster();
+penRaycaster.params.Points.threshold = 1.6;
+
+function getMouseIntersection(e) {
+  mouseVec.x = (e.clientX / innerWidth) * 2 - 1;
+  mouseVec.y = -(e.clientY / innerHeight) * 2 + 1;
+  penRaycaster.setFromCamera(mouseVec, camera);
+  penPlane.constant = -penPlaneZ;
+  penRaycaster.ray.intersectPlane(penPlane, penIntersection);
+  stageGroup.worldToLocal(penIntersection);
+  return penIntersection;
+}
+
+window.addEventListener("pointerdown", (e) => {
+  if (!isPenModeActive || e.target.closest("#panel") || e.button !== 0) return;
+
+  mouseVec.x = (e.clientX / innerWidth) * 2 - 1;
+  mouseVec.y = -(e.clientY / innerHeight) * 2 + 1;
+  penRaycaster.setFromCamera(mouseVec, camera);
+
+  // Check if clicking directly on an existing drone to delete it
+  const droneHits = penRaycaster.intersectObject(dronePoints, false);
+  if (droneHits.length > 0 && droneHits[0].index !== undefined) {
+    const hitIdx = droneHits[0].index;
+    if (hitIdx < activeDroneCount) {
+      saveUndoState();
+      // Shift array to delete drone
+      for (let i = hitIdx; i < activeDroneCount - 1; i++) {
+        targetPositions[i * 3]     = targetPositions[(i + 1) * 3];
+        targetPositions[i * 3 + 1] = targetPositions[(i + 1) * 3 + 1];
+        targetPositions[i * 3 + 2] = targetPositions[(i + 1) * 3 + 2];
+        droneSwatchIndices[i]      = droneSwatchIndices[i + 1];
+      }
+      activeDroneCount = Math.max(10, activeDroneCount - 1);
+      $("slider-fleet-count").value = activeDroneCount;
+      $("val-fleet-count").textContent = `${activeDroneCount}`;
+      $("pen-drone-count").textContent = `Active: ${activeDroneCount} D`;
+      droneGeometry.setDrawRange(0, activeDroneCount);
+      updateGroundPositions(activeDroneCount);
+      saveCurrentCustomPointsToActiveBlock();
+      return;
+    }
+  }
+
+  // Otherwise, start a new 3D guideline stroke
+  isDrawingStroke = true;
+  currentStrokePoints = [getMouseIntersection(e).clone()];
+  const lineGeom = new THREE.BufferGeometry().setFromPoints(currentStrokePoints);
+  const lineMat = new THREE.LineBasicMaterial({ color: 0xdf52ff, linewidth: 3, transparent: true, opacity: 0.85 });
+  currentStrokeLine = new THREE.Line(lineGeom, lineMat);
+  guidelineGroup.add(currentStrokeLine);
+});
+
+window.addEventListener("pointermove", (e) => {
+  if (!isPenModeActive || !isDrawingStroke || !currentStrokeLine) return;
+  const pt = getMouseIntersection(e).clone();
+  if (currentStrokePoints.length === 0 || pt.distanceTo(currentStrokePoints[currentStrokePoints.length - 1]) > 0.4) {
+    currentStrokePoints.push(pt);
+    currentStrokeLine.geometry.setFromPoints(currentStrokePoints);
+  }
+});
+
+window.addEventListener("pointerup", (e) => {
+  if (!isPenModeActive) return;
+  if (isDrawingStroke) {
+    isDrawingStroke = false;
+    // If it was just a quick click without dragging, add a new drone at that 3D point!
+    if (currentStrokePoints.length <= 2 && activeDroneCount < MAX_DRONES) {
+      saveUndoState();
+      const clickPt = getMouseIntersection(e);
+      const newIdx = activeDroneCount;
+      activeDroneCount++;
+      $("slider-fleet-count").value = activeDroneCount;
+      $("val-fleet-count").textContent = `${activeDroneCount}`;
+      $("pen-drone-count").textContent = `Active: ${activeDroneCount} D`;
+      droneGeometry.setDrawRange(0, activeDroneCount);
+
+      targetPositions[newIdx * 3]     = clickPt.x;
+      targetPositions[newIdx * 3 + 1] = clickPt.y;
+      targetPositions[newIdx * 3 + 2] = clickPt.z;
+      currentPositions[newIdx * 3]     = clickPt.x;
+      currentPositions[newIdx * 3 + 1] = clickPt.y;
+      currentPositions[newIdx * 3 + 2] = clickPt.z;
+
+      const curBlock = timelineData.formationBlocks.find(b => b.id === selectedFormationBlockId);
+      droneSwatchIndices[newIdx] = curBlock?.activeSwatchIdx || 0;
+
+      updateGroundPositions(activeDroneCount);
+      saveCurrentCustomPointsToActiveBlock();
+
+      // Remove single-click line fragment
+      if (currentStrokeLine) {
+        guidelineGroup.remove(currentStrokeLine);
+        currentStrokeLine.geometry.dispose();
+      }
+    }
+    currentStrokeLine = null;
+    currentStrokePoints = [];
+  }
+});
+
+function saveCurrentCustomPointsToActiveBlock() {
+  const b = timelineData.formationBlocks.find(x => x.id === selectedFormationBlockId);
+  if (!b) return;
+
+  const formationCount = precipConfig.enabled ? Math.max(50, activeDroneCount - precipConfig.count) : activeDroneCount;
+  b.customPoints = new Float32Array(formationCount * 3);
+  b.customSwatches = new Uint8Array(formationCount);
+
+  for (let i = 0; i < formationCount; i++) {
+    b.customPoints[i * 3]     = targetPositions[i * 3];
+    b.customPoints[i * 3 + 1] = targetPositions[i * 3 + 1];
+    b.customPoints[i * 3 + 2] = targetPositions[i * 3 + 2];
+    b.customSwatches[i]       = droneSwatchIndices[i];
+  }
+  b.isText = false;
+  b.shapeId = "pen_custom";
+  buildShowTrajectoryData();
+}
+
+onEvent("btn-bake-pen-drones", "click", () => {
+  saveUndoState();
+  saveCurrentCustomPointsToActiveBlock();
+  buildDesktopTimeline();
+  updateContextPanels();
+  renderHUD();
+});
+
 // 3D Primitive Composer Handlers
 onEvent("btn-toggle-composer", "click", () => {
   const card = $("card-primitive-composer");
@@ -1582,6 +1788,10 @@ onEvent("btn-toggle-composer", "click", () => {
 
   if (isOpening) {
     dronePoints.visible = false;
+    isPenModeActive = false;
+    $("card-pen-mode").classList.add("hidden");
+    $("btn-toggle-pen").classList.remove("active");
+    orbit.enabled = true;
     if (stagedPrimitives.length === 0) spawnPrimitiveMesh("box");
   } else {
     dronePoints.visible = true;
@@ -1623,18 +1833,9 @@ function selectPrimitiveForTransform(pData) {
   updateStagedPrimitivesUI();
 }
 
-onEvent("btn-gizmo-trans", "click", () => {
-  transformGizmo.setMode("translate");
-  setActiveGizmoBtn("btn-gizmo-trans");
-});
-onEvent("btn-gizmo-rot", "click", () => {
-  transformGizmo.setMode("rotate");
-  setActiveGizmoBtn("btn-gizmo-rot");
-});
-onEvent("btn-gizmo-scale", "click", () => {
-  transformGizmo.setMode("scale");
-  setActiveGizmoBtn("btn-gizmo-scale");
-});
+onEvent("btn-gizmo-trans", () => { transformGizmo.setMode("translate"); setActiveGizmoBtn("btn-gizmo-trans"); });
+onEvent("btn-gizmo-rot", () => { transformGizmo.setMode("rotate"); setActiveGizmoBtn("btn-gizmo-rot"); });
+onEvent("btn-gizmo-scale", () => { transformGizmo.setMode("scale"); setActiveGizmoBtn("btn-gizmo-scale"); });
 
 function setActiveGizmoBtn(activeId) {
   ["btn-gizmo-trans", "btn-gizmo-rot", "btn-gizmo-scale"].forEach(id => {
@@ -1672,9 +1873,7 @@ function updateStagedPrimitivesUI() {
     };
 
     const sel = item.querySelector("select");
-    sel.onchange = (e) => {
-      p.swatchIdx = parseInt(e.target.value);
-    };
+    sel.onchange = (e) => { p.swatchIdx = parseInt(e.target.value); };
 
     const delBtn = item.querySelector("button");
     delBtn.onclick = (e) => {
@@ -1692,7 +1891,6 @@ function updateStagedPrimitivesUI() {
   }
 }
 
-// Convert/Bake Staged Primitives into Drone Target Buffer
 onEvent("btn-bake-primitives", "click", () => {
   if (stagedPrimitives.length === 0) return;
   saveUndoState();
@@ -1711,7 +1909,6 @@ onEvent("btn-bake-primitives", "click", () => {
   b.isText = false;
   b.shapeId = "custom_staged";
 
-  // Hide stager, show drones
   $("card-primitive-composer").classList.add("hidden");
   $("btn-toggle-composer").classList.remove("active");
   stagerGroup.visible = false;
@@ -1861,7 +2058,7 @@ function updateContextPanels() {
     const b = timelineData.formationBlocks.find(x => x.id === selectedFormationBlockId);
     if (!b) return;
 
-    $("formation-sub-shape").classList.toggle("hidden", Boolean(b.isText));
+    $("formation-sub-shape").classList.toggle("hidden", Boolean(b.isText || b.customPoints));
     $("formation-sub-text").classList.toggle("hidden", !b.isText);
 
     if (b.isText) {
@@ -1869,6 +2066,8 @@ function updateContextPanels() {
       $("input-text-msg").value = b.text || "";
       $("sel-text-font").value = b.font || "Impact";
       $("sel-text-fx").value = b.fx || "scroll";
+    } else if (b.customPoints) {
+      $("inspector-shape-name").textContent = "Custom Sculpted";
     } else {
       $("inspector-shape-name").textContent = b.shapeId;
       populateDesktopIcons();
@@ -1894,7 +2093,7 @@ function updateContextPanels() {
   }
 }
 
-// Track Actions
+// Track Add / Delete
 onEvent("btn-add-shape", "click", () => {
   saveUndoState();
   const id = "f" + Date.now();
@@ -2069,7 +2268,46 @@ if (specBar) {
   };
 }
 
-// Single-Track Block Reorder
+onEvent("slider-cycle-speed", "input", (e) => {
+  const b = timelineData.formationBlocks.find(x => x && x.id === selectedFormationBlockId);
+  if (b) { b.cycleSpeed = parseFloat(e.target.value); $("val-cycle-speed").textContent = b.cycleSpeed.toFixed(1) + "x"; }
+});
+onEvent("chk-run", "change", (e) => {
+  const b = timelineData.formationBlocks.find(x => x && x.id === selectedFormationBlockId);
+  if (b) b.run = e.target.checked;
+});
+onEvent("chk-blink", "change", (e) => {
+  const b = timelineData.formationBlocks.find(x => x && x.id === selectedFormationBlockId);
+  if (b) b.blink = e.target.checked;
+});
+onEvent("chk-sparkle", "change", (e) => {
+  const b = timelineData.formationBlocks.find(x => x && x.id === selectedFormationBlockId);
+  if (b) b.sparkle = e.target.checked;
+});
+
+function attachResizeHandle(handleEl, blockObj, getTrackWidth) {
+  let isDragging = false, startX = 0, origDur = 0;
+  handleEl.onpointerdown = (e) => {
+    e.stopPropagation(); e.preventDefault();
+    saveUndoState();
+    isDragging = true; startX = e.clientX; origDur = blockObj.dur;
+    handleEl.setPointerCapture(e.pointerId);
+  };
+  handleEl.onpointermove = (e) => {
+    if (!isDragging) return;
+    const deltaSec = ((e.clientX - startX) / getTrackWidth()) * TOTAL_DURATION;
+    blockObj.dur = Math.max(2.0, origDur + deltaSec);
+    recalculateTimelineDuration();
+    syncDesktopTimeline();
+  };
+  handleEl.onpointerup = (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    handleEl.releasePointerCapture(e.pointerId);
+    buildDesktopTimeline(); renderHUD();
+  };
+}
+
 function attachBlockReorder(blockEl, list, index) {
   blockEl.draggable = true;
   blockEl.addEventListener("dragstart", (e) => {
@@ -2095,29 +2333,6 @@ function attachBlockReorder(blockEl, list, index) {
       }
     } catch (_) {}
   });
-}
-
-function attachResizeHandle(handleEl, blockObj, getTrackWidth) {
-  let isDragging = false, startX = 0, origDur = 0;
-  handleEl.onpointerdown = (e) => {
-    e.stopPropagation(); e.preventDefault();
-    saveUndoState();
-    isDragging = true; startX = e.clientX; origDur = blockObj.dur;
-    handleEl.setPointerCapture(e.pointerId);
-  };
-  handleEl.onpointermove = (e) => {
-    if (!isDragging) return;
-    const deltaSec = ((e.clientX - startX) / getTrackWidth()) * TOTAL_DURATION;
-    blockObj.dur = Math.max(2.0, origDur + deltaSec);
-    recalculateTimelineDuration();
-    syncDesktopTimeline();
-  };
-  handleEl.onpointerup = (e) => {
-    if (!isDragging) return;
-    isDragging = false;
-    handleEl.releasePointerCapture(e.pointerId);
-    buildDesktopTimeline(); renderHUD();
-  };
 }
 
 function buildDesktopTimeline() {
@@ -2159,7 +2374,7 @@ function buildDesktopTimeline() {
       fBlock.innerHTML = `<span>T: ${b.text || "TEXT"}</span>`;
     } else if (b.customPoints) {
       fBlock.style.background = "#0d3326";
-      fBlock.innerHTML = `<span>★ STAGED MESH</span>`;
+      fBlock.innerHTML = `<span>★ SCULPTED</span>`;
     } else {
       fBlock.style.background = "#1b3353";
       const s = findShapeById(b.shapeId);
@@ -2223,7 +2438,6 @@ function syncDesktopTimeline() {
   if (disp) disp.textContent = `${formatTime(playheadTime)} / ${formatTime(TOTAL_DURATION)}`;
 }
 
-// Timeline Scrubbing
 const lanesArea = $("timeline-lanes-area");
 let isScrubbing = false;
 
@@ -2273,7 +2487,7 @@ desktopRaycaster.params.Points.threshold = 1.4;
 const mouse = new THREE.Vector2();
 
 function paintDroneAtMouse(e) {
-  if (!e.shiftKey) return;
+  if (!e.shiftKey || isPenModeActive) return;
   mouse.x = (e.clientX / innerWidth) * 2 - 1;
   mouse.y = -(e.clientY / innerHeight) * 2 + 1;
   desktopRaycaster.setFromCamera(mouse, camera);
@@ -2382,7 +2596,6 @@ renderer.setAnimationLoop(now => {
 
   dronePoints.material.size = Math.max(0.02, BASE_DRONE_SIZE * stageGroup.scale.x);
 
-  // Formation Physics Integration
   for (let i = 0; i < activeDroneCount; i++) {
     const idx = i * 3;
     let px = currentPositions[idx], py = currentPositions[idx + 1], pz = currentPositions[idx + 2];
