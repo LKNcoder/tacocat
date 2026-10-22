@@ -90,22 +90,18 @@ export function generateTextDrones(out, text, count, font = "Impact", scale = 0.
   }
 }
 
-// Multi-Primitive Mesh-to-Drone Surface Sampler
+// Multi-Primitive Surface Sampler
 export function sampleCompositePrimitives(primitives, count, out, swatchOut, baseAltitude = 14) {
   if (!primitives || primitives.length === 0) {
     generateBalancedGrid(out, count, 24, 16, baseAltitude);
     return;
   }
 
-  // Calculate surface areas for balanced drone allocation
   const areas = [];
   let totalArea = 0;
   for (const p of primitives) {
     p.mesh.updateWorldMatrix(true, false);
     const geom = p.mesh.geometry;
-    geom.computeVertexNormals();
-    
-    // Approximate surface area based on bounding box
     if (!geom.boundingBox) geom.computeBoundingBox();
     const size = new THREE.Vector3();
     geom.boundingBox.getSize(size);
@@ -148,9 +144,9 @@ export function sampleCompositePrimitives(primitives, count, out, swatchOut, bas
 }
 
 export const SHAPE_PAGES = [
-  // Page 1: Act I — Winter Warmth
+  // Page 1: Act I — Winter Warmth (Architectural High-Definition Edition)
   [
-    // 1. High-Definition Interconnected Crystalline Snowflake
+    // 1. High-Density Crystalline Snowflake (Prominent Dual-Rail Chevrons)
     {
       id: "snowflake",
       drawSVG: `<line x1="12" y1="2" x2="12" y2="22" stroke-width="1.5"/><line x1="2" y1="12" x2="22" y2="12" stroke-width="1.5"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1" stroke-width="1.5"/><line x1="4.9" y1="19.1" x2="19.1" y2="4.9" stroke-width="1.5"/><polygon points="12,7 16,12 12,17 8,12" stroke-width="1.5"/>`,
@@ -163,8 +159,8 @@ export const SHAPE_PAGES = [
           ctx.lineTo(cx + Math.cos(a) * 26, cy + Math.sin(a) * 26);
           const mx = cx + Math.cos(a) * 16, my = cy + Math.sin(a) * 16;
           const a1 = a + Math.PI / 3, a2 = a - Math.PI / 3;
-          ctx.moveTo(mx, my); ctx.lineTo(mx + Math.cos(a1) * 8, my + Math.sin(a1) * 8);
-          ctx.moveTo(mx, my); ctx.lineTo(mx + Math.cos(a2) * 8, my + Math.sin(a2) * 8);
+          ctx.moveTo(mx, my); ctx.lineTo(mx + Math.cos(a1) * 9, my + Math.sin(a1) * 9);
+          ctx.moveTo(mx, my); ctx.lineTo(mx + Math.cos(a2) * 9, my + Math.sin(a2) * 9);
           ctx.stroke();
         }
         ctx.beginPath();
@@ -177,65 +173,73 @@ export const SHAPE_PAGES = [
       },
       gen: (out, n, swatchOut) => {
         let ptr = 0;
-        // Central Star & Dual Hexagonal Web (Swatch 0: Ice White)
-        const innerHexCount = Math.round(n * 0.10);
-        const outerHexCount = Math.round(n * 0.14);
+        // Central Double-Hexagonal Lattice (Swatch 0: Pure Ice White)
+        const innerHexCount = Math.round(n * 0.08);
+        const outerHexCount = Math.round(n * 0.10);
         for (let i = 0; i < innerHexCount; i++) {
           const a = (i / innerHexCount) * Math.PI * 2;
-          out[ptr * 3]     = Math.cos(a) * 2.8;
-          out[ptr * 3 + 1] = 14 + Math.sin(a) * 2.8;
+          out[ptr * 3]     = Math.cos(a) * 2.6;
+          out[ptr * 3 + 1] = 14 + Math.sin(a) * 2.6;
           out[ptr * 3 + 2] = 0;
           if (swatchOut) swatchOut[ptr] = 0;
           ptr++;
         }
         for (let i = 0; i < outerHexCount; i++) {
           const a = (i / outerHexCount) * Math.PI * 2;
-          out[ptr * 3]     = Math.cos(a) * 6.2;
-          out[ptr * 3 + 1] = 14 + Math.sin(a) * 6.2;
+          out[ptr * 3]     = Math.cos(a) * 5.4;
+          out[ptr * 3 + 1] = 14 + Math.sin(a) * 5.4;
           out[ptr * 3 + 2] = 0;
           if (swatchOut) swatchOut[ptr] = 1; // Glacial Cyan
           ptr++;
         }
 
-        // 6 Primary Linear Spine Shafts (Swatch 0: White)
-        const spineCount = Math.round(n * 0.32);
+        // 6 Heavy Dual-Strand Spines (Swatch 0: White)
+        const spineCount = Math.round(n * 0.24);
         for (let i = 0; i < spineCount; i++) {
           const arm = i % 6;
           const a = (arm / 6) * Math.PI * 2;
           const u = Math.floor(i / 6) / (spineCount / 6);
-          const r = 2.8 + u * 14.5;
-          out[ptr * 3]     = Math.cos(a) * r;
-          out[ptr * 3 + 1] = 14 + Math.sin(a) * r;
+          const r = 3.0 + u * 14.5;
+          const strandOffset = (i % 2 === 0 ? 0.35 : -0.35);
+          out[ptr * 3]     = Math.cos(a) * r - Math.sin(a) * strandOffset;
+          out[ptr * 3 + 1] = 14 + Math.sin(a) * r + Math.cos(a) * strandOffset;
           out[ptr * 3 + 2] = 0;
           if (swatchOut) swatchOut[ptr] = 0;
           ptr++;
         }
 
-        // 3 Tiers of Angled Dendritic Chevron Needles (Swatch 1: Cyan)
-        const chevronCount = Math.round(n * 0.34);
+        // 3 Tiers of Pronounced, Thick Chevrons per Arm (Swatch 1: Cyan, 45% of total drones)
+        const chevronTiers = [
+          { baseR: 6.8,  branchLen: 4.8 },
+          { baseR: 10.4, branchLen: 5.6 },
+          { baseR: 14.0, branchLen: 4.2 }
+        ];
+        const chevronCount = Math.round(n * 0.46);
+
         for (let i = 0; i < chevronCount; i++) {
           const arm = i % 6;
           const aSpine = (arm / 6) * Math.PI * 2;
-          const tier = Math.floor(i / 12) % 3;
-          const baseR = tier === 0 ? 7.5 : (tier === 1 ? 11.0 : 14.5);
+          const tierIdx = Math.floor(i / 12) % 3;
+          const tier = chevronTiers[tierIdx];
           const side = (i % 2 === 0 ? 1 : -1);
           const aBranch = aSpine + side * (Math.PI / 3);
-          const branchLen = 0.8 + ((i % 4) / 4) * 3.6;
+          const u = ((i % 6) / 5);
+          const len = 0.8 + u * tier.branchLen;
 
-          out[ptr * 3]     = Math.cos(aSpine) * baseR + Math.cos(aBranch) * branchLen;
-          out[ptr * 3 + 1] = 14 + Math.sin(aSpine) * baseR + Math.sin(aBranch) * branchLen;
-          out[ptr * 3 + 2] = side * 0.35;
+          out[ptr * 3]     = Math.cos(aSpine) * tier.baseR + Math.cos(aBranch) * len;
+          out[ptr * 3 + 1] = 14 + Math.sin(aSpine) * tier.baseR + Math.sin(aBranch) * len;
+          out[ptr * 3 + 2] = side * 0.3;
           if (swatchOut) swatchOut[ptr] = 1;
           ptr++;
         }
 
-        // Diamond Terminal Tips
+        // Spearhead Diamond Tips
         while (ptr < n) {
           const arm = ptr % 6;
           const a = (arm / 6) * Math.PI * 2;
-          const offset = ((ptr % 3) - 1) * 0.22;
-          out[ptr * 3]     = Math.cos(a + offset) * 17.5;
-          out[ptr * 3 + 1] = 14 + Math.sin(a + offset) * 17.5;
+          const offset = ((ptr % 3) - 1) * 0.24;
+          out[ptr * 3]     = Math.cos(a + offset) * 17.6;
+          out[ptr * 3 + 1] = 14 + Math.sin(a + offset) * 17.6;
           out[ptr * 3 + 2] = 0;
           if (swatchOut) swatchOut[ptr] = 1;
           ptr++;
@@ -243,7 +247,7 @@ export const SHAPE_PAGES = [
       }
     },
 
-    // 2. Fibonacci Geodesic Snowman with Royal Blue Hat & Carrot Cone
+    // 2. Fibonacci Geodesic Snowman (Triangular Surface Packing)
     {
       id: "wavingSnowman",
       drawSVG: `<circle cx="12" cy="17" r="5" stroke-width="1.5"/><circle cx="12" cy="10" r="3.5" stroke-width="1.5"/><circle cx="12" cy="5" r="2.2" stroke-width="1.5"/><rect x="9.5" y="1.5" width="5" height="2" fill="#1976d2"/><polygon points="12,5 16,5.5 12,6" fill="#ff6d00"/>`,
@@ -252,14 +256,11 @@ export const SHAPE_PAGES = [
         ctx.arc(cx, cy + 14, 14, 0, Math.PI * 2); ctx.stroke();
         ctx.beginPath(); ctx.arc(cx, cy + 1, 10, 0, Math.PI * 2); ctx.stroke();
         ctx.beginPath(); ctx.arc(cx, cy - 11, 7, 0, Math.PI * 2); ctx.stroke();
-        // Royal Blue Hat
         ctx.fillStyle = "#1976d2";
         ctx.fillRect(cx - 10, cy - 19, 20, 3);
         ctx.fillRect(cx - 6, cy - 28, 12, 9);
-        // Orange Carrot
         ctx.fillStyle = "#ff6d00";
         ctx.beginPath(); ctx.moveTo(cx, cy - 12); ctx.lineTo(cx + 8, cy - 10); ctx.lineTo(cx, cy - 8); ctx.fill();
-        // Arms
         ctx.strokeStyle = "#8d6e63"; ctx.beginPath();
         ctx.moveTo(cx - 9, cy); ctx.lineTo(cx - 18, cy + 4);
         ctx.moveTo(cx + 9, cy); ctx.lineTo(cx + 20, cy - 12); ctx.stroke();
@@ -267,12 +268,11 @@ export const SHAPE_PAGES = [
       gen: (out, n, swatchOut) => {
         let ptr = 0;
 
-        // Spheres use Fibonacci spiral triangular packing
         const baseCount = Math.round(n * 0.26);
         const midCount = Math.round(n * 0.20);
         const headCount = Math.round(n * 0.14);
 
-        // Base Sphere (Swatch 0: Snow White)
+        // Base Geodesic Sphere (Swatch 0: Snow White)
         for (let i = 0; i < baseCount; i++) {
           const y = 1 - (i / (baseCount - 1)) * 2;
           const r = Math.sqrt(1 - y * y) * 5.8;
@@ -284,7 +284,7 @@ export const SHAPE_PAGES = [
           ptr++;
         }
 
-        // Chest Sphere (Swatch 0: Snow White)
+        // Chest Geodesic Sphere (Swatch 0: Snow White)
         for (let i = 0; i < midCount; i++) {
           const y = 1 - (i / (midCount - 1)) * 2;
           const r = Math.sqrt(1 - y * y) * 4.2;
@@ -296,7 +296,7 @@ export const SHAPE_PAGES = [
           ptr++;
         }
 
-        // Head Sphere (Swatch 0: Snow White)
+        // Head Geodesic Sphere (Swatch 0: Snow White)
         for (let i = 0; i < headCount; i++) {
           const y = 1 - (i / (headCount - 1)) * 2;
           const r = Math.sqrt(1 - y * y) * 2.8;
@@ -322,15 +322,14 @@ export const SHAPE_PAGES = [
         for (let i = 0; i < crownCount; i++) {
           const u = i / crownCount;
           const a = u * Math.PI * 8;
-          const h = u * 4.2;
           out[ptr * 3]     = Math.cos(a) * 2.6;
-          out[ptr * 3 + 1] = 22.4 + h;
+          out[ptr * 3 + 1] = 22.4 + u * 4.2;
           out[ptr * 3 + 2] = Math.sin(a) * 2.6;
           if (swatchOut) swatchOut[ptr] = 1;
           ptr++;
         }
 
-        // Coherent Red Scarf Ring + Vertical Hanging Sash (Swatch 2: Red #d50000)
+        // Red Scarf Collar & Sash (Swatch 2: Crimson Red #d50000)
         const scarfRingCount = Math.round(n * 0.06);
         for (let i = 0; i < scarfRingCount; i++) {
           const a = (i / scarfRingCount) * Math.PI * 2;
@@ -350,7 +349,7 @@ export const SHAPE_PAGES = [
           ptr++;
         }
 
-        // Orange Carrot Nose Cone along +Z (Swatch 3: Carrot Orange #ff6d00)
+        // Carrot Nose Cone in +Z (Swatch 3: Carrot Orange #ff6d00)
         const carrotCount = Math.max(16, Math.round(n * 0.04));
         for (let i = 0; i < carrotCount; i++) {
           const u = i / carrotCount;
@@ -363,7 +362,7 @@ export const SHAPE_PAGES = [
           ptr++;
         }
 
-        // Static Left Arm (Swatch 4: Timber Brown #8d6e63)
+        // Left Arm (Swatch 4: Timber Brown #8d6e63)
         const leftArmCount = Math.round(n * 0.04);
         for (let i = 0; i < leftArmCount; i++) {
           const u = i / leftArmCount;
@@ -374,7 +373,7 @@ export const SHAPE_PAGES = [
           ptr++;
         }
 
-        // Right Arm & Mitten Hand (Swatch 4: Arm, Swatch 2: Mitten)
+        // Right Arm & Mitten Hand (Swatch 4: Arm, Swatch 2: Red Mitten)
         while (ptr < n) {
           const rem = n - ptr;
           const u = (rem - (n - ptr)) / rem;
@@ -389,43 +388,40 @@ export const SHAPE_PAGES = [
             out[ptr * 3]     = 10.7 + Math.cos(a) * 1.5;
             out[ptr * 3 + 1] = 19.8 + Math.sin(a) * 1.8;
             out[ptr * 3 + 2] = (ptr % 2 === 0 ? 0.6 : -0.6);
-            if (swatchOut) swatchOut[ptr] = 2; // Red Mitten
+            if (swatchOut) swatchOut[ptr] = 2;
           }
           ptr++;
         }
       }
     },
 
-    // 3. Red Cube with 3-Axis Green Intersecting Ribbon Crosses & Double Bow
+    // 3. Red Cube with Thick 3-Axis Bright Yellow Ribbon Crosses & Double Bow
     {
       id: "giftBox3D",
-      drawSVG: `<rect x="3" y="3" width="18" height="18" rx="2" stroke="#d50000" stroke-width="2"/><line x1="12" y1="3" x2="12" y2="21" stroke="#00e676" stroke-width="2.5"/><line x1="3" y1="12" x2="21" y2="12" stroke="#00e676" stroke-width="2.5"/>`,
+      drawSVG: `<rect x="3" y="3" width="18" height="18" rx="2" stroke="#d50000" stroke-width="2"/><line x1="12" y1="3" x2="12" y2="21" stroke="#ffe600" stroke-width="3"/><line x1="3" y1="12" x2="21" y2="12" stroke="#ffe600" stroke-width="3"/>`,
       drawCanvas: (ctx, cx, cy) => {
         ctx.strokeStyle = "#d50000"; ctx.lineWidth = 3;
         ctx.strokeRect(cx - 18, cy - 14, 36, 36);
-        ctx.strokeStyle = "#00e676"; ctx.lineWidth = 3.5;
+        ctx.strokeStyle = "#ffe600"; ctx.lineWidth = 3.5;
         ctx.beginPath(); ctx.moveTo(cx, cy - 14); ctx.lineTo(cx, cy + 22); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(cx - 18, cy + 4); ctx.lineTo(cx + 18, cy + 4); ctx.stroke();
       },
       gen: (out, n, swatchOut) => {
         let ptr = 0;
-        const H = 6.2;
+        const H = 6.0;
         const boxCenterY = 13.5;
 
-        // Clean 12-Edge Red Cube Wireframe (Swatch 0: Crimson Red #d50000)
-        const edgePoints = Math.round((n * 0.44) / 12);
+        // Clean Red Cube Wireframe (Swatch 0: Crimson Red #d50000, 32% of drones)
+        const edgePoints = Math.round((n * 0.32) / 12);
         const edges = [
-          // Top 4 edges (Y = +H)
           { p0: [-H, boxCenterY + H, -H], p1: [H, boxCenterY + H, -H] },
           { p0: [H, boxCenterY + H, -H],  p1: [H, boxCenterY + H, H] },
           { p0: [H, boxCenterY + H, H],   p1: [-H, boxCenterY + H, H] },
           { p0: [-H, boxCenterY + H, H],  p1: [-H, boxCenterY + H, -H] },
-          // Bottom 4 edges (Y = -H)
           { p0: [-H, boxCenterY - H, -H], p1: [H, boxCenterY - H, -H] },
           { p0: [H, boxCenterY - H, -H],  p1: [H, boxCenterY - H, H] },
           { p0: [H, boxCenterY - H, H],   p1: [-H, boxCenterY - H, H] },
           { p0: [-H, boxCenterY - H, H],  p1: [-H, boxCenterY - H, -H] },
-          // 4 Vertical Pillars
           { p0: [-H, boxCenterY - H, -H], p1: [-H, boxCenterY + H, -H] },
           { p0: [H, boxCenterY - H, -H],  p1: [H, boxCenterY + H, -H] },
           { p0: [H, boxCenterY - H, H],   p1: [H, boxCenterY + H, H] },
@@ -443,9 +439,9 @@ export const SHAPE_PAGES = [
           }
         }
 
-        // 3 Full Orthogonal Green Ribbon Bands (Swatch 1: Emerald Green #00e676)
-        // Band 1: Vertical loop wrapping around X = 0 (crosses front, top, back, bottom)
-        const ribbon1Count = Math.round(n * 0.13);
+        // Dual-Strand Bright Yellow Ribbons (Swatch 1: Electric Yellow #ffe600, 68% of drones)
+        // Band 1: Vertical perimeter loop wrapping X = 0
+        const ribbon1Count = Math.round(n * 0.17);
         for (let i = 0; i < ribbon1Count; i++) {
           const u = (i / ribbon1Count) * 4;
           let y = 0, z = 0;
@@ -453,15 +449,15 @@ export const SHAPE_PAGES = [
           else if (u < 2) { y = (boxCenterY + H) - (u - 1) * 2 * H; z = H + 0.2; }
           else if (u < 3) { y = boxCenterY - H - 0.2; z = H - (u - 2) * 2 * H; }
           else { y = (boxCenterY - H) + (u - 3) * 2 * H; z = -H - 0.2; }
-          out[ptr * 3]     = (i % 2 === 0 ? 0.7 : -0.7);
+          out[ptr * 3]     = (i % 2 === 0 ? 0.75 : -0.75);
           out[ptr * 3 + 1] = y;
           out[ptr * 3 + 2] = z;
           if (swatchOut) swatchOut[ptr] = 1;
           ptr++;
         }
 
-        // Band 2: Vertical loop wrapping around Z = 0 (crosses left, top, right, bottom)
-        const ribbon2Count = Math.round(n * 0.13);
+        // Band 2: Vertical perimeter loop wrapping Z = 0
+        const ribbon2Count = Math.round(n * 0.17);
         for (let i = 0; i < ribbon2Count; i++) {
           const u = (i / ribbon2Count) * 4;
           let x = 0, y = 0;
@@ -471,13 +467,13 @@ export const SHAPE_PAGES = [
           else { x = -H - 0.2; y = (boxCenterY - H) + (u - 3) * 2 * H; }
           out[ptr * 3]     = x;
           out[ptr * 3 + 1] = y;
-          out[ptr * 3 + 2] = (i % 2 === 0 ? 0.7 : -0.7);
+          out[ptr * 3 + 2] = (i % 2 === 0 ? 0.75 : -0.75);
           if (swatchOut) swatchOut[ptr] = 1;
           ptr++;
         }
 
-        // Band 3: Horizontal waist belt loop wrapping Y = boxCenterY (creates crosses on side faces)
-        const ribbon3Count = Math.round(n * 0.14);
+        // Band 3: Horizontal waist loop wrapping Y = boxCenterY
+        const ribbon3Count = Math.round(n * 0.18);
         for (let i = 0; i < ribbon3Count; i++) {
           const u = (i / ribbon3Count) * 4;
           let x = 0, z = 0;
@@ -486,26 +482,26 @@ export const SHAPE_PAGES = [
           else if (u < 3) { x = H - (u - 2) * 2 * H; z = -H - 0.2; }
           else { x = -H - 0.2; z = -H + (u - 3) * 2 * H; }
           out[ptr * 3]     = x;
-          out[ptr * 3 + 1] = boxCenterY + (i % 2 === 0 ? 0.7 : -0.7);
+          out[ptr * 3 + 1] = boxCenterY + (i % 2 === 0 ? 0.75 : -0.75);
           out[ptr * 3 + 2] = z;
           if (swatchOut) swatchOut[ptr] = 1;
           ptr++;
         }
 
-        // Volumetric Double-Layer Green Bow on Top (Swatch 1: Green #00e676)
+        // Double 4-Leaf Bow on Top (Swatch 1: Electric Yellow)
         while (ptr < n) {
           const side = (ptr % 4 < 2) ? 1 : -1;
           const axis = (ptr % 2 === 0) ? 'x' : 'z';
           const u = ((n - ptr) / 40) * Math.PI * 2;
-          const r = Math.sin(u) * 3.2;
+          const r = Math.sin(u) * 3.4;
 
           let bx = 0, bz = 0;
           if (axis === 'x') {
-            bx = side * (Math.abs(Math.cos(u)) * 3.8 + 0.6);
-            bz = Math.sin(u * 2) * 1.4;
+            bx = side * (Math.abs(Math.cos(u)) * 4.0 + 0.6);
+            bz = Math.sin(u * 2) * 1.5;
           } else {
-            bz = side * (Math.abs(Math.cos(u)) * 3.8 + 0.6);
-            bx = Math.sin(u * 2) * 1.4;
+            bz = side * (Math.abs(Math.cos(u)) * 4.0 + 0.6);
+            bx = Math.sin(u * 2) * 1.5;
           }
 
           out[ptr * 3]     = bx;
@@ -517,7 +513,7 @@ export const SHAPE_PAGES = [
       }
     },
 
-    // 4. CAD Wireframe Mug, Thick Handle, Striped Stirrer & Rising Steam Particles
+    // 4. CAD Wireframe Mug, Striped Stirrer & Rising Steam Particles
     {
       id: "hotCocoaMug",
       drawSVG: `<path d="M5 6 L5 18 A 3 3 0 0 0 8 21 L14 21 A 3 3 0 0 0 17 18 L17 6 Z M17 9 H20 A 2 2 0 0 1 22 11 L22 15 A 2 2 0 0 1 20 17 H17" stroke-width="1.5"/><path d="M8 2 C8 4, 9 4, 9 6 M12 1 C12 3, 13 3, 13 5 M15 2 C15 4, 16 4, 16 6" stroke-width="1.5"/>`,
@@ -536,7 +532,6 @@ export const SHAPE_PAGES = [
         const mugHeight = 11.5;
         const mugRadius = 6.5;
 
-        // 5 Horizontal Contour Rings (Swatch 0: Ceramic Red)
         const ringHeights = [mugBaseY, mugBaseY + 2.8, mugBaseY + 5.7, mugBaseY + 8.6, mugBaseY + mugHeight];
         const pointsPerRing = Math.round((n * 0.32) / ringHeights.length);
 
@@ -551,7 +546,6 @@ export const SHAPE_PAGES = [
           }
         }
 
-        // 8 Vertical Boundary Ribs (Swatch 0: Ceramic Red)
         const strutCount = Math.round(n * 0.14);
         for (let i = 0; i < strutCount; i++) {
           const rib = i % 8;
@@ -564,7 +558,6 @@ export const SHAPE_PAGES = [
           ptr++;
         }
 
-        // Thick Double-Arch Handle (Swatch 0: Ceramic Red)
         const handleCount = Math.round(n * 0.14);
         for (let i = 0; i < handleCount; i++) {
           const u = i / handleCount;
@@ -578,7 +571,6 @@ export const SHAPE_PAGES = [
           ptr++;
         }
 
-        // Alternating Candy Cane Stirrer (Swatch 2: Red, Swatch 1: White)
         const stirrerCount = Math.round(n * 0.14);
         for (let i = 0; i < stirrerCount; i++) {
           const u = i / stirrerCount;
@@ -602,7 +594,6 @@ export const SHAPE_PAGES = [
           ptr++;
         }
 
-        // Rising Steam Emitters (Swatch 3: Steam White)
         while (ptr < n) {
           const r = Math.sqrt(Math.random()) * (mugRadius - 1.0);
           const theta = Math.random() * Math.PI * 2;
